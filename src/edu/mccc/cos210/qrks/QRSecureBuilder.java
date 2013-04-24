@@ -3,23 +3,16 @@ import java.util.*;
 import javax.swing.*;
 import java.awt.*;
 
-public class QRSecureBuilder extends QRBuilder {
-	private class QRSecureBuilderPanel extends JPanel {
-		public QRSecureBuilderPanel() {
-			//setLayout(new BorderLayout());
-			JTextArea input;
-			
-		}
-	}
-	@Override;
+class QRSecureBuilder extends QRBuilder {
+	@Override
 	public JPanel generateGUI() {
-		return new QRSecureBuilderPanel();
+		return new QRSecureBuilderPanel(this);
 	}
-	@Override;
+	@Override
 	public String getName() {
 		return "Signed QRCode";
 	}
-	@Override;
+	@Override
 	public void reset() {
 	}
 }

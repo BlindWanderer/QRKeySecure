@@ -3,7 +3,7 @@ package edu.mccc.cos210.qrks;
 import javax.swing.*;
 import java.awt.*;
 
-public class StateJPanel extends JPanel {
+class StateJPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private JPanel state = null;
 	private JPanel previous = null;

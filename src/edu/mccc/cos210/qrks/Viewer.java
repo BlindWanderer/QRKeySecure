@@ -2,19 +2,14 @@ package edu.mccc.cos210.qrks;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-
 import java.awt.*;
 import java.awt.event.*;
-
 import javax.swing.filechooser.*;
-
 import java.io.*;
 import java.awt.image.*;
 import javax.imageio.*;
 
-
-
-public class Viewer extends JFrame{
+class Viewer extends JFrame{
 	private static final long serialVersionUID = 1L;
 	private StateJPanel readerPanel = new StateJPanel();
 	private Builder builder = new QRSecureBuilder();

@@ -5,7 +5,7 @@ import java.awt.image.*;
 
 import javax.swing.JPanel;
 
-public class ImageJPanel extends JPanel {
+class ImageJPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private BufferedImage image = null;
 	public void setImage(BufferedImage img) {
