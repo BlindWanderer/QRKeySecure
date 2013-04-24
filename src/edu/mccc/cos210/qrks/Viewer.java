@@ -4,19 +4,79 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.*;
 import javax.swing.filechooser.*;
 import java.io.*;
-import java.awt.image.*;
 import javax.imageio.*;
 
 class Viewer extends JFrame{
 	private static final long serialVersionUID = 1L;
-	private Builder builder = new QRSecureBuilder();
+	private Builder<BufferedImage> builder = new QRSecureBuilder();
 	public Viewer() {
 		super("QRKey");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		JPanel builderPanel = builder.generateGUI();
+		JPanel builderPanel = new JPanel(new BorderLayout());
+		final JBuilderPanel<BufferedImage> builderGeneratedPanel = builder.generateGUI();
+		{
+			JPanel fun = new JPanel(new GridLayout(0,1));
+			JPanel blah = new JPanel();
+			final ImageJPanel imageBox = new ImageJPanel();
+			imageBox.setPreferredSize(new Dimension(400, 400));
+			imageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 8));
+			final JButton generateImage = new JButton("Preview");
+			generateImage.setMnemonic(KeyEvent.VK_P);
+			generateImage.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent e) {
+					new Thread(){
+						@Override
+						public void run() {
+							final BufferedImage image = builderGeneratedPanel.generate();
+							EventQueue.invokeLater(
+								new Runnable() {
+									@Override
+									public void run() {
+										imageBox.setImage(image);
+									}
+								}
+							);
+						}
+					}.start();
+				}
+			});
+
+			final JButton saveImage = new JButton("Save Image");
+			saveImage.setMnemonic(KeyEvent.VK_S);
+			saveImage.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent e) {
+					JFileChooser fc = new JFileChooser();
+					//fc.setAcceptAllFileFilterUsed(false);
+					//fc.addChoosableFileFilter(new ImageFilter());
+					int returnVal = fc.showSaveDialog(Viewer.this);
+					//Process the results.
+					if (returnVal == JFileChooser.APPROVE_OPTION) {
+						File file = fc.getSelectedFile();
+//						try {
+//							BufferedImage myImage = ImageIO.read(file);
+//							cl.show(stack, "4");
+//							imageBox.setImage(myImage);
+//						}
+//						catch (IOException ex) {	
+//						}
+					} 
+					//Reset the file chooser for the next time it's shown.
+					fc.setSelectedFile(null);
+				}
+			});
+			fun.add(builderGeneratedPanel);//, BorderLayout.CENTER);
+			blah.add(generateImage);//, BorderLayout.SOUTH);
+			blah.add(saveImage);//, BorderLayout.SOUTH);
+			fun.add(blah);//, BorderLayout.SOUTH);
+			
+			builderPanel.add(imageBox, BorderLayout.CENTER);
+			builderPanel.add(fun, BorderLayout.SOUTH);
+		}
+		
 		
 		JPanel readerPanel = new JPanel();
 		readerPanel.setPreferredSize(new Dimension(600, 800));
@@ -75,11 +135,11 @@ class Viewer extends JFrame{
 		{
 			final JButton openImage = new JButton("Open Image");
 			openImage.setMnemonic(KeyEvent.VK_O);
+			openImage.addActionListener(oal);
 			state1.add(openImage, BorderLayout.LINE_START);
 			final JButton startVideo = new JButton("Start Video");
 			startVideo.setMnemonic(KeyEvent.VK_S);
 			state1.add(startVideo, BorderLayout.LINE_END);
-			openImage.addActionListener(oal);
 			
 			startVideo.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
@@ -92,11 +152,11 @@ class Viewer extends JFrame{
 		{
 			final JButton openImage = new JButton("Open Image");
 			openImage.setMnemonic(KeyEvent.VK_O);
+			openImage.addActionListener(oal);
 			state2.add(openImage, BorderLayout.LINE_START);
 			final JButton takeSnapshot = new JButton("Take Snapshot");
 			takeSnapshot.setMnemonic(KeyEvent.VK_T);
 			state2.add(takeSnapshot, BorderLayout.LINE_END);
-			openImage.addActionListener(oal);
 			takeSnapshot.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					cl.show(stack, "3");

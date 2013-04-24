@@ -4,22 +4,26 @@ import javax.swing.*;
 import javax.swing.text.*;
 import javax.swing.event.*;
 import java.awt.*;
+import java.awt.image.*;
 import java.awt.event.*;
 import edu.mccc.cos210.qrks.qrcode.*;
 
-class QRSecureBuilderPanel extends JPanel {
+class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
 	private static final long serialVersionUID = 1L;
 	private QRSecureBuilder builder;
+	public BufferedImage generate() {
+		return null;
+	}
 	public QRSecureBuilderPanel(QRSecureBuilder builder) {
 		this.builder = builder;
-		//setLayout(new BorderLayout());
+		//setLayout(new GridLayout(0,1));
 		
 		JTextArea input = new JTextArea(5,50);
 		JPanel tp = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
 		tp.setBorder(BorderFactory.createTitledBorder("QRCode Text:"));
 		tp.add(input);
 		
-		JComboBox<ErrorCorrectionLevel> ec = new JComboBox<ErrorCorrectionLevel>(ErrorCorrectionLevel.values());
+		JComboBox/*<ErrorCorrectionLevel>*/ ec = new JComboBox/*<ErrorCorrectionLevel>*/(ErrorCorrectionLevel.values());
 		JPanel ecp = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
 		ecp.setToolTipText("Error Correction Level:");
 		ecp.setBorder(BorderFactory.createTitledBorder("Error Correction Level:"));
@@ -50,8 +54,8 @@ class QRSecureBuilderPanel extends JPanel {
 				}
 			});
 		JPanel ppsp = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
-		ppsp.setToolTipText("Pixels Per Square:");
-		ppsp.setBorder(BorderFactory.createTitledBorder("Pixels Per Square:"));
+		ppsp.setToolTipText("Pixels Per Unit:");
+		ppsp.setBorder(BorderFactory.createTitledBorder("Pixels Per Unit:"));
 		ppsp.add(pps);
 		
 		final JTextArea info = new JTextArea("Version: \nDimensions: \nNumber of Characters: 0");
@@ -79,10 +83,22 @@ class QRSecureBuilderPanel extends JPanel {
 				info.setText("Version: \nDimensions: \nNumber of Characters: " + doc.getLength());
 			}
 		});
+
+		final JTextField keyName = new JTextField("<No Key Selected>", 18);
+		keyName.setEditable(false);
+		final JButton selectKey = new JButton("Select Key");
+		selectKey.setMnemonic(KeyEvent.VK_K);
+		
+		JPanel skp = new JPanel();
+		skp.setToolTipText("Secure Key:");
+		skp.setBorder(BorderFactory.createTitledBorder("Secure Key:"));
+		skp.add(selectKey);
+		skp.add(keyName);		
 		
 		add(tp);
 		add(ecp);
 		add(ppsp);
 		add(ip);
+		add(skp);
 	}
 }
