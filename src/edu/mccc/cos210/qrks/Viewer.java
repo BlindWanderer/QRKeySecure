@@ -21,12 +21,14 @@ class Viewer extends JFrame{
         
         readerPanel.setPreferredSize(new Dimension(600, 800));
         readerPanel.setLayout(new BorderLayout());
-
+		
         final ImageJPanel imageBox = new ImageJPanel();
         imageBox.setPreferredSize(new Dimension(400, 400));
         imageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 8));
         readerPanel.add(imageBox, BorderLayout.CENTER);
         
+		//should use a secondary JPanel with a CardLayout to house the states instead of rolling our own.
+		
         final JPanel state1 = new JPanel();
         final JPanel state2 = new JPanel();
         final JPanel state3 = new JPanel();

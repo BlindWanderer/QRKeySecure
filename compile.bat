@@ -1,1 +1,1 @@
-javac -Xlint -cp bin;lib/Debug.jar -d bin src/edu/mccc/cos210/qrks/*.java
+javac -Xlint -cp bin;lib/Debug.jar -d bin src/edu/mccc/cos210/qrks/*.java src/edu/mccc/cos210/qrks/qrcode/*.java
