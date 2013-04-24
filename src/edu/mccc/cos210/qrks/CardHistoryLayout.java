@@ -38,7 +38,7 @@ public class CardHistoryLayout extends CardLayout {
 			} else {
 				r = values[position - past];
 			}
-			System.out.println(past + " ~ " + Arrays.toString(values) + " ~ " + r);
+//			System.out.println(past + " ~ " + Arrays.toString(values) + " ~ " + r);
 			return r;
 		}
 		int getCount(){
