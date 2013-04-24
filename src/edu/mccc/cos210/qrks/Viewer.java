@@ -17,14 +17,12 @@ import javax.imageio.*;
 public class Viewer extends JFrame{
 	private static final long serialVersionUID = 1L;
 	private StateJPanel readerPanel = new StateJPanel();
-	private StateJPanel builderPanel = new StateJPanel();	
-
+	private Builder builder = new QRSecureBuilder();
 	public Viewer() {
         super("QRKey");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        //builderPanel.setPreferredSize(new Dimension(600, 800));
-        builderPanel.setLayout(new BorderLayout());
+		JPanel builderPanel = builder.generateGUI();
         
         readerPanel.setPreferredSize(new Dimension(600, 800));
         readerPanel.setLayout(new BorderLayout());
@@ -51,15 +49,13 @@ public class Viewer extends JFrame{
 	        state1.add(startVideo, BorderLayout.LINE_END);
 	        openImage.addActionListener(new ActionListener() {
 	        	public void actionPerformed(ActionEvent e) {
-	        		
 	        		JFileChooser fc = new JFileChooser();
-	        	//	fc.setAcceptAllFileFilterUsed(false);
-	              //  fc.addChoosableFileFilter(new ImageFilter());
+					//fc.setAcceptAllFileFilterUsed(false);
+					//fc.addChoosableFileFilter(new ImageFilter());
 	                
 	                //Add the preview pane.
 	                //fc.setAccessory(new ImagePreview(fc));
-	                
-	         
+					
 	                //Show it.
 	                int returnVal = fc.showDialog(Viewer.this, "Open");
 	         
@@ -180,17 +176,6 @@ public class Viewer extends JFrame{
 	        });
         }
         
-        
-        
-        
-        
-        
-        
-       
-        
-        
-        
-		
 		JTabbedPane tabbedPane = new JTabbedPane();
 		tabbedPane.addTab("READ", readerPanel);	//can add a custom icon later
 		tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
@@ -202,16 +187,4 @@ public class Viewer extends JFrame{
 		pack();
         setVisible(true);
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-
 }
