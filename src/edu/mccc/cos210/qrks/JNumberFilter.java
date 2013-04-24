@@ -17,5 +17,5 @@ class JNumberFilter extends PlainDocument {
 			}
 		}
 		super.insertString(offset, str, attr);
-    }
+	}
 }

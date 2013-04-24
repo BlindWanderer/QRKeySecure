@@ -18,8 +18,11 @@ public enum ErrorCorrectionLevel {
 	public String getName() {
 		return super.toString();
 	}
-/*    public static void main(String[] args) {
-        for (ErrorCorrectionLevel p : ErrorCorrectionLevel.values())
-           System.out.println(p);
-    }*/
+	/*
+	public static void main(String[] args) {
+		for (ErrorCorrectionLevel p : ErrorCorrectionLevel.values()) {
+			System.out.println(p);
+		}
+	}
+	*/
 }

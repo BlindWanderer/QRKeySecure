@@ -10,7 +10,7 @@ class ImageJPanel extends JPanel {
 	private BufferedImage image = null;
 	public void setImage(BufferedImage img) {
 		image = img;
-		invalidate();
+		repaint();
 	}
 	public BufferedImage getImage() {
 		return image;
