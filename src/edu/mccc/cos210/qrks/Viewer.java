@@ -21,27 +21,33 @@ class Viewer extends JFrame{
 		{
 			JPanel fun = new JPanel(new GridLayout(0,1));
 			JPanel blah = new JPanel();
-			final ImageJPanel imageBox = new ImageJPanel();
-			imageBox.setPreferredSize(new Dimension(400, 400));
-			imageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 8));
+			final ImageJPanel imageBox2 = new ImageJPanel();
+			imageBox2.setPreferredSize(new Dimension(400, 400));
+			imageBox2.setBorder(BorderFactory.createLineBorder(Color.BLACK, 8));
 			final JButton generateImage = new JButton("Preview");
 			generateImage.setMnemonic(KeyEvent.VK_P);
 			generateImage.addActionListener(new ActionListener(){
 				public void actionPerformed(ActionEvent e) {
-					new Thread(){
-						@Override
-						public void run() {
-							final BufferedImage image = builderGeneratedPanel.generate();
-							EventQueue.invokeLater(
-								new Runnable() {
-									@Override
-									public void run() {
-										imageBox.setImage(image);
-									}
+					final Generator<BufferedImage> generator = builderGeneratedPanel.getGenerator();
+					if (generator != null) {
+						new Thread(){
+							@Override
+							public void run() {
+								Item<BufferedImage> item = generator.generate();
+								if (item != null) {
+									final BufferedImage image = item.save();
+									EventQueue.invokeLater(
+										new Runnable() {
+											@Override
+											public void run() {
+												imageBox2.setImage(image);
+											}
+										}
+									);
 								}
-							);
-						}
-					}.start();
+							}
+						}.start();
+					}
 				}
 			});
 
@@ -73,7 +79,7 @@ class Viewer extends JFrame{
 			blah.add(saveImage);//, BorderLayout.SOUTH);
 			fun.add(blah);//, BorderLayout.SOUTH);
 			
-			builderPanel.add(imageBox, BorderLayout.CENTER);
+			builderPanel.add(imageBox2, BorderLayout.CENTER);
 			builderPanel.add(fun, BorderLayout.SOUTH);
 		}
 		

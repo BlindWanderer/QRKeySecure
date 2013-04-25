@@ -10,5 +10,5 @@ import java.awt.image.*;
 import javax.imageio.*;
 
 public abstract class JBuilderPanel<T> extends JPanel {
-	public abstract T generate();
+	public abstract Generator<BufferedImage> getGenerator();
 }

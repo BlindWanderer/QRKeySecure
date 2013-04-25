@@ -11,8 +11,12 @@ import edu.mccc.cos210.qrks.qrcode.*;
 class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
 	private static final long serialVersionUID = 1L;
 	private QRSecureBuilder builder;
-	public BufferedImage generate() {
-		return null;
+	public Generator<BufferedImage> getGenerator() {
+		return new Generator<BufferedImage>() {
+			public Item<BufferedImage> generate() {
+				return null;
+			}
+		};
 	}
 	public QRSecureBuilderPanel(QRSecureBuilder builder) {
 		this.builder = builder;
@@ -23,7 +27,7 @@ class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
 		tp.setBorder(BorderFactory.createTitledBorder("QRCode Text:"));
 		tp.add(input);
 		
-		JComboBox/*<ErrorCorrectionLevel>*/ ec = new JComboBox/*<ErrorCorrectionLevel>*/(ErrorCorrectionLevel.values());
+		JComboBox<ErrorCorrectionLevel> ec = new JComboBox<ErrorCorrectionLevel>(ErrorCorrectionLevel.values());
 		JPanel ecp = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
 		ecp.setToolTipText("Error Correction Level:");
 		ecp.setBorder(BorderFactory.createTitledBorder("Error Correction Level:"));
