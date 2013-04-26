@@ -1,4 +1,4 @@
-			package edu.mccc.cos210.qrks.qrcode;
+package edu.mccc.cos210.qrks.qrcode;
 import java.util.*;
 import javax.swing.*;
 import java.awt.*;

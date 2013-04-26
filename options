@@ -10,5 +10,5 @@
 -linksource
 -sourcepath src
 -classpath lib/Debug.jar
--link "file:///C:/Program Files/Java/jdk1.7.0_13/docs/api"
+-link "http://docs.oracle.com/javase/7/docs/api"
 -subpackages edu.mccc.cos210.qrks

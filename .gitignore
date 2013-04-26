@@ -1,3 +1,4 @@
 *.class
 bin/
+docs/
 lib/checkstyle-5.6/

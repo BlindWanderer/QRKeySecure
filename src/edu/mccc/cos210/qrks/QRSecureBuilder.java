@@ -1,4 +1,5 @@
 package edu.mccc.cos210.qrks;
+import edu.mccc.cos210.qrks.qrcode.*;
 import java.util.*;
 import javax.swing.*;
 import java.awt.*;
@@ -14,8 +15,5 @@ public class QRSecureBuilder extends QRBuilder {
 	@Override
 	public String getName() {
 		return "Signed QRCode";
-	}
-	@Override
-	public void reset() {
 	}
 }

@@ -6,9 +6,6 @@ import javax.swing.text.*;
  */
 public class JNumberFilter extends PlainDocument {
 	private static final long serialVersionUID = 1L;
-	public JNumberFilter() {
-		super();
-	}
 	public void insertString(final int offset, final String str, final AttributeSet attr) throws BadLocationException {
 		if (str == null) {
 			return;

@@ -1,0 +1,12 @@
+Todo List (in no particular order)
+
+* JavaDocs - Do what ever CheckStyle tells you to do (with regards to JavaDocs, everything else use your best judgement)
+* Use Events for passing message between threads?
+* QRBuilderPanel: Fix Layout
+* Viewer.generateBuilderPanel(): Fix Layout
+* QRSecureBuilderPanel: Key Selection
+* QRSecureBuilderPanel: Message Signing probably light enough it doesn't need to be deligated to a worker thread.
+* QRBuilder.QRGenerator: QRCode generation
+* QRReader: Needs writing
+* QRSecureReader: Needs writing
+* Work Readers into the flow of the GUI

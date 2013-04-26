@@ -8,7 +8,9 @@ import java.awt.image.*;
 import javax.swing.filechooser.*;
 import java.io.*;
 import javax.imageio.*;
-
+/**
+ * Viewer: A JFrame that handles the construction of entire program.
+ */
 public class Viewer extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
@@ -33,14 +35,13 @@ public class Viewer extends JFrame {
 		JPanel fun = new JPanel(new GridLayout(0, 1));
 		JPanel blah = new JPanel();
 		final ImageJPanel imageBox = new ImageJPanel();
-		imageBox.setPreferredSize(new Dimension(400, 400));
-		imageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 8));
 		final JButton generateImage = new JButton("Preview");
 		generateImage.setMnemonic(KeyEvent.VK_P);
 		generateImage.addActionListener(new ActionListener() {
 			public void actionPerformed(final ActionEvent e) {
 				final Generator<BufferedImage> generator = builderGeneratedPanel.getGenerator();
 				if (generator != null) {
+					//TODO: Only a single worker thread should be used.
 					Thread worker = new Thread() {
 						@Override
 						public void run() {
@@ -95,14 +96,15 @@ public class Viewer extends JFrame {
 		builderPanel.add(fun, BorderLayout.SOUTH);
 		return builderPanel;
 	}
+	/**
+	 *
+	 */
 	private JPanel generateReaderPanel() {
 		JPanel readerPanel = new JPanel();
 		readerPanel.setPreferredSize(new Dimension(600, 800));
 		readerPanel.setLayout(new BorderLayout());
 		
 		final ImageJPanel imageBox = new ImageJPanel();
-		imageBox.setPreferredSize(new Dimension(400, 400));
-		imageBox.setBorder(BorderFactory.createLineBorder(Color.BLACK, 8));
 		readerPanel.add(imageBox, BorderLayout.CENTER);
 		
 		final CardHistoryLayout cl = new CardHistoryLayout(2);
@@ -144,7 +146,7 @@ public class Viewer extends JFrame {
 			final JButton startVideo = new JButton("Start Video");
 			startVideo.setMnemonic(KeyEvent.VK_S);
 			state1.add(startVideo, BorderLayout.LINE_END);
-			startVideo.addActionListener(new ButtonJumper(cl, stack, "2"));
+			startVideo.addActionListener(showActionListener(cl, stack, "2"));
 		}
 		{ //STATE 2
 			JPanel state2 = new JPanel(new BorderLayout());
@@ -156,7 +158,7 @@ public class Viewer extends JFrame {
 			final JButton takeSnapshot = new JButton("Take Snapshot");
 			takeSnapshot.setMnemonic(KeyEvent.VK_T);
 			state2.add(takeSnapshot, BorderLayout.LINE_END);
-			takeSnapshot.addActionListener(new ButtonJumper(cl, stack, "3"));
+			takeSnapshot.addActionListener(showActionListener(cl, stack, "3"));
 		}
 		{ //STATE 3
 			JPanel state3 = new JPanel(new BorderLayout());
@@ -167,8 +169,8 @@ public class Viewer extends JFrame {
 			final JButton process = new JButton("Process");
 			process.setMnemonic(KeyEvent.VK_P);
 			state3.add(process, BorderLayout.LINE_END);
-			retake.addActionListener(new ButtonJumper(cl, stack, "2"));
-			process.addActionListener(new ButtonJumper(cl, stack, "5"));
+			retake.addActionListener(showActionListener(cl, stack, "2"));
+			process.addActionListener(showActionListener(cl, stack, "5"));
 		}
 		{ //STATE 4
 			JPanel state4 = new JPanel(new BorderLayout());
@@ -179,8 +181,8 @@ public class Viewer extends JFrame {
 			final JButton process = new JButton("Process");
 			process.setMnemonic(KeyEvent.VK_P);
 			state4.add(process, BorderLayout.LINE_END);
-			goBack.addActionListener(new ButtonJumper(cl, stack, "1"));
-			process.addActionListener(new ButtonJumper(cl, stack, "5"));
+			goBack.addActionListener(showActionListener(cl, stack, "1"));
+			process.addActionListener(showActionListener(cl, stack, "5"));
 		}
 		{ //STATE 5
 			JPanel state5 = new JPanel(new BorderLayout());
@@ -200,24 +202,21 @@ public class Viewer extends JFrame {
 			final JButton startOver = new JButton("Start Over");
 			startOver.setMnemonic(KeyEvent.VK_O);
 			state6.add(startOver, BorderLayout.CENTER);
-			startOver.addActionListener(new ButtonJumper(cl, stack, "1"));
+			startOver.addActionListener(showActionListener(cl, stack, "1"));
 		}
 		
 		cl.show(stack, "1");
 		
 		return readerPanel;
 	}
-	private static class ButtonJumper implements ActionListener {
-		private final CardLayout cl;
-		private final JPanel stack;
-		private final String target;
-		ButtonJumper(final CardLayout cl, final JPanel stack, final String target) {
-			this.cl = cl;
-			this.stack = stack;
-			this.target = target;
-		}
-		public void actionPerformed(final ActionEvent e) {
-			cl.show(stack, target);
-		}
+	/**
+	 * Quick and dirty closure to unify similar code.
+	 */
+	private ActionListener showActionListener(final CardLayout cl, final JPanel stack, final String target) {
+		return new ActionListener() {
+			public void actionPerformed(final ActionEvent e) {
+				cl.show(stack, target);
+			}
+		};
 	}
 }
