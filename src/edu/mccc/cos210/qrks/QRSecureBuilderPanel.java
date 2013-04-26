@@ -8,7 +8,7 @@ import java.awt.image.*;
 import java.awt.event.*;
 import edu.mccc.cos210.qrks.qrcode.*;
 
-class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
+public class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
 	private static final long serialVersionUID = 1L;
 	private QRSecureBuilder builder;
 	public Generator<BufferedImage> getGenerator() {
@@ -18,25 +18,25 @@ class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
 			}
 		};
 	}
-	public QRSecureBuilderPanel(QRSecureBuilder builder) {
+	public QRSecureBuilderPanel(final QRSecureBuilder builder) {
 		this.builder = builder;
 		//setLayout(new GridLayout(0,1));
-		
-		JTextArea input = new JTextArea(5,50);
-		JPanel tp = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
+
+		JTextArea input = new JTextArea(5, 50);
+		JPanel tp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		tp.setBorder(BorderFactory.createTitledBorder("QRCode Text:"));
 		tp.add(input);
-		
+
 		JComboBox<ErrorCorrectionLevel> ec = new JComboBox<ErrorCorrectionLevel>(ErrorCorrectionLevel.values());
-		JPanel ecp = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
+		JPanel ecp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		ecp.setToolTipText("Error Correction Level:");
 		ecp.setBorder(BorderFactory.createTitledBorder("Error Correction Level:"));
 		ecp.add(ec);
-		
+
 		final JTextField pps = new JTextField(new JNumberFilter(), "1", 10);
-		pps.addFocusListener(new FocusAdapter(){
-				public void focusLost(FocusEvent e){
-					JTextComponent c = (JTextComponent)e.getComponent();
+		pps.addFocusListener(new FocusAdapter() {
+				public void focusLost(final FocusEvent e) {
+					JTextComponent c = (JTextComponent) e.getComponent();
 					String text = c.getText();
 					if (text == null || text == "") {
 						c.setText("1");
@@ -57,7 +57,7 @@ class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
 					}
 				}
 			});
-		JPanel ppsp = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
+		JPanel ppsp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		ppsp.setToolTipText("Pixels Per Unit:");
 		ppsp.setBorder(BorderFactory.createTitledBorder("Pixels Per Unit:"));
 		ppsp.add(pps);
@@ -66,22 +66,22 @@ class QRSecureBuilderPanel extends JBuilderPanel<BufferedImage> {
 		info.setEditable(false);
 		//Font f = new Font(info.getFont());
 		info.setOpaque(false);
-		JPanel ip = new JPanel();//new BoxLayout(pane, BoxLayout.Y_AXIS)
+		JPanel ip = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		ip.setToolTipText("Information:");
 		ip.setBorder(BorderFactory.createTitledBorder("Information:"));
 		ip.add(info);
 		
 		input.getDocument().addDocumentListener(new DocumentListener() {
-			public void insertUpdate(DocumentEvent e) {
+			public void insertUpdate(final DocumentEvent e) {
 				update(e);
 			}
-			public void removeUpdate(DocumentEvent e) {
+			public void removeUpdate(final DocumentEvent e) {
 				update(e);
 			}
-			public void changedUpdate(DocumentEvent e) {
-				update(e);//Plain text components do not fire these events
+			public void changedUpdate(final DocumentEvent e) {
+				update(e); //Plain text components do not fire these events
 			}
-			public void update(DocumentEvent e) {
+			public void update(final DocumentEvent e) {
 				Document doc = e.getDocument();
 				//TODO: calculate other values, this is trivial but implementation specific
 				info.setText("Version: \nDimensions: \nNumber of Characters: " + doc.getLength());

@@ -3,7 +3,9 @@ import java.util.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.*;
-
-abstract class QRBuilder implements Builder<BufferedImage> {
-	//This will not be an abstract class but I don't want to impelement it right now
+/**
+ * QRBuilder: A Builder<BufferedImage> that knows how to make QRCodes.
+ */
+public abstract class QRBuilder implements Builder<BufferedImage> {
+	//TODO: This will not be an abstract class but I don't want to impelement it right now
 }

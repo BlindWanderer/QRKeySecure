@@ -1,0 +1,1 @@
+java -cp "lib\checkstyle-5.6\*" com.puppycrawl.tools.checkstyle.Main -c checkstyle.xml -r src\edu\mccc\cos210\qrks

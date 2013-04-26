@@ -1,4 +1,4 @@
-package edu.mccc.cos210.qrks.qrcode;
+			package edu.mccc.cos210.qrks.qrcode;
 import java.util.*;
 import javax.swing.*;
 import java.awt.*;
@@ -9,7 +9,7 @@ public enum ErrorCorrectionLevel {
 	Q(25),
 	H(30);
 	private final int percentage;
-	ErrorCorrectionLevel(int percentage) {
+	ErrorCorrectionLevel(final int percentage) {
 		this.percentage = percentage;
 	}
 	public String toString() {

@@ -1,14 +1,9 @@
 package edu.mccc.cos210.qrks;
-
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
-import javax.swing.filechooser.*;
-import java.io.*;
-import java.awt.image.*;
-import javax.imageio.*;
-
+/**
+ * JBuilderPanel<T>: An abstract class that provides a Generator that can be executed on a worker thread.
+ */
 public abstract class JBuilderPanel<T> extends JPanel {
-	public abstract Generator<BufferedImage> getGenerator();
+	public abstract Generator<T> getGenerator();
 }
