@@ -7,7 +7,9 @@ import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
 import edu.mccc.cos210.qrks.qrcode.*;
-
+/**
+ * Responsible for accepting user inputs required to generate a QRCode.
+ */
 public class QRBuilderPanel extends JBuilderPanel<BufferedImage> {
 	private static final long serialVersionUID = 1L;
 	

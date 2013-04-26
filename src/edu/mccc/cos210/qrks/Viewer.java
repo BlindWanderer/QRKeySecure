@@ -69,10 +69,9 @@ public class Viewer extends JFrame {
 		saveImage.addActionListener(new ActionListener() {
 			public void actionPerformed(final ActionEvent e) {
 				JFileChooser fc = new JFileChooser();
-				//fc.setAcceptAllFileFilterUsed(false);
-				//fc.addChoosableFileFilter(new ImageFilter());
+				fc.setAcceptAllFileFilterUsed(false);
+				fc.addChoosableFileFilter(new ImageFileFilter());
 				int returnVal = fc.showSaveDialog(Viewer.this);
-				//Process the results.
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
 //						try {
@@ -115,13 +114,12 @@ public class Viewer extends JFrame {
 		ActionListener oal = new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
 					JFileChooser fc = new JFileChooser();
-					//fc.setAcceptAllFileFilterUsed(false);
-					//fc.addChoosableFileFilter(new ImageFilter());
-					//Add the preview pane.
-					//fc.setAccessory(new ImagePreview(fc));
-					//Show it.
-					int returnVal = fc.showDialog(Viewer.this, "Open");
-					//Process the results.
+					fc.setAcceptAllFileFilterUsed(false);
+					fc.addChoosableFileFilter(new ImageFileFilter());
+					fc.setAccessory(new ImagePreview(fc));
+					
+					int returnVal = fc.showDialog(Viewer.this, "Open Image");
+					
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
 						File file = fc.getSelectedFile();
 						try {
