@@ -1,6 +1,4 @@
 package edu.mccc.cos210.qrks;
-
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -114,22 +112,29 @@ public class Viewer extends JFrame {
 		ActionListener oal = new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
 					JFileChooser fc = new JFileChooser();
+					ImagePreview ip = new ImagePreview(fc);
 					fc.setAcceptAllFileFilterUsed(false);
 					fc.addChoosableFileFilter(new ImageFileFilter());
-					fc.setAccessory(new ImagePreview(fc));
+					fc.setAccessory(ip);
 					
 					int returnVal = fc.showDialog(Viewer.this, "Open Image");
 					
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						File file = fc.getSelectedFile();
-						try {
-							BufferedImage myImage = ImageIO.read(file);
-							cl.show(stack, "4");
-							imageBox.setImage(myImage);
-						} catch (IOException ex) {
-							//TODO: display error message about trouble reading file. Status bar or dialog box?
+						BufferedImage image = ip.getImage();
+						if (image == null) { //don't reopen the file unless strictly necessary
+							File file = fc.getSelectedFile();
+							try {
+								image = ImageIO.read(file);
+							} catch (IOException ex) {
+								image = null;
+								//TODO: display error message about trouble reading file. Status bar or dialog box?
+							}
 						}
-					} 
+						if (image != null) {
+							cl.show(stack, "4");
+							imageBox.setImage(image);
+						}
+					}
 					//Reset the file chooser for the next time it's shown.
 					fc.setSelectedFile(null);
 				}
