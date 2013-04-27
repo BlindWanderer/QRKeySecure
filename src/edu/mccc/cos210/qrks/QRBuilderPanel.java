@@ -16,13 +16,24 @@ public class QRBuilderPanel extends JBuilderPanel<BufferedImage> {
 	final private JTextArea input;
 	final private JComboBox<ErrorCorrectionLevel> ec;
 	final private JTextField pps;
-	
+	/**
+	 * Gets the user-input text to be encoded in the QRCode.
+	 * @return User-input text to be encoded in the QRCode.
+	 */
 	public String getText() {
 		return input.getText();
 	}
+	/**
+	 * Gets the error correction level selected by the user.
+	 * @return Error correction level selected by the user.
+	 */
 	public ErrorCorrectionLevel getErrorCorrectionLevel() {
 		return ec.getItemAt(ec.getSelectedIndex());
 	}
+	/**
+	 * Gets the resolution (pixels per unit (module) selected by the user).
+	 * @return Pixels per unit (module) selected by the user.
+	 */
 	public int getPixelsPerUnit() {
 		return Integer.valueOf(pps.getText());
 	}
@@ -98,23 +109,10 @@ public class QRBuilderPanel extends JBuilderPanel<BufferedImage> {
 				info.setText("Version: \nDimensions: \nNumber of Characters: " + doc.getLength());
 			}
 		});
-
-		final JTextField keyName = new JTextField("<No Key Selected>", 18);
-		keyName.setEditable(false);
-		final JButton selectKey = new JButton("Select Key");
-		selectKey.setMnemonic(KeyEvent.VK_K);
-		//TODO: When you set "key" field be sure to update keyName.
-		
-		JPanel skp = new JPanel();
-		skp.setToolTipText("Secure Key:");
-		skp.setBorder(BorderFactory.createTitledBorder("Secure Key:"));
-		skp.add(selectKey);
-		skp.add(keyName);		
 		
 		add(tp);
 		add(ecp);
 		add(ppsp);
 		add(ip);
-		add(skp);
-	}
+			}
 }
