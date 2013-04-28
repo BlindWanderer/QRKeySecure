@@ -3,7 +3,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
-import javax.swing.filechooser.*;
 import java.io.*;
 import javax.imageio.*;
 /**
@@ -29,7 +28,7 @@ public class Viewer extends JFrame {
 	}
 	private JPanel generateBuilderPanel() {
 		JPanel builderPanel = new JPanel(new BorderLayout());
-		final JBuilderPanel<BufferedImage> builderGeneratedPanel = builder.generateGUI();
+		final BuilderPanel<BufferedImage> builderGeneratedPanel = builder.generateGUI();
 		JPanel fun = new JPanel(new GridLayout(0, 1));
 		JPanel blah = new JPanel();
 		final ImagePanel imageBox = new ImagePanel();
@@ -38,8 +37,8 @@ public class Viewer extends JFrame {
 		generateImage.addActionListener(new ActionListener() {
 			SwingWorker sw;
 			public void actionPerformed(final ActionEvent e) {
-				final Generator<Item<BufferedImage>> generator = builderGeneratedPanel.getGenerator();
-				if (generator != null) {
+				final Factory<Item<BufferedImage>> factory = builderGeneratedPanel.getFactory();
+				if (factory != null) {
 					if (sw != null && !sw.isDone()) {
 						sw.cancel(true);
 					}
@@ -47,7 +46,7 @@ public class Viewer extends JFrame {
 						Item<BufferedImage> item;
 						BufferedImage image;
 						public Object doInBackground() {
-							item = generator.generate();
+							item = factory.runFactory();
 							return image = item.save();
 						}
 						public void done() {

@@ -71,8 +71,8 @@ public class Camera extends JPanel {
 		
 		Dimension size = videoFormat.getSize();
 		imagePanel = new ImagePanel();
-		Util.cloberSizes(this, Util.addDimensions(BORDER + BORDER, BORDER + BORDER, size));
-		Util.cloberSizes(imagePanel, size);
+		Utilities.cloberSizes(this, Utilities.addDimensions(BORDER + BORDER, BORDER + BORDER, size));
+		Utilities.cloberSizes(imagePanel, size);
 		
 		add(imagePanel, "image");
 		add(player.getVisualComponent(), "camera");

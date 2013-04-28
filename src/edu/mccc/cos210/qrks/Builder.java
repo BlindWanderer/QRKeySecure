@@ -11,7 +11,7 @@ public interface Builder<T> {
 	 * Generates the GUI for the builder.
 	 * @return returns a specialized JPanel.
 	 */	
-	JBuilderPanel<T> generateGUI();
+	BuilderPanel<T> generateGUI();
 	/**
 	 * Resets the internal state of the builder.
 	 */	

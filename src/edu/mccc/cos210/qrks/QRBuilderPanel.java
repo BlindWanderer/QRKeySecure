@@ -10,7 +10,7 @@ import edu.mccc.cos210.qrks.qrcode.*;
 /**
  * Responsible for accepting user inputs required to generate a QRCode.
  */
-public class QRBuilderPanel extends JBuilderPanel<BufferedImage> {
+public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 	private static final long serialVersionUID = 1L;
 	
 	final private JTextArea input;
@@ -37,8 +37,8 @@ public class QRBuilderPanel extends JBuilderPanel<BufferedImage> {
 	public int getPixelsPerUnit() {
 		return Integer.valueOf(pps.getText());
 	}
-	public Generator<Item<BufferedImage>> getGenerator() {
-		return ((QRBuilder) getBuilder()).new QRGenerator(getText(), getErrorCorrectionLevel(), getPixelsPerUnit());
+	public Factory<Item<BufferedImage>> getFactory() {
+		return ((QRBuilder) getBuilder()).new QRFactory(getText(), getErrorCorrectionLevel(), getPixelsPerUnit());
 	}
 	
 	public QRBuilderPanel(final QRBuilder builder) {

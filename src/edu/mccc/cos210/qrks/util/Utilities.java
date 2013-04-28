@@ -37,7 +37,4 @@ public final class Utilities {
 		c.setSize(d);
 		return d;
 	}
-	/**
-	 * Generates an action listener that calls warmup on the current thread, run on a worker thread and cooloff on the eventqueue thread.
-	 */
 }

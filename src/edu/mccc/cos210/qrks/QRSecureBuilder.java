@@ -9,7 +9,7 @@ import java.awt.image.*;
  */
 public class QRSecureBuilder extends QRBuilder {
 	@Override
-	public JBuilderPanel<BufferedImage> generateGUI() {
+	public BuilderPanel<BufferedImage> generateGUI() {
 		return new QRSecureBuilderPanel(this);
 	}
 	@Override
