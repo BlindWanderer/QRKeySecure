@@ -37,7 +37,7 @@ public class QRBuilderPanel extends JBuilderPanel<BufferedImage> {
 	public int getPixelsPerUnit() {
 		return Integer.valueOf(pps.getText());
 	}
-	public Generator<BufferedImage> getGenerator() {
+	public Generator<Item<BufferedImage>> getGenerator() {
 		return ((QRBuilder) getBuilder()).new QRGenerator(getText(), getErrorCorrectionLevel(), getPixelsPerUnit());
 	}
 	

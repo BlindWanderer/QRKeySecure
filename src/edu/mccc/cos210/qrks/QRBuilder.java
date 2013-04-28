@@ -29,7 +29,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 	/**
 	 * Generates a QRCode based on user-input.
 	 */
-	public class QRGenerator implements Generator<BufferedImage> {
+	public class QRGenerator implements Generator<Item<BufferedImage>> {
 		private final String text;
 		private final ErrorCorrectionLevel ec;
 		private final int ppu;

@@ -4,6 +4,6 @@ package edu.mccc.cos210.qrks;
  * @param <T> The type used for <a href="Item.html">Item</a>&lt;T&gt;s .
  */
 public interface Generator<T> {
-	Item<T> generate();
+	T generate();
 }
 
