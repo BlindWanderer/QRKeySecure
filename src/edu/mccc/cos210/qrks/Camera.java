@@ -78,6 +78,7 @@ public class Camera extends JPanel {
 		add(player.getVisualComponent(), "camera");
 	}
 	private static CaptureDeviceInfo intToCaptureDeviceInfo(final int device) {
+		@SuppressWarnings("unchecked")
 		Vector<CaptureDeviceInfo> devices = CaptureDeviceManager.getDeviceList(new VideoFormat(null));
 		if (devices == null || devices.size() < 1) {
 			System.out.println("No capture devices available!");
@@ -85,7 +86,7 @@ public class Camera extends JPanel {
 		} else if (devices.size() < device) {
 			throw new IndexOutOfBoundsException("'device' ("+device+") is not in range [0,"+devices.size()+")  ");
 		}
-		return (CaptureDeviceInfo)devices.elementAt(device);
+		return devices.elementAt(device);
 	}
 	public void showImage() {
 		cardLayout.show(this, "image");

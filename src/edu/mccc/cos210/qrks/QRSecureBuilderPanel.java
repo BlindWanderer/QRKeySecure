@@ -35,7 +35,7 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 	}
 	
 	@Override
-	public Generator<BufferedImage> getGenerator() {
+	public Generator<Item<BufferedImage>> getGenerator() {
 		String text = getText();
 		//text = key.sign(text);
 		return ((QRBuilder) getBuilder()).new QRGenerator(text, getErrorCorrectionLevel(), getPixelsPerUnit());
