@@ -16,7 +16,7 @@ public class Viewer extends JFrame {
 		super("QRKey");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel builderPanel = generateBuilderPanel();
-		JPanel readerPanel = generateReaderPanel();
+		JPanel readerPanel = new QRReaderPanel(this);
 		JTabbedPane tabbedPane = new JTabbedPane();
 		tabbedPane.addTab("READ", readerPanel);	//can add a custom icon later
 		tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
@@ -36,28 +36,25 @@ public class Viewer extends JFrame {
 		final JButton generateImage = new JButton("Preview");
 		generateImage.setMnemonic(KeyEvent.VK_P);
 		generateImage.addActionListener(new ActionListener() {
+			SwingWorker sw;
 			public void actionPerformed(final ActionEvent e) {
 				final Generator<Item<BufferedImage>> generator = builderGeneratedPanel.getGenerator();
 				if (generator != null) {
-					//TODO: Only a single worker thread should be used.
-					Thread worker = new Thread() {
-						@Override
-						public void run() {
-							Item<BufferedImage> item = generator.generate();
-							if (item != null) {
-								final BufferedImage image = item.save();
-								EventQueue.invokeLater(
-									new Runnable() {
-										@Override
-										public void run() {
-											imageBox.setImage(image);
-										}
-									}
-								);
-							}
+					if (sw != null && !sw.isDone()) {
+						sw.cancel(true);
+					}
+					sw = new SwingWorker() {
+						Item<BufferedImage> item;
+						BufferedImage image;
+						public Object doInBackground() {
+							item = generator.generate();
+							return image = item.save();
+						}
+						public void done() {
+							imageBox.setImage(image);
 						}
 					};
-					worker.start();
+					sw.execute();
 				}
 			}
 		});
@@ -72,13 +69,11 @@ public class Viewer extends JFrame {
 				int returnVal = fc.showSaveDialog(Viewer.this);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
-//						try {
-//							BufferedImage myImage = ImageIO.read(file);
-//							cl.show(stack, "4");
-//							imageBox.setImage(myImage);
-//						}
-//						catch (IOException ex) {	
-//						}
+					try {
+						ImageIO.write(imageBox.getImage(), "png", file);
+					}
+					catch (IOException ex) {	
+					}
 				} 
 				//Reset the file chooser for the next time it's shown.
 				fc.setSelectedFile(null);
@@ -92,11 +87,5 @@ public class Viewer extends JFrame {
 		builderPanel.add(imageBox, BorderLayout.CENTER);
 		builderPanel.add(fun, BorderLayout.SOUTH);
 		return builderPanel;
-	}
-	/**
-	 *
-	 */
-	private JPanel generateReaderPanel() {
-		return new QRReaderPanel();
 	}
 }

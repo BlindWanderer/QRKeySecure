@@ -10,7 +10,7 @@ import javax.imageio.*;
 public class QRReaderPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 	private Image image;
-	public QRReaderPanel(){
+	public QRReaderPanel(final Viewer viewer){
 		this.setPreferredSize(new Dimension(600, 800));
 		this.setLayout(new BorderLayout());
 		
@@ -49,7 +49,7 @@ public class QRReaderPanel extends JPanel {
 					fc.addChoosableFileFilter(new ImageFileFilter());
 					fc.setAccessory(ip);
 					
-					int returnVal = fc.showDialog(QRReaderPanel.this, "Open Image");
+					int returnVal = fc.showDialog(viewer, "Open Image");
 					
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
 						Image fi = ip.getImage();
