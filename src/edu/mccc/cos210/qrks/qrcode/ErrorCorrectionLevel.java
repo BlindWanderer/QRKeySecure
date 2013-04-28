@@ -9,7 +9,7 @@ public enum ErrorCorrectionLevel {
 	Q(25),
 	H(30);
 	private final int percentage;
-	ErrorCorrectionLevel(final int percentage) {
+	private ErrorCorrectionLevel(final int percentage) {
 		this.percentage = percentage;
 	}
 	public String toString() {
