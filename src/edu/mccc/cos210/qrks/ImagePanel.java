@@ -15,7 +15,16 @@ public class ImagePanel extends JPanel {
 	private static final int FULL_HEIGHT = FULL_BORDER + HEIGHT;
 	private BufferedImage image = null;
 	public ImagePanel() {
-		Dimension d = new Dimension(FULL_WIDTH, FULL_HEIGHT);
+		this(null);
+	}
+	public ImagePanel(final BufferedImage  img) {
+		Dimension d;
+		if (img != null) {
+			image = img;
+			d = new Dimension(img.getWidth() + FULL_BORDER, img.getHeight() + FULL_BORDER);
+		} else {
+			d = new Dimension(FULL_WIDTH, FULL_HEIGHT);
+		}
 		setPreferredSize(d);
 		setSize(d);
 		setBorder(BorderFactory.createLineBorder(Color.BLACK, BORDER));

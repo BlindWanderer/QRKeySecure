@@ -1,15 +1,19 @@
-Todo List (in no particular order)
+Todo List
 
 HIGH PRIORITY
 * B - QRReader: Needs writing
-* C - QRBuilder.QRFactory: QRCode generation
+* C - QRBuilder.QRFactory: QRCode generation - Set space asside for error correction bytes but do not calculate values.
 
 MEDIUM PRIORITY
 * ? - QRSecureReader: Needs writing - delegate reading to QRReader, process result, add new browser tab.
 * ? - QRSecureBuilderPanel: Message Signing probably light enough it doesn't need to be deligated to a worker thread.
 * B - Work Readers into the flow of the GUI
+* ? - QRBuilder.QRFactory: - Work out and comple error correction 
 
 LOW PRIORITY
 * ? - JavaDocs - Do what ever CheckStyle tells you to do (with regards to JavaDocs, everything else use your best judgement)
 * ? - QRBuilderPanel: Fix Layout
 * ? - Viewer.generateBuilderPanel(): Fix Layout
+* ? - TODO items
+* ? - KeyStore Type JComboBox
+* ? - To Much Data Warning in GUI.
