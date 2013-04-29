@@ -18,13 +18,16 @@ public class Camera extends JPanel {
 	private CaptureDeviceInfo cdi;
 	private Player player;
 	private FrameGrabbingControl frameGrabber;
-	private FormatControl formatControl;
 	private java.util.List<VideoFormat> videoFormats;
 	private BufferToImage bti = null;
 	private CardLayout cardLayout;
 	private ImagePanel imagePanel;
 	private boolean camera = false;
+	private final boolean cameraAvailable;
 	
+	public boolean isCameraAvailable() {
+		return cameraAvailable;
+	}
 	public Camera() {
 		this(0);
 	}
@@ -53,29 +56,33 @@ public class Camera extends JPanel {
 				}
 			}
 		}
+		imagePanel = new ImagePanel();
+		add(imagePanel, "image");
+		boolean success = false;
 		if (videoFormats != null) {
 			try {
+				videoFormat = videoFormats.get(0);
 				player = Manager.createRealizedPlayer(cdi.getLocator());
 				frameGrabber = (FrameGrabbingControl)player.getControl("javax.media.control.FrameGrabbingControl");
-				formatControl = (FormatControl)player.getControl("javax.media.control.FormatControl");
-				videoFormat = videoFormats.get(0);
+				FormatControl formatControl = (FormatControl)player.getControl("javax.media.control.FormatControl");
 				formatControl.setFormat(videoFormat);
+				success = true;
 			} catch (Exception e) {
-				e.printStackTrace();
-				videoFormat = null;
-				formatControl = null;
-				frameGrabber = null;
-				return;
+				//System.out.println(cdi);
+				//System.out.println(videoFormats);
+				//e.printStackTrace();
 			}
 		}
-		
-		Dimension size = videoFormat.getSize();
-		imagePanel = new ImagePanel();
-		Utilities.cloberSizes(this, Utilities.addDimensions(BORDER + BORDER, BORDER + BORDER, size));
-		Utilities.cloberSizes(imagePanel, size);
-		
-		add(imagePanel, "image");
-		add(player.getVisualComponent(), "camera");
+		if (cameraAvailable = success) {
+			Dimension size = videoFormat.getSize();
+			Utilities.cloberSizes(this, Utilities.addDimensions(BORDER + BORDER, BORDER + BORDER, size));
+			Utilities.cloberSizes(imagePanel, size);
+			add(player.getVisualComponent(), "camera");
+		} else {
+			videoFormat = null;
+			frameGrabber = null;
+			Utilities.cloberSizes(imagePanel, new Dimension(640, 480));
+		}
 	}
 	private static CaptureDeviceInfo intToCaptureDeviceInfo(final int device) {
 		@SuppressWarnings("unchecked")

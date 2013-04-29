@@ -82,6 +82,10 @@ public class QRReaderPanel extends JPanel {
 			startVideo.setMnemonic(KeyEvent.VK_S);
 			state1.add(startVideo, BorderLayout.LINE_END);
 			startVideo.addActionListener(scal);
+			if (!camera.isCameraAvailable()) {
+				startVideo.setEnabled(false);
+				startVideo.setToolTipText("Camera not available at this time.");
+			}
 		}
 		{ //STATE 2
 			JPanel state2 = new JPanel(new BorderLayout());

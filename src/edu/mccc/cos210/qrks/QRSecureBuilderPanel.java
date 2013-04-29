@@ -29,15 +29,11 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 	private PrivateKey privateKey = null;
 	private String myAlias = null;
 	//TODO: figure out what the type should be for key!
-	private Object key;
-	public Object getKey() {
-		return key;
-	}
 	
 	@Override
 	public Factory<Item<BufferedImage>> getFactory() {
 		String text = getText();
-		//text = key.sign(text);
+		//TODO: text = privateKey.sign(text);
 		return ((QRBuilder) getBuilder()).new QRFactory(text, getErrorCorrectionLevel(), getPixelsPerUnit());
 	}
 
@@ -70,6 +66,7 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 						try {
 							ks = KeyStore.getInstance("JCEKS");	//TODO: how do i know what type the ks is???
 						} catch (KeyStoreException kse) {
+							//implode
 						}
 			
 						try (FileInputStream fis = new FileInputStream(file.getPath())) {
@@ -95,29 +92,24 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 							}
 						}
 						if (r == JOptionPane.OK_OPTION) {
-							java.util.List<String> l = null;
+							Enumeration<String> aliases = null;
 							try {
-								l = Collections.list(ks.aliases());
+								aliases = ks.aliases();
 							} catch (KeyStoreException e2) {
 								return;
 							}
 							java.util.List<String> pkl = new LinkedList<String>();
 							KeyStore.ProtectionParameter kspp = new KeyStore.PasswordProtection(pw); 
 							
-							for (int i = 0; i < l.size(); i++) {
+							while (aliases.hasMoreElements()) {
+								String alias = aliases.nextElement();
 								KeyStore.PrivateKeyEntry pke;
 								try {
-									pke = (PrivateKeyEntry) ks.getEntry(l.get(i), kspp);
-								} catch (UnsupportedOperationException haha) {
-									continue;
-								} catch (NoSuchAlgorithmException
-										| UnrecoverableEntryException
-										| KeyStoreException e9) {
+									if (ks.entryInstanceOf(alias, PrivateKeyEntry.class)) {
+										pkl.add(alias);
+									}
+								} catch (KeyStoreException e9) {
 									return;
-								}		 
-								PrivateKey pk = pke.getPrivateKey();
-								if (pk != null) {
-									pkl.add(l.get(i));
 								}
 							}
 							
@@ -132,12 +124,11 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 								t.setActionCommand(pkl.get(i));
 							}
 		
-							int m = JOptionPane.showConfirmDialog(null, bp, "Select Key Alias", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+							int m = JOptionPane.showConfirmDialog(null, bp, "Select Key by Alias", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 							//JOptionPane.showConfirmDialog(null, new JComboBox<String>(al), "Select Key Alias", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 							if ( m == JOptionPane.OK_OPTION) {
 								myAlias = bg.getSelection().getActionCommand();
 								try {
-									
 									KeyStore.PrivateKeyEntry pke = (PrivateKeyEntry) ks.getEntry(myAlias, kspp);		 
 									privateKey = pke.getPrivateKey();
 								} catch (KeyStoreException kse) {
