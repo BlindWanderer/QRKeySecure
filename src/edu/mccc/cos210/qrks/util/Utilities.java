@@ -6,6 +6,7 @@ import java.awt.image.*;
 import javax.swing.*;
 import javax.swing.filechooser.*;
 import javax.imageio.*;
+import java.lang.reflect.Array;
 
 public final class Utilities {
 	private Utilities() {
@@ -36,5 +37,13 @@ public final class Utilities {
 		c.setMaximumSize(d);
 		c.setSize(d);
 		return d;
+	}
+	@SuppressWarnings({"unchecked"})
+	public static <T> T[] newGenericArray(Class<T> clazz, int capacity){
+		return (T[])Array.newInstance(clazz,capacity);
+	}
+	@SuppressWarnings({"unchecked"})
+	public static <T> T[] newGenericArray(T ... values){
+		return values;
 	}
 }

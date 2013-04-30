@@ -1,5 +1,6 @@
 package edu.mccc.cos210.qrks;
 import javax.swing.*;
+import javax.swing.filechooser.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
@@ -11,8 +12,9 @@ import javax.imageio.*;
 public class Viewer extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
-	private Reader<BufferedImage, BufferedImage> [] readers = {new QRReader()};
+	private Reader<BufferedImage, BufferedImage> [] readers = Utilities.newGenericArray(new QRReader());
 	public Viewer() {
+		
 		super("QRKey");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel builderPanel = generateBuilderPanel();
@@ -40,7 +42,7 @@ public class Viewer extends JFrame {
 			public void actionPerformed(final ActionEvent e) {
 				final Factory<Item<BufferedImage>> factory = builderGeneratedPanel.getFactory();
 				if (factory != null) {
-					if (sw != null && !sw.isDone() && !swp.isCancelled()) {
+					if (sw != null && !sw.isDone() && !sw.isCancelled()) {
 						sw.cancel(true);
 					}
 					sw = new SwingWorker() {
@@ -58,18 +60,27 @@ public class Viewer extends JFrame {
 				}
 			}
 		});
-
 		final JButton saveImage = new JButton("Save Image");
 		saveImage.setMnemonic(KeyEvent.VK_S);
 		saveImage.addActionListener(new ActionListener() {
+			FileNameExtensionFilter[] exts = {
+				new FileNameExtensionFilter("jpeg", "jpg", "jpeg"),
+				new FileNameExtensionFilter("png", "png"),
+				new FileNameExtensionFilter("gif", "gif"),
+				new FileNameExtensionFilter("bmp", "bmp"),
+				new FileNameExtensionFilter("tiff", "tif", "tiff"),
+			};
 			public void actionPerformed(final ActionEvent e) {
 				JFileChooser fc = new JFileChooser();
 				fc.setAcceptAllFileFilterUsed(false);
-				fc.addChoosableFileFilter(new ImageFileFilter());
+				for (FileNameExtensionFilter ext : exts) {
+					fc.addChoosableFileFilter(ext);
+				}
 				int returnVal = fc.showSaveDialog(Viewer.this);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
 					try {
+						//TODO: figure out the tyep from the extension.
 						ImageIO.write(imageBox.getImage(), "png", file);
 					}
 					catch (IOException ex) {	

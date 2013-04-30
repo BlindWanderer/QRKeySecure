@@ -19,9 +19,25 @@ public final class Version {
 		public final int dataCapacityAlphanumeric;
 		public final int dataCapacityByte;
 		public final int dataCapacityKanji;
-	}
-	private Version() throws UnsupportedOperationException {
-		throw new UnsupportedOperationException();
+		public int getDataCapacity(EncodingMode em) {
+			switch (em) {
+				case BYTE:
+					return this.dataCapacityByte;
+				case NUMERIC:
+					return this.dataCapacityNumeric;
+				case ALPHANUMERIC:
+					return this.dataCapacityAlphanumeric;
+				case KANJI:
+					return this.dataCapacityKanji;
+				//case ECI:
+				//case STRUCTURED_APPEND:
+				//case FNC1_FIRST(0b0101),
+				//case FNC1_SECOND(0b1001),
+				//case TERMINATOR(0b0000);
+				default:
+					return -1;
+			}
+		}
 	}
 	public final static SymbolCharacterInfo[][] nosc;
 	private static void NOSC4(int version,
@@ -198,5 +214,18 @@ public final class Version {
 			throw new IllegalArgumentException("version is not in range [1,40]");
 		}
 		return alignmentLocations[version - 1];
+	}
+	public static int getDataCapacity(int version) {
+		int apc = alignmentLocations[version - 1].length;
+		int size = getSize(version);
+		int available = size * size;
+		available -= 3 * 8 * 8;//finding patterns
+		available -= 2 * (size - 16);//timing (16 offsets with the timing patterns)
+		available -= 5 * 5 * ((apc * apc) - ((apc > 1)?3:0));//alignment patterns
+		available -= (version < 7)?31:67;//format and version info modules
+		return available;
+	}
+	private Version() throws UnsupportedOperationException {
+		throw new UnsupportedOperationException();
 	}
 }

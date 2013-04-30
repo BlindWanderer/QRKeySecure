@@ -1,13 +1,21 @@
 package edu.mccc.cos210.qrks;
 import java.util.*;
 import javax.swing.*;
+//import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.*;
+import javax.swing.filechooser.*;
+import java.io.*;
+import javax.imageio.*;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
-	public List<Item<BufferedImage>> process(BufferedImage input) {
+	public java.util.List<Item<BufferedImage>> process(BufferedImage input) {
 		int width = input.getWidth();
 		int height = input.getHeight();
-		int[] data = input.getRGB(0, 0, width, height, new int[width * height], 0, 1);
+		int[] data = input.getRGB(0, 0, width, height, new int[(width+1) * (height+1)], 0, 1);
 
+		System.out.println(Arrays.toString(data));
+		
 		int[] distribution = new int[256];
 		Arrays.fill(distribution, 0);
 		
@@ -29,11 +37,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (int p = 0; p < data.length; p++) {
 			bw[p] = RGBAToLightness(data[p]) >= lower;
 		}
-		for (int x = 0, p = 0; x < width; x++) {
-			for (int y = 0; y < height; y++, p++) {
+		//not a hundered percent sure this is the order it goes in!
+		for (int y = 0, p = 0; y < height; y++) {
+			for (int x = 0; x < width; x++, p++) {
 				
 			}
 		}
+		return null;
 	}
 	public String getName() {
 		return "QRCode Reader";
@@ -49,13 +59,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		return (min + max) / 2;
 	}
 	private static List<Integer> runLengthEncode(boolean [] bw) {
-		return runLengthEncoder(bw, 0, bw.length);
+		return runLengthEncode(bw, 0, bw.length);
 	}
 	private static List<Integer> runLengthEncode(final boolean [] bw, final int start /*inclusive*/, final int end /*exclusive*/) {
-		List<Integer> rle = new List<Integer>();
+		List<Integer> rle = new LinkedList<Integer>();
 		int c = 1;
 		boolean b = bw[start];
-		for (int p = start + 1, end; p < end; p++) {
+		for (int p = start + 1; p < end; p++) {
 			if (bw[p] != b) {
 				rle.add(c);
 				b = !b;
