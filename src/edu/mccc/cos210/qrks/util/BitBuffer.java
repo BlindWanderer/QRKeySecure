@@ -6,10 +6,10 @@ public class BitBuffer {
 		BitBuffer b = new BitBuffer(36);
 		byte [] blah = {(byte)0xF0,(byte)0x00,(byte)0x80,(byte)0x01};
 		System.out.println(b);
-		b.add(0xFFFFFFFEL, 1);
-//		b.add(0xEFEFEFEF, 31);
+		b.write(0xFFFFFFFEL, 1);
+//		b.write(0xEFEFEFEF, 31);
 		System.out.println(b);
-		b.add(blah);
+		b.write(blah);
 		System.out.println(b);
 		System.out.println(Integer.toHexString(0xff & b.data[1]));
 	}/**/
@@ -30,51 +30,51 @@ public class BitBuffer {
 	public int getSize() {
 		return size;
 	}
-	public void add(byte x) {
-		add(x, 8);
+	public void write(byte x) {
+		write(x, 8);
 	}
-	public void add(char x) {
-		add(x,16);
+	public void write(char x) {
+		write(x,16);
 	}
-	public void add(int x) {
-		add(x, 32);
+	public void write(int x) {
+		write(x, 32);
 	}
-	public void add(long x) {
-		add(x, 64);
+	public void write(long x) {
+		write(x, 64);
 	}
-	public void add(byte[] x) {
+	public void write(byte ... x) {
 		for (byte y : x) {
 			if (pos >= size) {
 				break;
 			}
-			add(y, 8);
+			write(y, 8);
 		}
 	}
-	public void add(char[] x) {
+	public void write(char ... x) {
 		for (char y : x) {
 			if (pos >= size) {
 				break;
 			}
-			add(y, 16);
+			write(y, 16);
 		}
 	}
-	public void add(int[] x) {
+	public void write(int ... x) {
 		for (int y : x) {
 			if (pos >= size) {
 				break;
 			}
-			add(y, 32);
+			write(y, 32);
 		}
 	}
-	public void add(long[] x) {
+	public void write(long ... x) {
 		for (long y : x) {
 			if (pos >= size) {
 				break;
 			}
-			add(y, 64);
+			write(y, 64);
 		}
 	}
-	public void add(byte x, int count) {
+	public void write(byte x, int count) {
 		count = Math.min(Math.max(count, 0), 8);
 		int d = ((x << (8 - count)) & 0xFF) & (0xFF00 >> count);
 		int used = pos & 7;
@@ -83,7 +83,7 @@ public class BitBuffer {
 		data[p+1] = (byte)(d << (8 - used));
 		pos += count;
 	}
-	public void add(char x, int count) {
+	public void write(char x, int count) {
 		count = Math.min(Math.max(count, 0), 16);
 		int d = ((x << (16 - count)) & 0xFFFF) & (0xFFFF << (16 - count));
 		int used = pos & 7;
@@ -93,7 +93,7 @@ public class BitBuffer {
 		data[p+2] = (byte)(d << (8 - used));
 		pos += count;
 	}
-	public void add(int x, int count) {
+	public void write(int x, int count) {
 		count = Math.min(Math.max(count, 0), 32);
 		int mask = ~(-1 << count);
 		int d = x << (32 - count);
@@ -106,7 +106,7 @@ public class BitBuffer {
 		data[p+4] = (byte)(d << (8 - used));
 		pos += count;
 	}
-	public void add(long x, int count) {
+	public void write(long x, int count) {
 		count = Math.min(Math.max(count, 0), 64);
 		long mask = ~(-1L << count);
 		long d = ((int)(x << (64 - count)));
