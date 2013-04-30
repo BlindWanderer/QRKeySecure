@@ -1,5 +1,6 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.qrcode.*;
+import edu.mccc.cos210.qrks.qrcode.Point;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -103,7 +104,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static void writeToMemory(byte [] memory, String text, EncodingScheme es, ErrorCorrectionLevel ec) {
 		int version = getVersion(text, ec, es);
-		memory[0] = (byte) es.value; //??
+		memory[0] = (byte) es.value; //TODO: ???
 		
 		if (0 < version && version < 10) {
 			memory[1] = (byte) Version.nosc[ec.getPercentage()][version - 1].dataCapacityByte; //TODO:set dataCapacity(X) elsewhere
@@ -149,8 +150,18 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		//TODO: Write me LATER
 	}
 	private static boolean [][] getBasicQRCode(int version) {
-		//Contains the various finding patters, correction patterns, timing patters, 
+		//Contains the various finding patters, timing patters, 
 		//TODO: Write me
+		boolean[][] qr = new boolean[Version.getSize(version)][Version.getSize(version)]; 
+		Point[] allignArray = Version.getAlignmentPatternLocations(version);
+		for (Point p : allignArray) {
+			//create a finding pattern at the location of the point;
+			for (int x = 0; x < 9; x ++) {qr[p.x + x][p.y] = false;}
+			qr
+			for (int x = 0; x < 9; x ++) {qr[8 + x][p.y] = false;}
+		}
+		
+		Version.getFindingPatternLocations(version);
 		return null;
 	}
 	private static void writeMetaData(boolean [][] field, int version, EncodingScheme es, byte [] memory) {
