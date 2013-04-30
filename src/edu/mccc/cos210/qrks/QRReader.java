@@ -1,4 +1,5 @@
 package edu.mccc.cos210.qrks;
+import edu.mccc.cos210.qrks.util.*;
 import java.util.*;
 import javax.swing.*;
 //import java.awt.*;
@@ -9,20 +10,20 @@ import java.io.*;
 import javax.imageio.*;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
+	
 	public java.util.List<Item<BufferedImage>> process(BufferedImage input) {
 		int width = input.getWidth();
 		int height = input.getHeight();
 		int[] data = new int[(width) * (height)];
-		//Arrays.fill(data, 0x88888888);
-		data = input.getRGB(0, 0, width, height, data, 0, width)
+		data = input.getRGB(0, 0, width, height, data, 0, width);
 		/*
 		try {
 			;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		System.out.println(Arrays.toString(data));
 		*/
+		System.out.println(Arrays.toString(data));
 			
 		int[] distribution = new int[256];
 		Arrays.fill(distribution, 0);
@@ -46,9 +47,38 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			bw[p] = ARGBToLightness(data[p]) >= lower;
 		}
 		//not a hundered percent sure this is the order it goes in!
+
 		for (int y = 0, p = 0; y < height; y++) {
-			for (int x = 0; x < width; x++, p++) {
-				
+			int v1 = 0;
+			int v2 = 0;
+			int v3 = 0;
+			int v4 = 0;
+			int c = 0;
+			int total = 0;
+			int x = 0;
+			for (int v0 : runLengthEncode(bw, p, p += height)) {
+				c++;
+				x += v0;
+				total += v0;
+				if (c > 4) {
+					int t1 = total / 14;
+					int t3 = (total * 3) / 14;
+					int t5 = (total * 5) / 14;
+					int t7 = total / 2;
+					if ((v0 >= t1) && (v0 <=t3) &&
+						(v1 >= t1) && (v1 <=t3) &&
+						(v2 >= t5) && (v2 <=t7) &&
+						(v3 >= t1) && (v3 <=t3) &&
+						(v4 >= t1) && (v4 <=t3)) {
+						//starts at x-total
+						//yeah ^_^
+					}
+				}
+				total -= v4;
+				v4 = v3;
+				v3 = v2;
+				v2 = v1;
+				v1 = v0;
 			}
 		}
 		return null;
