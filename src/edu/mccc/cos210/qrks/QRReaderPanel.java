@@ -10,7 +10,9 @@ import javax.imageio.*;
 public class QRReaderPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 	private Image image;
-	public QRReaderPanel(final Viewer viewer){
+	private Reader<BufferedImage, BufferedImage> [] readers;
+	public QRReaderPanel(final Viewer viewer, final Reader<BufferedImage, BufferedImage> [] readers){
+		this.readers = readers;
 		this.setPreferredSize(new Dimension(600, 800));
 		this.setLayout(new BorderLayout());
 		
@@ -23,10 +25,27 @@ public class QRReaderPanel extends JPanel {
 		this.add(stack, BorderLayout.SOUTH);
 		
 
+		SwingWorker swp;
 		ActionListener pal = new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
-					
 					cl.show(stack, "5");
+					if (swp != null && !swp.isDone() && !swp.isCancelled()) {
+						swp.cancel(true);
+					}
+					swp = new SwingWorker() {
+						public Object doInBackground() {
+							BufferedImage img = (image instanceof BufferedImage)?(BufferedImage)image:Utilities.convertImageToBufferedImage(image);
+							List<Item<BufferedImage>> out = new LinkedList<>();
+							for(Reader<BufferedImage, BufferedImage> reader : readers) {
+								out.addAll(reader.process(img));
+								//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
+							}
+						}
+						public void done() {
+							cl.show(stack, "6");
+						}
+					};
+					swp.execute();
 				}
 			};
 		ActionListener tpal = new ActionListener() {
@@ -131,6 +150,7 @@ public class QRReaderPanel extends JPanel {
 			state5.add(stop, BorderLayout.CENTER);
 			stop.addActionListener(new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
+					swp.cancel(true);
 					cl.showPrevious(stack);
 				}
 			});

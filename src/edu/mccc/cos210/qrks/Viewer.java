@@ -11,11 +11,12 @@ import javax.imageio.*;
 public class Viewer extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
+	private Reader<BufferedImage, BufferedImage> [] readers = {new QRReader()};
 	public Viewer() {
 		super("QRKey");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel builderPanel = generateBuilderPanel();
-		JPanel readerPanel = new QRReaderPanel(this);
+		JPanel readerPanel = new QRReaderPanel(this, readers);
 		JTabbedPane tabbedPane = new JTabbedPane();
 		tabbedPane.addTab("READ", readerPanel);	//can add a custom icon later
 		tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
@@ -39,7 +40,7 @@ public class Viewer extends JFrame {
 			public void actionPerformed(final ActionEvent e) {
 				final Factory<Item<BufferedImage>> factory = builderGeneratedPanel.getFactory();
 				if (factory != null) {
-					if (sw != null && !sw.isDone()) {
+					if (sw != null && !sw.isDone() && !swp.isCancelled()) {
 						sw.cancel(true);
 					}
 					sw = new SwingWorker() {
