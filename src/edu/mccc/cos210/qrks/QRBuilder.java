@@ -54,7 +54,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		 * @return The QRCode generated from user inputs.
 		 */
 		public Item<BufferedImage> runFactory() {
-			final EncodingScheme es = getEncoding(text);
+			final EncodingMode es = getEncoding(text);
 			 final int version = getVersion(text, ec, es);
 			final byte [] memory = getMemorySpace(version);
 			writeToMemory(memory, text, es, ec);
@@ -81,11 +81,11 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 			};
 		}
 	}
-	private static int getVersion(String text, ErrorCorrectionLevel ec, EncodingScheme es){
+	private static int getVersion(String text, ErrorCorrectionLevel ec, EncodingMode es){
 		int dataCharCount= text.length();
 		int version = 0;
 		for (int i = 1; i < 41; i++) {
-			int maxChar = Version.nosc[ec.getPercentage()][i - 1].dataCapacityByte;
+			int maxChar = Version.nosc[ec.index][i - 1].dataCapacityByte;
 			if (dataCharCount <= maxChar) {	
 				version = i;
 				return version;
@@ -98,23 +98,23 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		byte[] qr = new byte[size];
 		return qr;
 	}
-	private static EncodingScheme getEncoding(String text){
+	private static EncodingMode getEncoding(String text){
 		//TODO: Write me LATER
-		return EncodingScheme.BYTE;
+		return EncodingMode.BYTE;
 	}
-	private static void writeToMemory(byte [] memory, String text, EncodingScheme es, ErrorCorrectionLevel ec) {
+	private static void writeToMemory(byte [] memory, String text, EncodingMode es, ErrorCorrectionLevel ec) {
 		int version = getVersion(text, ec, es);
-		memory[0] = (byte) es.value; //TODO: ???
+		memory[0] = es.value; //TODO: ???
 		
 		if (0 < version && version < 10) {
-			memory[1] = (byte) Version.nosc[ec.getPercentage()][version - 1].dataCapacityByte; //TODO:set dataCapacity(X) elsewhere
+			memory[1] = (byte) Version.nosc[ec.index][version - 1].dataCapacityByte; //TODO:set dataCapacity(X) elsewhere
 			for (int i = 2; i < memory.length; i++) {
 				//TODO
 			}
 		}
 		if (9 < version && version < 41) {	
 			ByteBuffer b = ByteBuffer.allocate(2);
-			b.putInt(Version.nosc[ec.getPercentage()][version - 1].dataCapacityByte);
+			b.putInt(Version.nosc[ec.index][version - 1].dataCapacityByte);
 			byte[] result = b.array();
 			memory[1] = result[0];
 			memory[2] = result[1];
@@ -127,10 +127,10 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		
 
 
-		//TODO: Write other handles of various encoding schemes... LATER.
+		//TODO: Write other handles of various encoding Modes... LATER.
 		throw new UnsupportedOperationException();
 	}
-	private enum EncodingScheme {
+	/**private enum EncodingMode {
 		ECI (7),
 		NUMERIC (1),
 		ALPHANUMERIC (2),
@@ -141,10 +141,10 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		FNC2 (9); //second position //is FNC 8 bits???
 		
 		public final int value;
-		EncodingScheme(int value){
+		EncodingMode(int value){
 			this.value = value;
 		}
-	}
+	}*/
 	private static void writeErrorCorrection(int version, byte [] memory) {
 		//Writes Error Correction bytes to memory
 		//TODO: Write me LATER
@@ -157,14 +157,14 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		for (Point p : allignArray) {
 			//create a finding pattern at the location of the point;
 			for (int x = 0; x < 9; x ++) {qr[p.x + x][p.y] = false;}
-			qr
+			
 			for (int x = 0; x < 9; x ++) {qr[8 + x][p.y] = false;}
 		}
 		
 		Version.getFindingPatternLocations(version);
 		return null;
 	}
-	private static void writeMetaData(boolean [][] field, int version, EncodingScheme es, byte [] memory) {
+	private static void writeMetaData(boolean [][] field, int version, EncodingMode es, byte [] memory) {
 		//Write metadata to field
 		//TODO: Write me
 	}
