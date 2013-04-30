@@ -1,4 +1,5 @@
 package edu.mccc.cos210.qrks;
+import edu.mccc.cos210.qrks.util.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -6,11 +7,13 @@ import java.awt.image.*;
 import javax.swing.filechooser.*;
 import java.io.*;
 import javax.imageio.*;
+import java.util.*;
 
 public class QRReaderPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 	private Image image;
 	private Reader<BufferedImage, BufferedImage> [] readers;
+	private SwingWorker<Void,Void> swp;
 	public QRReaderPanel(final Viewer viewer, final Reader<BufferedImage, BufferedImage> [] readers){
 		this.readers = readers;
 		this.setPreferredSize(new Dimension(600, 800));
@@ -25,21 +28,21 @@ public class QRReaderPanel extends JPanel {
 		this.add(stack, BorderLayout.SOUTH);
 		
 
-		SwingWorker swp;
 		ActionListener pal = new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
 					cl.show(stack, "5");
 					if (swp != null && !swp.isDone() && !swp.isCancelled()) {
 						swp.cancel(true);
 					}
-					swp = new SwingWorker() {
-						public Object doInBackground() {
+					swp = new SwingWorker<Void,Void>() {
+						public Void doInBackground() {
 							BufferedImage img = (image instanceof BufferedImage)?(BufferedImage)image:Utilities.convertImageToBufferedImage(image);
-							List<Item<BufferedImage>> out = new LinkedList<>();
+							java.util.List<Item<BufferedImage>> out = new LinkedList<Item<BufferedImage>>();
 							for(Reader<BufferedImage, BufferedImage> reader : readers) {
 								out.addAll(reader.process(img));
 								//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
 							}
+							return null;
 						}
 						public void done() {
 							cl.show(stack, "6");
@@ -61,35 +64,46 @@ public class QRReaderPanel extends JPanel {
 				}
 			};
 		ActionListener oal = new ActionListener() {
-				public void actionPerformed(final ActionEvent e) {
-					JFileChooser fc = new JFileChooser();
-					ImagePreview ip = new ImagePreview(fc);
-					fc.setAcceptAllFileFilterUsed(false);
-					fc.addChoosableFileFilter(new ImageFileFilter());
-					fc.setAccessory(ip);
-					
-					int returnVal = fc.showDialog(viewer, "Open Image");
-					
-					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						Image fi = ip.getImage();
-						if (image == null) { //don't reopen the file unless strictly necessary
-							File file = fc.getSelectedFile();
-							try {
-								fi = ImageIO.read(file);
-							} catch (IOException ex) {
-								fi = null;
-								//TODO: display error message about trouble reading file. Status bar or dialog box?
-							}
-						}
-						if (fi != null) {
-							cl.show(stack, "4");
-							image = camera.setImage(fi);
+			FileNameExtensionFilter[] exts = {
+				new FileNameExtensionFilter("All Images", "jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff"),
+				new FileNameExtensionFilter("jpeg", "jpg", "jpeg"),
+				new FileNameExtensionFilter("png", "png"),
+				new FileNameExtensionFilter("gif", "gif"),
+				new FileNameExtensionFilter("bmp", "bmp"),
+				new FileNameExtensionFilter("tiff", "tif", "tiff"),
+			};
+			public void actionPerformed(final ActionEvent e) {
+				JFileChooser fc = new JFileChooser();
+				fc.setFileFilter(exts[0]);
+				for (FileNameExtensionFilter ext : exts) {
+					fc.addChoosableFileFilter(ext);
+				}
+				fc.setAcceptAllFileFilterUsed(true);
+				ImagePreview ip = new ImagePreview(fc);
+				fc.setAccessory(ip);
+				
+				int returnVal = fc.showDialog(viewer, "Open Image");
+				
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					Image fi = ip.getImage();
+					if (image == null) { //don't reopen the file unless strictly necessary
+						File file = fc.getSelectedFile();
+						try {
+							fi = ImageIO.read(file);
+						} catch (IOException ex) {
+							fi = null;
+							//TODO: display error message about trouble reading file. Status bar or dialog box?
 						}
 					}
-					//Reset the file chooser for the next time it's shown.
-					fc.setSelectedFile(null);
+					if (fi != null) {
+						cl.show(stack, "4");
+						image = camera.setImage(fi);
+					}
 				}
-			};
+				//Reset the file chooser for the next time it's shown.
+				fc.setSelectedFile(null);
+			}
+		};
 		{ //STATE 1
 			JPanel state1 = new JPanel(new BorderLayout());
 			stack.add(state1, "1");
