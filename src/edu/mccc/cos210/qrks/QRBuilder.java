@@ -1,7 +1,11 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.qrcode.*;
+
+import java.nio.ByteBuffer;
 import java.util.*;
+
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.image.*;
 /**
@@ -50,7 +54,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		 */
 		public Item<BufferedImage> runFactory() {
 			final EncodingScheme es = getEncoding(text);
-			final int version = getVersion(text, ec, es);
+			 final int version = getVersion(text, ec, es);
 			final byte [] memory = getMemorySpace(version);
 			writeToMemory(memory, text, es);
 			writeErrorCorrection(version, memory);
@@ -78,9 +82,9 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static int getVersion(String text, ErrorCorrectionLevel ec, EncodingScheme es){
 		int dataCharCount= text.length();
-		int version = null;
+		int version = 0;
 		for (int i = 1; i < 41; i++) {
-			int maxChar = Version.NOSC4[ec][i - 1].dataCapacityByte;
+			int maxChar = Version.nosc[ec.getPercentage()][i - 1].dataCapacityByte;
 			if (dataCharCount <= maxChar) {	
 				version = i;
 				return version;
@@ -89,7 +93,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		return version;
 	}
 	private static byte[] getMemorySpace(int version) {
-		int size = Version.NOSC4[getEncoding()][version];  
+		int size = Version.getSize(version);  
 		byte[] qr = new byte[size];
 		return qr;
 	}
@@ -97,27 +101,28 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		//TODO: Write me LATER
 		return EncodingScheme.BYTE;
 	}
-	private static void writeToMemory(byte [] memory, String text, EncodingScheme es) {
+	private static void writeToMemory(byte [] memory, String text, EncodingScheme es, ErrorCorrectionLevel ec) {
+		int version = getVersion(text, ec, es);
 		switch(es) {
 			case BYTE:
 				memory[0] = Byte.parseByte(es.toString()); //???
 				
 		}
 		
-		if (0 < version < 10) {
-			memory[1] = (byte) Version.NOSC4[getEncoding()][version];
-			for (int i = 2; i < memory.length(); i++) {
+		if (0 < version && version < 10) {
+			memory[1] = (byte) Version.nosc[3][version].dataCapacityByte; //TODO:set dataCapacity(X) elsewhere
+			for (int i = 2; i < memory.length; i++) {
 			}
 		}
-		if (9 < version < 41) {	
+		if (9 < version && version < 41) {	
 			ByteBuffer b = ByteBuffer.allocate(2);
-			b.putInt(Version.NOSC4[getEncoding()][version]);
+			b.putInt(Version.nosc[3][version].dataCapacityByte);
 			byte[] result = b.array();
 			memory[1] = result[0];
 			memory[2] = result[1];
 			//memory[1] =(byte)( foo >> 8 );
 			//memory[2] =(byte)( (foo << 0) >> 8 );
-			for (int i = 3; i < memory.length(); i++) {
+			for (int i = 3; i < memory.length; i++) {
 
 			}
 		}
@@ -131,6 +136,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 	}
 	private enum EncodingScheme {
 		//TODO: Add more Encoding Modes
+		
 		public byte value;
 		BYTE(value);
 		EncodingScheme(byte value){

@@ -12,6 +12,9 @@ public enum ErrorCorrectionLevel {
 	private ErrorCorrectionLevel(final int percentage) {
 		this.percentage = percentage;
 	}
+	public int getPercentage() {
+		return percentage;
+	}
 	public String toString() {
 		return getName() + " ~ " + percentage + "%";
 	}
