@@ -12,15 +12,23 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	public java.util.List<Item<BufferedImage>> process(BufferedImage input) {
 		int width = input.getWidth();
 		int height = input.getHeight();
-		int[] data = input.getRGB(0, 0, width, height, new int[(width+1) * (height+1)], 0, 1);
-
+		int[] data = new int[(width) * (height)];
+		//Arrays.fill(data, 0x88888888);
+		data = input.getRGB(0, 0, width, height, data, 0, width)
+		/*
+		try {
+			;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		System.out.println(Arrays.toString(data));
-		
+		*/
+			
 		int[] distribution = new int[256];
 		Arrays.fill(distribution, 0);
 		
 		for (int p = 0; p < data.length; p++) {
-			distribution[RGBAToLightness(data[p])]++;
+			distribution[ARGBToLightness(data[p])]++;
 		}
 		int lower = 1;
 		int lc = distribution[0];
@@ -35,7 +43,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 
 		boolean [] bw = new boolean[data.length];
 		for (int p = 0; p < data.length; p++) {
-			bw[p] = RGBAToLightness(data[p]) >= lower;
+			bw[p] = ARGBToLightness(data[p]) >= lower;
 		}
 		//not a hundered percent sure this is the order it goes in!
 		for (int y = 0, p = 0; y < height; y++) {
@@ -50,10 +58,11 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	}
 	public void reset() {
 	}
-	private static int RGBAToLightness(int rgba) {
-		int r = (rgba >> 0) & 0xFF;
-		int g = (rgba >> 8) & 0xFF;
-		int b = (rgba >> 16) & 0xFF;
+	private static int ARGBToLightness(int argb) {
+//		int a = (rgba >> 24) & 0xFF;
+		int r = (argb >> 16) & 0xFF;
+		int g = (argb >> 8) & 0xFF;
+		int b = (argb >> 0) & 0xFF;
 		int min = Math.min(Math.min(r,g), b);
 		int max = Math.max(Math.max(r,g), b);
 		return (min + max) / 2;

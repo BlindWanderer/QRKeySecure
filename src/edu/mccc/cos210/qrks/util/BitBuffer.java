@@ -104,6 +104,11 @@ public class BitBuffer {
 		pos += count;
 	}
 	public void write(int x, int count) {
+		if(count > 16) {
+			write((char)(x >> 16), count - 16);
+		}
+		write((char)x, count);
+		/*
 		count = Math.min(Math.max(count, 0), 32);
 		int mask = ~(-1 << count);
 		int d = x << (32 - count);
@@ -115,9 +120,14 @@ public class BitBuffer {
 		data[p+3] = (byte)((d >> used) & mask);
 		data[p+4] = (byte)(d << (8 - used));
 		pos += count;
+		*/
 	}
 	public void write(long x, int count) {
-		count = Math.min(Math.max(count, 0), 64);
+		if(count > 32) {
+			write((int)(x >> 32), count - 32);
+		}
+		write((int)x, count);
+		/*count = Math.min(Math.max(count, 0), 64);
 		long mask = ~(-1L << count);
 		long d = ((int)(x << (64 - count)));
 		int used = pos & 7;
@@ -132,5 +142,6 @@ public class BitBuffer {
 		data[p+7] = (byte)((d >> used) & mask);
 		data[p+8] = (byte)(d << (8 - used));
 		pos += count;
+		*/
 	}
 }
