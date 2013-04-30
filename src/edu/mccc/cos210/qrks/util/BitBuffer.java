@@ -16,16 +16,26 @@ public class BitBuffer {
 	private int size;
 	private int pos = 0;
 	private byte data[];
+	private static int EXTRA = 8;
 	public BitBuffer(int initialSize){
 		size = initialSize;
-		data = new byte[(size + 71) / 8];
+		data = new byte[(size + 7 + (EXTRA * 8)) / 8];
 		Arrays.fill(data, (byte)0);
 	}
 	public String toString() {
 		return Arrays.toString(getData()) + " @ " + pos + " of " + size;
 	}
+	public int advance(int count) {
+		return pos += count;
+	}
+	public void seek(int pos) {
+		this.pos = pos;
+	}
+	public byte [] getInternalArray() {
+		return data;
+	}
 	public byte[] getData() {
-		return Arrays.copyOf(data, data.length - 8);
+		return Arrays.copyOf(data, data.length - EXTRA);
 	}
 	public int getSize() {
 		return size;

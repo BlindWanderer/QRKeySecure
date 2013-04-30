@@ -1,5 +1,6 @@
 package edu.mccc.cos210.qrks.qrcode;
 import java.util.*;
+import java.awt.Point;
 
 public final class Version {
 	public static class SymbolCharacterInfo {
