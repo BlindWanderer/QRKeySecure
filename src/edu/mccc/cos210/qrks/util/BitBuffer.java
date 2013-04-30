@@ -1,16 +1,18 @@
 package edu.mccc.cos210.qrks.util;
 import java.util.*;
 public class BitBuffer {
-	/*public static void main(String [] args) {
+	/*/
+	public static void main(String [] args) {
 		BitBuffer b = new BitBuffer(36);
 		byte [] blah = {(byte)0xF0,(byte)0x00,(byte)0x80,(byte)0x01};
 		System.out.println(b);
-		b.add(0xF,4);
+		b.add(0xFFFFFFFEL, 1);
+//		b.add(0xEFEFEFEF, 31);
 		System.out.println(b);
 		b.add(blah);
 		System.out.println(b);
-		System.out.println(Integer.toHexString(b.data[1]));
-	}*/
+		System.out.println(Integer.toHexString(0xff & b.data[1]));
+	}/**/
 	private int size;
 	private int pos = 0;
 	private byte data[];
@@ -41,10 +43,39 @@ public class BitBuffer {
 		add(x, 64);
 	}
 	public void add(byte[] x) {
-		for (byte b : x)
-			add(b, 8);
+		for (byte y : x) {
+			if (pos >= size) {
+				break;
+			}
+			add(y, 8);
+		}
+	}
+	public void add(char[] x) {
+		for (char y : x) {
+			if (pos >= size) {
+				break;
+			}
+			add(y, 16);
+		}
+	}
+	public void add(int[] x) {
+		for (int y : x) {
+			if (pos >= size) {
+				break;
+			}
+			add(y, 32);
+		}
+	}
+	public void add(long[] x) {
+		for (long y : x) {
+			if (pos >= size) {
+				break;
+			}
+			add(y, 64);
+		}
 	}
 	public void add(byte x, int count) {
+		count = Math.min(Math.max(count, 0), 8);
 		int d = ((x << (8 - count)) & 0xFF) & (0xFF00 >> count);
 		int used = pos & 7;
 		int p = pos >> 3;
@@ -52,77 +83,44 @@ public class BitBuffer {
 		data[p+1] = (byte)(d << (8 - used));
 		pos += count;
 	}
-	//TODO: This is terrible but it's too much work to get them right (I tried several times) Yeah lack of sleep!
 	public void add(char x, int count) {
-		if (count > 8) {
-			add((byte)(x >> 8), count - 8);
-			add((byte)x, 8);
-		} else {
-			add((byte)x, count);
-		}
+		count = Math.min(Math.max(count, 0), 16);
+		int d = ((x << (16 - count)) & 0xFFFF) & (0xFFFF << (16 - count));
+		int used = pos & 7;
+		int p = pos >> 3;
+		data[p] = (byte)(data[p] | (d >> (used + 8)));
+		data[p+1] = (byte)(d >> used);
+		data[p+2] = (byte)(d << (8 - used));
+		pos += count;
 	}
 	public void add(int x, int count) {
-		if (count > 24) {
-			add((byte)(x >> 24), count - 24);
-			add((byte)(x >> 16), 8);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 16) {
-			add((byte)(x >> 16), count - 24);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 8) {
-			add((byte)(x >> 8), count - 8);
-			add((byte)x, 8);
-		} else {
-			add((byte)x, count);
-		}
+		count = Math.min(Math.max(count, 0), 32);
+		int mask = ~(-1 << count);
+		int d = x << (32 - count);
+		int used = pos & 7;
+		int p = pos >> 3;
+		data[p] = (byte)(data[p] | ((d >> (used + 24)) & (mask >> 24)));
+		data[p+1] = (byte)((d >> (used + 16)) & (mask >> 16));
+		data[p+2] = (byte)((d >> (used + 8)) & (mask >> 16));
+		data[p+3] = (byte)((d >> used) & mask);
+		data[p+4] = (byte)(d << (8 - used));
+		pos += count;
 	}
 	public void add(long x, int count) {
-		if (count > 56) {
-			add((byte)(x >> 56), count - 56);
-			add((byte)(x >> 48), 8);
-			add((byte)(x >> 40), 8);
-			add((byte)(x >> 32), 8);
-			add((byte)(x >> 24), 8);
-			add((byte)(x >> 16), 8);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 48) {
-			add((byte)(x >> 48), count - 48);
-			add((byte)(x >> 40), 8);
-			add((byte)(x >> 32), 8);
-			add((byte)(x >> 24), 8);
-			add((byte)(x >> 16), 8);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 40) {
-			add((byte)(x >> 40), count - 40);
-			add((byte)(x >> 32), 8);
-			add((byte)(x >> 24), 8);
-			add((byte)(x >> 16), 8);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 32) {
-			add((byte)(x >> 32), count - 32);
-			add((byte)(x >> 24), 8);
-			add((byte)(x >> 16), 8);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 24) {
-			add((byte)(x >> 24), count - 24);
-			add((byte)(x >> 16), 8);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 16) {
-			add((byte)(x >> 16), count - 24);
-			add((byte)(x >> 8), 8);
-			add((byte)x, 8);
-		} else if (count > 8) {
-			add((byte)(x >> 8), count - 8);
-			add((byte)x, 8);
-		} else {
-			add((byte)x, count);
-		}
+		count = Math.min(Math.max(count, 0), 64);
+		long mask = ~(-1L << count);
+		long d = ((int)(x << (64 - count)));
+		int used = pos & 7;
+		int p = pos >> 3;
+		data[p] = (byte)(data[p] | ((d >> (used + 56))) & (mask >> 56));
+		data[p+1] = (byte)((d >> (used + 48)) & (mask >> 48));
+		data[p+2] = (byte)((d >> (used + 40)) & (mask >> 40));
+		data[p+3] = (byte)((d >> (used + 32)) & (mask >> 32));
+		data[p+4] = (byte)((d >> (used + 24)) & (mask >> 24));
+		data[p+5] = (byte)((d >> (used + 16)) & (mask >> 16));
+		data[p+6] = (byte)((d >> (used + 8)) & (mask >> 8));
+		data[p+7] = (byte)((d >> used) & mask);
+		data[p+8] = (byte)(d << (8 - used));
+		pos += count;
 	}
 }
