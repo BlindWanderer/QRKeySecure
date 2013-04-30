@@ -56,7 +56,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 			final EncodingScheme es = getEncoding(text);
 			 final int version = getVersion(text, ec, es);
 			final byte [] memory = getMemorySpace(version);
-			writeToMemory(memory, text, es);
+			writeToMemory(memory, text, es, ec);
 			writeErrorCorrection(version, memory);
 			final boolean [][] field = getBasicQRCode(version);
 			writeMetaData(field, version, es, memory);
@@ -103,27 +103,22 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static void writeToMemory(byte [] memory, String text, EncodingScheme es, ErrorCorrectionLevel ec) {
 		int version = getVersion(text, ec, es);
-		switch(es) {
-			case BYTE:
-				memory[0] = Byte.parseByte(es.toString()); //???
-				
-		}
+		memory[0] = (byte) es.value; //??
 		
 		if (0 < version && version < 10) {
-			memory[1] = (byte) Version.nosc[3][version].dataCapacityByte; //TODO:set dataCapacity(X) elsewhere
+			memory[1] = (byte) Version.nosc[ec.getPercentage()][version - 1].dataCapacityByte; //TODO:set dataCapacity(X) elsewhere
 			for (int i = 2; i < memory.length; i++) {
+				//TODO
 			}
 		}
 		if (9 < version && version < 41) {	
 			ByteBuffer b = ByteBuffer.allocate(2);
-			b.putInt(Version.nosc[3][version].dataCapacityByte);
+			b.putInt(Version.nosc[ec.getPercentage()][version - 1].dataCapacityByte);
 			byte[] result = b.array();
 			memory[1] = result[0];
 			memory[2] = result[1];
-			//memory[1] =(byte)( foo >> 8 );
-			//memory[2] =(byte)( (foo << 0) >> 8 );
 			for (int i = 3; i < memory.length; i++) {
-
+				//TODO
 			}
 		}
 		
@@ -135,11 +130,17 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		throw new UnsupportedOperationException();
 	}
 	private enum EncodingScheme {
-		//TODO: Add more Encoding Modes
+		ECI (7),
+		NUMERIC (1),
+		ALPHANUMERIC (2),
+		BYTE (4),
+		KANJI (8),
+		STRUCTUREDAPPEND (3),
+		FNC1 (5), //first position
+		FNC2 (9); //second position //is FNC 8 bits???
 		
-		public byte value;
-		BYTE(value);
-		EncodingScheme(byte value){
+		public final int value;
+		EncodingScheme(int value){
 			this.value = value;
 		}
 	}
