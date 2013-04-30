@@ -77,12 +77,21 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		}
 	}
 	private static int getVersion(String text, ErrorCorrectionLevel ec, EncodingScheme es){
-		//TODO: Write me
-		return 0;
+		int dataCharCount= text.length();
+		int version = null;
+		for (int i = 1; i < 41; i++) {
+			int maxChar = Version.NOSC4[ec][i - 1].dataCapacityByte;
+			if (dataCharCount <= maxChar) {	
+				version = i;
+				return version;
+			}
+		}
+		return version;
 	}
 	private static byte[] getMemorySpace(int version) {
-		//TODO: Write me
-		return null;
+		int size = Version.NOSC4[getEncoding()][version];  
+		byte[] qr = new byte[size];
+		return qr;
 	}
 	private static EncodingScheme getEncoding(String text){
 		//TODO: Write me LATER
@@ -91,15 +100,42 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 	private static void writeToMemory(byte [] memory, String text, EncodingScheme es) {
 		switch(es) {
 			case BYTE:
-				//TODO: Write me
-				return;
+				memory[0] = Byte.parseByte(es.toString()); //???
+				
 		}
+		
+		if (0 < version < 10) {
+			memory[1] = (byte) Version.NOSC4[getEncoding()][version];
+			for (int i = 2; i < memory.length(); i++) {
+			}
+		}
+		if (9 < version < 41) {	
+			ByteBuffer b = ByteBuffer.allocate(2);
+			b.putInt(Version.NOSC4[getEncoding()][version]);
+			byte[] result = b.array();
+			memory[1] = result[0];
+			memory[2] = result[1];
+			//memory[1] =(byte)( foo >> 8 );
+			//memory[2] =(byte)( (foo << 0) >> 8 );
+			for (int i = 3; i < memory.length(); i++) {
+
+			}
+		}
+		
+		
+		
+
+
 		//TODO: Write other handles of various encoding schemes... LATER.
 		throw new UnsupportedOperationException();
 	}
 	private enum EncodingScheme {
 		//TODO: Add more Encoding Modes
-		BYTE;
+		public byte value;
+		BYTE(value);
+		EncodingScheme(byte value){
+			this.value = value;
+		}
 	}
 	private static void writeErrorCorrection(int version, byte [] memory) {
 		//Writes Error Correction bytes to memory
