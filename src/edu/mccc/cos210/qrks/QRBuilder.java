@@ -1,19 +1,14 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.qrcode.*;
-import edu.mccc.cos210.qrks.util.BitBuffer;
-
-import java.awt.Point;
-import java.nio.ByteBuffer;
+import edu.mccc.cos210.qrks.util.*;
 import java.util.*;
-
 import javax.swing.*;
-
 import java.awt.*;
 import java.awt.image.*;
 /**
  * A Builder<BufferedImage> that knows how to make QRCodes.
  */
-public abstract class QRBuilder implements Builder<BufferedImage> {
+public class QRBuilder implements Builder<BufferedImage> {
 	/**
 	 * Generates a JBuilderPanel that contains information necessary to create QRCode; will be placed in Viewer.
 	 */
@@ -25,7 +20,6 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 	 * Returns this Builder's name.
 	 * @return This Builder's name
 	 */
-
 	@Override
 	public String getName() {
 		return "QRCode";
@@ -57,10 +51,11 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		 */
 		public Item<BufferedImage> runFactory() {
 			final EncodingMode es = getEncoding(text);
-			final int version = getVersion(text, ec, es);
-			final byte [] memory = getMemorySpace(version);
-			writeToMemory(memory, text, es, ec);
-			writeErrorCorrection(version, memory);
+			final byte [] data = encode(text, es);
+			final int version = getVersion(data, ec, es);
+			final BitBuffer memory = getMemorySpace(version);
+			writeToMemory(memory, data, es, version, ec);
+			writeErrorCorrection(version, memory, ec);
 			final boolean [][] field = getBasicQRCode(version);
 			writeMetaData(field, version, es, memory);
 			writeDataToField(version, field, memory);
@@ -98,7 +93,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		int size = Version.getDataCapacity(version);
 		return new BitBuffer(size);
 	}
-	private static EncodingMode getEncoding(String text){
+	private static EncodingMode getEncoding(String text) {
 		//TODO: Write me LATER
 		return EncodingMode.BYTE;
 	}
@@ -114,15 +109,12 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 					memory.write((char)data.length);
 				}
 				memory.write(data);
-				writeErrorCorrection(version, memory);
 				return;
 			default:
 				throw new UnsupportedOperationException();			
 		}
 	}
-		
-	
-private static void writeErrorCorrection(int version, BitBuffer memory) {
+	private static void writeErrorCorrection(int version, BitBuffer memory, ErrorCorrectionLevel ec) {
 	/*
 	memory.seek(ecStartPosition);
 	byte [] data = memory.getData();
@@ -132,7 +124,7 @@ private static void writeErrorCorrection(int version, BitBuffer memory) {
 	*/
 	//Writes Error Correction bytes to memory
 	//TODO: Write me LATER
-}
+	}
 	private static boolean [][] getBasicQRCode(int version) {
 		//Contains the various finding patters, timing patters, 
 		//TODO: Write me
@@ -162,11 +154,11 @@ private static void writeErrorCorrection(int version, BitBuffer memory) {
 		}
 		return null;
 	}
-	private static void writeMetaData(boolean [][] field, int version, EncodingMode es, byte [] memory) {
+	private static void writeMetaData(boolean [][] field, int version, EncodingMode es, BitBuffer memory) {
 		//Write metadata to field
 		//TODO: Write me
 	}
-	private static void writeDataToField(int version, boolean [][] field, byte [] memory) {
+	private static void writeDataToField(int version, boolean [][] field, BitBuffer memory) {
 		//Write memory into field
 		//TODO: Write me
 	}
@@ -175,5 +167,18 @@ private static void writeErrorCorrection(int version, BitBuffer memory) {
 	}
 	private static void applyMasks(int version, boolean [][] field) {
 		//TODO: Write me
+	}
+	private static byte [] encode(String text, EncodingMode es) {
+		switch(es) {
+			case BYTE:
+				try {
+					return text.getBytes("US-ASCII");//TODO: Make this better!
+				} catch (Exception e) {
+					return null;
+				}
+			default:
+				throw new UnsupportedOperationException();
+			//TODO: Write other handles of various encoding schemes... LATER.
+		}
 	}
 }
