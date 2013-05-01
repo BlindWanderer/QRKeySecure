@@ -15,6 +15,7 @@ public final class Utilities {
 		BufferedImage bi = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = bi.createGraphics();
 		g.drawImage(image, 0,0, null);
+		g.dispose();
 		return bi;
 	}
 	public static Dimension addDimensions(Dimension left, Dimension ... right) {

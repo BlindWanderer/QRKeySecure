@@ -13,7 +13,7 @@ public class QRReaderPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 	private Image image;
 	private Reader<BufferedImage, BufferedImage> [] readers;
-	private SwingWorker<Void,Void> swp;
+	private SwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage> swp;
 	public QRReaderPanel(final Viewer viewer, final Reader<BufferedImage, BufferedImage> [] readers){
 		this.readers = readers;
 		this.setPreferredSize(new Dimension(600, 800));
@@ -27,25 +27,40 @@ public class QRReaderPanel extends JPanel {
 		
 		this.add(stack, BorderLayout.SOUTH);
 		
-
+		ActionListener sal = new ActionListener() {
+			public void actionPerformed(final ActionEvent e) {
+				camera.setImage(null);
+				cl.show(stack, "1");
+			}
+		};
 		ActionListener pal = new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
 					cl.show(stack, "5");
 					if (swp != null && !swp.isDone() && !swp.isCancelled()) {
 						swp.cancel(true);
 					}
-					swp = new SwingWorker<Void,Void>() {
-						public Void doInBackground() {
-							BufferedImage img = (image instanceof BufferedImage)?(BufferedImage)image:Utilities.convertImageToBufferedImage(image);
+					swp = new DelegatingSwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage>() {
+						@Override
+						public java.util.List<Item<BufferedImage>> doInBackground() {
+							SingWorkerProtected<BufferedImage> p = this.getProtected();
 							java.util.List<Item<BufferedImage>> out = new LinkedList<Item<BufferedImage>>();
 							for(Reader<BufferedImage, BufferedImage> reader : readers) {
-								out.addAll(reader.process(img));
-								//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
+								java.util.List<Item<BufferedImage>> t = reader.process(Utilities.convertImageToBufferedImage(image), p);
+								if (t != null) {
+									out.addAll(t);
+								}
 							}
-							return null;
+							return out;
 						}
+						@Override
 						public void done() {
+//							camera.setImage(image);//restore the image
+							//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
 							cl.show(stack, "6");
+						}
+						@Override
+						public void process(java.util.List<BufferedImage> imgs) {
+							camera.setImage(imgs.get(imgs.size() - 1));
 						}
 					};
 					swp.execute();
@@ -153,7 +168,7 @@ public class QRReaderPanel extends JPanel {
 			final JButton process = new JButton("Process");
 			process.setMnemonic(KeyEvent.VK_P);
 			state4.add(process, BorderLayout.LINE_END);
-			goBack.addActionListener(showActionListener(cl, stack, "1"));
+			goBack.addActionListener(sal);
 			process.addActionListener(pal);
 		}
 		{ //STATE 5
@@ -175,7 +190,7 @@ public class QRReaderPanel extends JPanel {
 			final JButton startOver = new JButton("Start Over");
 			startOver.setMnemonic(KeyEvent.VK_O);
 			state6.add(startOver, BorderLayout.CENTER);
-			startOver.addActionListener(showActionListener(cl, stack, "1"));
+			startOver.addActionListener(sal);
 		}
 		
 		cl.show(stack, "1");

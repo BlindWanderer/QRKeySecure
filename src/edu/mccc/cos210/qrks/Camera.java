@@ -168,7 +168,7 @@ public class Camera extends JPanel {
 					double sm = Math.min(cx / (double)ix, cy / (double)iy);
 					if (sm > 0) { //has to be space to display it in. Zero or less indicates there is no space to display it in.
 						Image t = image;
-						if (sm < 1.0) { //it's too big
+						/*if (sm < 1.0)*/ { //it's too big
 							ix = (int)Math.round(ix * sm);
 							iy = (int)Math.round(iy * sm);
 							t = image.getScaledInstance(ix, iy, Image.SCALE_DEFAULT);
