@@ -8,6 +8,7 @@ import java.awt.image.*;
 import javax.swing.filechooser.*;
 import java.io.*;
 import javax.imageio.*;
+import java.awt.Point;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	private static class Match {
@@ -31,6 +32,15 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		public String toString() {
 			return "["+start+","+end+") +=" + stride;
+		}
+		public boolean intersect(Match that, int width){
+			Point e = new Point((this.end % width) - (this.start % width), (this.end / width) - (this.start / width));
+			Point f = new Point((that.end % width) - (that.start % width), (that.end / width) - (that.start / width));
+			Point p = new Point(-e.y, e.x);
+			Point ac = new Point((this.start % width) - (that.start % width), (this.start / width) - (that.start / width));
+			int acp = Utilities.crossProduct(ac, p);
+			int fp = Utilities.crossProduct(f, p);
+			return ((acp <= fp) && (fp >= 0) && acp >= 0) || ((acp >= fp) && (fp <= 0) && acp <= 0); //0 <= (acp / fp) <= 1
 		}
 	}
 	private static class MatchHead {
@@ -109,7 +119,40 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		
 		//List<MatchGroup> matches = new LinkedList<>();
 		List<MatchHead> matchheads = new LinkedList<>();
+		/*
+		//IDEA it must be found in 3 of the 4 scans.
+		List<Match> horizontal = new LinkedList<>();
+		List<Match> vertical = new LinkedList<>();
+		List<Match> daigonalPlus = new LinkedList<>();
+		List<Match> diagonalMinus = new LinkedList<>();
+		for (int y = 0, p = 0; y < height; y++) {
+			horizontal.addAll(process(bw, p, p+=width, 1, prog));
+		}
+		for (int x = 0; x < width; x++) {
+			vertical.addAll(process(bw, x, width * height, width, prog));
+		}
+		for (int x = 0; x < width; x++) {
+			diagonalPlus.addAll(process(bw, x, Math.min(width * height, (width - x) * width), width + 1, prog));
+		}
+		for (int y = 1; y < height; y++) {
+			diagonalPlus.addAll(process(bw, y * width, Math.min(width * height, width * width), width + 1, prog));
+		}
+		for (int x = 0; x < width; x++) {
+			diagonalMinus.addAll(process(bw, x, Math.min(width * height, (x + 1) * width), width - 1, prog));
+		}
+		for (int y = 1; y < height; y++) {
+			diagonalMinus.addAll(process(bw, y * width + width - 1, Math.min(width * height, width * width), width - 1, prog));
+		}
 		
+		Match v;
+		Match p;
+		Match m;
+		for (Match h: horizontal){
+			int hc = h.getCenter();
+			for (Match t : vertical) {//horizontal
+			}
+		}
+		*/
 		/*
 		try {
 		*/

@@ -11,6 +11,9 @@ import java.lang.reflect.Array;
 public final class Utilities {
 	private Utilities() {
 	}
+	public static int crossProduct(Point a, Point b) {
+		return (a.x * b.y) - (a.y * b.x);
+	}
 	public static BufferedImage convertImageToBufferedImage(Image image) {
 		BufferedImage bi = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = bi.createGraphics();
