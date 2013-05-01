@@ -1,7 +1,8 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.qrcode.*;
-import edu.mccc.cos210.qrks.qrcode.Point;
+import edu.mccc.cos210.qrks.util.BitBuffer;
 
+import java.awt.Point;
 import java.nio.ByteBuffer;
 import java.util.*;
 
@@ -56,7 +57,7 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 		 */
 		public Item<BufferedImage> runFactory() {
 			final EncodingMode es = getEncoding(text);
-			 final int version = getVersion(text, ec, es);
+			final int version = getVersion(text, ec, es);
 			final byte [] memory = getMemorySpace(version);
 			writeToMemory(memory, text, es, ec);
 			writeErrorCorrection(version, memory);
@@ -82,87 +83,83 @@ public abstract class QRBuilder implements Builder<BufferedImage> {
 			};
 		}
 	}
-	private static int getVersion(String text, ErrorCorrectionLevel ec, EncodingMode es){
-		int dataCharCount= text.length();
-		int version = 0;
+	private static int getVersion(byte [] data, ErrorCorrectionLevel ec, EncodingMode em){
+		int dataCharCount= data.length;
+		Version.SymbolCharacterInfo [] scis = Version.nosc[ec.index];
 		for (int i = 1; i < 41; i++) {
-			int maxChar = Version.nosc[ec.index][i - 1].dataCapacityByte;
-			if (dataCharCount <= maxChar) {	
-				version = i;
-				return version;
+			int maxChar = scis[i - 1].getDataCapacity(em);
+			if (dataCharCount <= maxChar) {
+				return i;
 			}
 		}
-		return version;
+		return -1;
 	}
-	private static byte[] getMemorySpace(int version) {
-		int size = Version.getSize(version);  
-		byte[] qr = new byte[size];
-		return qr;
+	private static BitBuffer getMemorySpace(int version) {
+		int size = Version.getDataCapacity(version);
+		return new BitBuffer(size);
 	}
 	private static EncodingMode getEncoding(String text){
 		//TODO: Write me LATER
 		return EncodingMode.BYTE;
 	}
-	private static void writeToMemory(byte [] memory, String text, EncodingMode es, ErrorCorrectionLevel ec) {
-		int version = getVersion(text, ec, es);
-		memory[0] = es.value; //TODO: ???
-		
-		if (0 < version && version < 10) {
-			memory[1] = (byte) Version.nosc[ec.index][version - 1].dataCapacityByte; //TODO:set dataCapacity(X) elsewhere
-			for (int i = 2; i < memory.length; i++) {
-				//TODO
-			}
+	private static void writeToMemory(BitBuffer memory, byte [] data, EncodingMode em, int version, ErrorCorrectionLevel ec) {
+		//WARNING! We need a BitBuffer of some sort, QRCodes are not Byte Aligned!
+		memory.write(em.value, 4);
+		switch (em) {
+			case BYTE:
+				if (0 < version && version < 10) {
+					memory.write((byte)data.length);
+				}
+				if (9 < version && version < 41) {
+					memory.write((char)data.length);
+				}
+				memory.write(data);
+				writeErrorCorrection(version, memory);
+				return;
+			default:
+				throw new UnsupportedOperationException();			
 		}
-		if (9 < version && version < 41) {	
-			ByteBuffer b = ByteBuffer.allocate(2);
-			b.putInt(Version.nosc[ec.index][version - 1].dataCapacityByte);
-			byte[] result = b.array();
-			memory[1] = result[0];
-			memory[2] = result[1];
-			for (int i = 3; i < memory.length; i++) {
-				//TODO
-			}
-		}
-		
-		
-		
-
-
-		//TODO: Write other handles of various encoding Modes... LATER.
-		throw new UnsupportedOperationException();
 	}
-	/**private enum EncodingMode {
-		ECI (7),
-		NUMERIC (1),
-		ALPHANUMERIC (2),
-		BYTE (4),
-		KANJI (8),
-		STRUCTUREDAPPEND (3),
-		FNC1 (5), //first position
-		FNC2 (9); //second position //is FNC 8 bits???
 		
-		public final int value;
-		EncodingMode(int value){
-			this.value = value;
-		}
-	}*/
-	private static void writeErrorCorrection(int version, byte [] memory) {
-		//Writes Error Correction bytes to memory
-		//TODO: Write me LATER
-	}
+	
+private static void writeErrorCorrection(int version, BitBuffer memory) {
+	/*
+	memory.seek(ecStartPosition);
+	byte [] data = memory.getData();
+	//calculate correction data
+	byte [] ecd = new byte[0];
+	memory.write(ecd);
+	*/
+	//Writes Error Correction bytes to memory
+	//TODO: Write me LATER
+}
 	private static boolean [][] getBasicQRCode(int version) {
 		//Contains the various finding patters, timing patters, 
 		//TODO: Write me
-		boolean[][] qr = new boolean[Version.getSize(version)][Version.getSize(version)]; 
-		Point[] allignArray = Version.getAlignmentPatternLocations(version);
-		for (Point p : allignArray) {
+		int size = Version.getSize(version);
+		boolean[][] qr = new boolean[size][size]; 
+		Point[] findingArray = Version.getFindingPatternLocations(version);
+		for (Point p : findingArray) {
 			//create a finding pattern at the location of the point;
-			for (int x = 0; x < 9; x ++) {qr[p.x + x][p.y] = false;}
-			
-			for (int x = 0; x < 9; x ++) {qr[8 + x][p.y] = false;}
+			for (int x = 0; x < 7; x ++) {qr[p.x + x][p.y] = true;}
+			for (int x = 0; x < 7; x ++) {qr[p.x + x][p.y + 6] = true;}
+			qr[p.x][p.y + 1] = true;
+			qr[p.x + 6][p.y + 4] = true;
+			qr[p.x][p.y + 1] = true;
+			qr[p.x + 6][p.y + 4] = true;
+			for (int y = 2; y < 5; y++) {
+				qr[p.x][p.y] = true;
+				qr[p.x + 2][p.y] = true;
+				qr[p.x + 3][p.y] = true;
+				qr[p.x + 4][p.y] = true;
+				qr[p.x + 6][p.y] = true;
+			}
 		}
 		
-		Version.getFindingPatternLocations(version);
+		Point[] allignArray = Version.getAlignmentPatternLocations(version);
+		for (Point p : allignArray) {
+			
+		}
 		return null;
 	}
 	private static void writeMetaData(boolean [][] field, int version, EncodingMode es, byte [] memory) {
