@@ -21,6 +21,24 @@ public class QRReaderPanel extends JPanel {
 	private Image image;
 	private Reader<BufferedImage, BufferedImage> [] readers;
 	private SwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage> swp;
+	public static final List<javax.swing.filechooser.FileFilter> IMAGE_FILE_NAME_FILTERS;
+	static {
+		FileNameExtensionFilter[] fnef = {
+				new FileNameExtensionFilter("png", "png"),
+				new FileNameExtensionFilter("jpeg", "jpg", "jpeg"),
+				new FileNameExtensionFilter("gif", "gif"),
+				new FileNameExtensionFilter("bmp", "bmp"),
+				new FileNameExtensionFilter("tiff", "tif", "tiff"),
+			};
+		List<String> names = new LinkedList<String>();
+		for (FileNameExtensionFilter f : fnef) {
+			names.addAll(Arrays.asList(f.getExtensions()));
+		}
+		List<javax.swing.filechooser.FileFilter> exts = new ArrayList<>(fnef.length + 1);
+		exts.add(new FileNameExtensionFilter("All Images", names.toArray(new String[0])));
+		exts.addAll(Arrays.asList(fnef));
+		IMAGE_FILE_NAME_FILTERS = Collections.unmodifiableList(exts);
+	}
 	public QRReaderPanel(final Viewer viewer, final Reader<BufferedImage, BufferedImage> [] readers){
 		this.readers = readers;
 		this.setPreferredSize(new Dimension(600, 800));
@@ -35,37 +53,42 @@ public class QRReaderPanel extends JPanel {
 
 		final DropTargetListener ddl = new DropTargetAdapter() {
 			@Override
-			public void drop(DropTargetDropEvent event) {
-				event.acceptDrop(DnDConstants.ACTION_COPY);
-				Transferable transferable = event.getTransferable();
-				DataFlavor[] flavors = transferable.getTransferDataFlavors();
-				for (DataFlavor flavor : flavors) {
-					try {
-						if (flavor.isFlavorJavaFileListType()) {
-							List files = (List) transferable.getTransferData(flavor);
-							if (files.size() > 0) {
-								BufferedImage fi;
-								File file = (File)files.get(0);
-								try {
-									fi = ImageIO.read(file);
-								} catch (IOException ex) {
-									fi = null;
-									//TODO: display error message about trouble reading file. Status bar or dialog box?
-								}
-								if (swp != null && !swp.isDone() && !swp.isCancelled()) {
-									swp.cancel(true);
-								}
-								if (fi != null) {
-									cl.show(stack, "4");
-									image = camera.setImage(fi);
-								}
-							}
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+			public void dragEnter(DropTargetDragEvent event) {
+				if (event.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+					event.acceptDrag(DnDConstants.ACTION_COPY);
+				} else {
+					event.rejectDrag();
 				}
-				event.dropComplete(true);
+			}
+			@Override
+			public void drop(DropTargetDropEvent event) {
+				Transferable transferable = event.getTransferable();
+				boolean success = false;
+				if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+					event.acceptDrop(DnDConstants.ACTION_COPY);
+					try {
+						List files = (List) transferable.getTransferData(DataFlavor.javaFileListFlavor);
+						if (files.size() > 0) {
+							File file = (File)files.get(0);
+							BufferedImage fi = ImageIO.read(file);
+							if (swp != null && !swp.isDone() && !swp.isCancelled()) {
+								swp.cancel(true);
+							}
+							if (fi != null) {
+								cl.show(stack, "4");
+								image = camera.setImage(fi);
+							}
+							success = true;
+						}
+					} catch (UnsupportedFlavorException e) {
+//						e.printStackTrace();
+					} catch (IOException e) {
+//						e.printStackTrace();
+					}
+				} else {
+					event.rejectDrop();
+				}
+				event.dropComplete(success);
 			}
 		};
 		new DropTarget(this, ddl);
@@ -121,19 +144,11 @@ public class QRReaderPanel extends JPanel {
 					cl.show(stack, "2");
 				}
 			};
-		ActionListener oal = new ActionListener() {
-			FileNameExtensionFilter[] exts = {
-				new FileNameExtensionFilter("All Images", "jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff"),
-				new FileNameExtensionFilter("jpeg", "jpg", "jpeg"),
-				new FileNameExtensionFilter("png", "png"),
-				new FileNameExtensionFilter("gif", "gif"),
-				new FileNameExtensionFilter("bmp", "bmp"),
-				new FileNameExtensionFilter("tiff", "tif", "tiff"),
-			};
+		ActionListener oal = new ActionListener() {			
 			public void actionPerformed(final ActionEvent e) {
 				JFileChooser fc = new JFileChooser();
-				fc.setFileFilter(exts[0]);
-				for (FileNameExtensionFilter ext : exts) {
+				fc.setFileFilter(IMAGE_FILE_NAME_FILTERS.get(0));
+				for (javax.swing.filechooser.FileFilter ext : IMAGE_FILE_NAME_FILTERS) {
 					fc.addChoosableFileFilter(ext);
 				}
 				fc.setAcceptAllFileFilterUsed(true);

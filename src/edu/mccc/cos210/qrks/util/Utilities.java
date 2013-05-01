@@ -14,6 +14,27 @@ public final class Utilities {
 	public static int crossProduct(Point a, Point b) {
 		return (a.x * b.y) - (a.y * b.x);
 	}
+	public static Point add(Point left, Point right) {
+		return new Point(left.x + right.x, left.y + right.y);
+	}
+	public static Point subtract(Point left, Point right) {
+		return new Point(left.x - right.x, left.y - right.y);
+	}
+	public static boolean isIntersectionBetweenSegments(Point aStart, Point aEnd, Point bStart, Point bEnd) {
+			Point e = subtract(aEnd, aStart);
+			Point f = subtract(bEnd, bStart);
+			Point p = new Point(-e.y, e.x);
+			int acp = crossProduct(subtract(aStart, bStart), p);
+			int fp = crossProduct(f, p);
+			return ((acp <= fp) && (fp >= 0) && acp >= 0) || ((acp >= fp) && (fp <= 0) && acp <= 0); //0 <= (acp / fp) <= 1
+	}
+	public static double getSegmentIntersectionStrength(Point aStart, Point aEnd, Point bStart, Point bEnd) {
+			Point e = subtract(aEnd, aStart);
+			Point f = subtract(bEnd, bStart);
+			Point p = new Point(-e.y, e.x);
+			int fp = crossProduct(f, p);
+			return Math.abs((2 * crossProduct(subtract(aStart, bStart), p) - fp) / (double)fp);
+	}
 	public static BufferedImage convertImageToBufferedImage(Image image) {
 		BufferedImage bi = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = bi.createGraphics();

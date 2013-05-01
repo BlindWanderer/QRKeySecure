@@ -33,14 +33,18 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		public String toString() {
 			return "["+start+","+end+") +=" + stride;
 		}
-		public boolean intersect(Match that, int width){
-			Point e = new Point((this.end % width) - (this.start % width), (this.end / width) - (this.start / width));
-			Point f = new Point((that.end % width) - (that.start % width), (that.end / width) - (that.start / width));
-			Point p = new Point(-e.y, e.x);
-			Point ac = new Point((this.start % width) - (that.start % width), (this.start / width) - (that.start / width));
-			int acp = Utilities.crossProduct(ac, p);
-			int fp = Utilities.crossProduct(f, p);
-			return ((acp <= fp) && (fp >= 0) && acp >= 0) || ((acp >= fp) && (fp <= 0) && acp <= 0); //0 <= (acp / fp) <= 1
+		public boolean intersectsWith(Match that, int width){
+			return Utilities.isIntersectionBetweenSegments(this.getStartPoint(width), this.getEndPoint(width), that.getStartPoint(width), that.getEndPoint(width));
+		}
+		public double getIntersectionStrength(Match that, int width) {
+			return Utilities.getSegmentIntersectionStrength(this.getStartPoint(width), this.getEndPoint(width), that.getStartPoint(width), that.getEndPoint(width));
+		}
+		public Point getStartPoint(int width) {
+			return new Point(start % width, start / width);
+		}
+		public Point getEndPoint(int width) {
+			int e = this.end - this.stride;
+			return new Point(e % width, e / width);
 		}
 	}
 	private static class MatchHead {
@@ -76,7 +80,28 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return "<"+match+", "+list.size()+">";
 		}
 	}
-	private static class MatchGroup {
+	private static class MatchPriority implements Comparable<MatchPriority> {
+		public final double strength;
+		public final Match match;
+		public MatchPriority(final double strength, final Match match){
+			this.strength = strength;
+			this.match = match;
+		}
+		public MatchPriority(final Match match, final double strength){
+			this.strength = strength;
+			this.match = match;
+		}
+		public int compareTo(MatchPriority that) {
+			if (this.strength > that.strength) {
+				return 1;
+			}
+			if (this.strength < that.strength) {
+				return -1;
+			}
+			return 0;
+		}
+	}
+	private static class MatchGroup implements Comparable<MatchGroup> {
 		public final Match verticle;
 		public final Match horizontal;
 		public final Match diagonalPlus;
@@ -89,6 +114,12 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		public String toString() {
 			return Arrays.toString(Utilities.newGenericArray(verticle, horizontal, diagonalPlus, diagonalMinus));
+		}
+		public int getNonNullCount() {
+			return (verticle!=null?1:0) + (horizontal!=null?1:0) + (diagonalPlus!=null?1:0) + (diagonalMinus!=null?1:0);
+		}
+		public int compareTo(MatchGroup that) {
+			return this.getNonNullCount() - that.getNonNullCount();
 		}
 	}
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
@@ -123,7 +154,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		//IDEA it must be found in 3 of the 4 scans.
 		List<Match> horizontal = new LinkedList<>();
 		List<Match> vertical = new LinkedList<>();
-		List<Match> daigonalPlus = new LinkedList<>();
+		List<Match> diagonalPlus = new LinkedList<>();
 		List<Match> diagonalMinus = new LinkedList<>();
 		for (int y = 0, p = 0; y < height; y++) {
 			horizontal.addAll(process(bw, p, p+=width, 1, prog));
@@ -144,18 +175,57 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			diagonalMinus.addAll(process(bw, y * width + width - 1, Math.min(width * height, width * width), width - 1, prog));
 		}
 		
-		Match v;
-		Match p;
-		Match m;
 		for (Match h: horizontal){
-			int hc = h.getCenter();
-			for (Match t : vertical) {//horizontal
+			int count = 0;
+			Match k = h;
+			Match v = null;
+			Match p = null;
+			Match m = null;
+			Queue<MatchPriority> hq = new PriorityQueue<MatchPriority>();
+			for (Match t : vertical) {
+				double strength = k.getIntersectionStrength(t, width);
+				if (strength <= 1) {
+					hq.add(new MatchPriority(t, strength));
+				}
+			}
+			if(hq.isEmpty()) {
+				count++;
+			} else {
+				v = k = hq.peek().match;
+			}
+			Queue<MatchPriority> pq = new PriorityQueue<MatchPriority>();
+			for (Match t : diagonalPlus) {//horizontal
+				double strength = k.getIntersectionStrength(t, width);
+				if (strength <= 1) {
+					pq.add(new MatchPriority(t, strength));
+				}
+			}
+			if(pq.isEmpty()) {
+				count++;
+			} else {
+				p = k = pq.peek().match;
+			}
+			Queue<MatchPriority> mq = new PriorityQueue<MatchPriority>();
+			for (Match t : diagonalMinus) {//horizontal
+				double strength = k.getIntersectionStrength(t, width);
+				if (strength <= 1) {
+					mq.add(new MatchPriority(t, strength));
+				}
+			}
+			if(mq.isEmpty()) {
+				count++;
+			} else {
+				m = k = mq.peek().match;
+			}
+			if (count < 2) {
+				matchheads.add(new MatchHead(width, k, new MatchGroup(h,v,p,m)));
 			}
 		}
-		*/
+		/**/
 		/*
 		try {
 		*/
+		//*
 		for (int y = 0, p = 0; y < height; y++) {
 			swp.setProgress((y * 100) / height);
 //			System.out.print("y");
