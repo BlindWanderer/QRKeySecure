@@ -25,10 +25,45 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return start + (((end - start /*- stride*/) / (stride * 2)) * stride);
 		}
 		public double getLength(int width) {
-			return Math.sqrt(Math.pow((end - start) % width, 2) + Math.pow((end - start) / width, 2));
+			double value = Math.sqrt(Math.pow((end % width) - (start % width), 2) + Math.pow((end / width) - (start / width), 2));
+			//System.out.println(value);
+			return value;
 		}
 		public String toString() {
 			return "["+start+","+end+") +=" + stride;
+		}
+	}
+	private static class MatchHead {
+		private int width;
+		private Match match;
+		private double radius;
+		private int x;
+		private int y;
+		private int center;
+		private List<MatchGroup> list = new LinkedList<>();
+		public MatchHead(int width, Match match, MatchGroup ... values){
+			this.width = width;
+			setHead(match);
+			list.addAll(Arrays.asList(values));
+		}
+		public Match getHead(){
+			return match;
+		}
+		public void setHead(Match match){
+			this.match = match;
+			this.radius = match.getLength(width);
+			this.center = match.getCenter();
+			this.x = this.center % this.width;
+			this.y = this.center / this.width;
+		}
+		public boolean overlaps(int c) {
+			return Math.sqrt(Math.pow((c % this.width) - x, 2) + Math.pow((c / this.width) - y, 2)) <= radius;
+		}
+		public void add(MatchGroup ... values) {
+			list.addAll(Arrays.asList(values));
+		}
+		public String toString(){
+			return "<"+match+", "+list.size()+">";
 		}
 	}
 	private static class MatchGroup {
@@ -46,7 +81,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return Arrays.toString(Utilities.newGenericArray(verticle, horizontal, diagonalPlus, diagonalMinus));
 		}
 	}
-	public List<Item<BufferedImage>> process(BufferedImage input, SingWorkerProtected<BufferedImage> swp) {
+	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
 		int width = input.getWidth();
 		int height = input.getHeight();
 		int[] data = new int[(width) * (height)];
@@ -62,7 +97,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		
 		int lower = getCenterColor(data);
 
-//		System.out.println("3");
+		//System.out.println("3");
 
 		boolean [] bw = new boolean[data.length];
 		try{
@@ -85,19 +120,26 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return null;
 		}
 	*/	
-//		System.out.println("4");
+		//System.out.println("4");
 		
-		swp.publish(input);
 		
-		BufferedImage prog = input;//Utilities.convertImageToBufferedImage(input);
+		BufferedImage prog = Utilities.convertImageToBufferedImage(input);
+		swp.publish(prog);
 		
-		List<MatchGroup> matches = new LinkedList<>();
+		//List<MatchGroup> matches = new LinkedList<>();
+		List<MatchHead> matchheads = new LinkedList<>();
 		
+		/*
+		try {
+		*/
 		for (int y = 0, p = 0; y < height; y++) {
+			swp.setProgress((y * 100) / height);
 //			System.out.print("y");
+			mLoop:
 			for (Match m : process(bw, p, p+=width, 1, prog)) {//horizontal
 //				System.out.print("m");
 				int mc = m.getCenter();
+				wLoop:
 				for (Match w : process(bw, mc % width, width * height, width, prog)) {//vertical
 					if((mc >= w.start) && (mc <= w.end)){
 //						System.out.print("w");
@@ -112,6 +154,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						for (int a = zstart; a < zend; a+=zstride) {
 							setARGB(prog, a, 0xFF0000FF);
 						}
+						zLoop:
 						for (Match z : process(bw, zstart, zend, zstride, prog)) {//diagonal
 							if((wc >= z.start) && (wc <= z.end)) {
 //								System.out.print("z");
@@ -119,7 +162,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 								int sstride = width - 1;
 								int sk = sstride - (zc % width);
 								int sstart = zc + sk - sk * width;
-								int send = Math.min(sstart + width * (width - 1), width * height);//BUG? not sure why this one needs a minus 1
+								int send = Math.min(sstart + width * sstride, width * height);
 								if (sstart < 0) {
 									sstart = (sstart % sstride) + sstride;
 								}
@@ -127,9 +170,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 									setARGB(prog, a, 0xFF0000FF);
 								}
 								
+								sLoop:
 								for (Match s : process(bw, sstart, send, sstride, prog)) {//diagonal
 									if((zc >= s.start) && (zc <= s.end)) {
-										matches.add(new MatchGroup(m,w,z,s));
+										int sc = s.getCenter();
 										setARGB(prog, m.start, 0xFFFF0000);
 										setARGB(prog, m.end - 1, 0xFFFF0000);
 										setARGB(prog, mc, 0xFF00FF00);
@@ -142,6 +186,14 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 										setARGB(prog, s.start, 0xFFFF0000);
 										setARGB(prog, s.end - sstride, 0xFFFF0000);
 										setARGB(prog, s.getCenter(), 0xFF00FF00);
+										for(MatchHead mh : matchheads) {
+											if (mh.overlaps(sc)) {
+												//mh.add(new MatchGroup(m,w,z,s));
+												//continue sLoop;
+												continue mLoop;
+											}
+										}
+										matchheads.add(new MatchHead(width, s, new MatchGroup(m,w,z,s)));
 									}
 								}
 							}
@@ -150,32 +202,35 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 			}
 		}
-		
+		/*
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		*/
+		/*
 		try {
 			ImageIO.write(prog, "png", new File("C:\\test2.png"));
 		} catch(Exception e) {
 			e.printStackTrace();
 			return null;
-		}
+		}*/
 
+//		System.out.println("5");
+		
 		swp.publish(prog);
 
-//		System.out.println("5");		
-		System.out.println(matches);		
-		System.out.println(matches.size());
+		System.out.println(matchheads);		
+		System.out.println(matchheads.size());
 		return null;
 	}
-	private static int getCenterColor(int [] data){
+	private static int getCenterColor(int [] data) {
 		int[] distribution = new int[256];
 		Arrays.fill(distribution, 0);
 
-//		System.out.println("1");
-		
 		for (int p = 0; p < data.length; p++) {
 			distribution[ARGBToLightness(data[p])]++;
 		}
-
-//		System.out.println("2");
 
 		int lower = 0;
 		int upper = 256;

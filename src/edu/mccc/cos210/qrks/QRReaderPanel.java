@@ -42,7 +42,7 @@ public class QRReaderPanel extends JPanel {
 					swp = new DelegatingSwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage>() {
 						@Override
 						public java.util.List<Item<BufferedImage>> doInBackground() {
-							SingWorkerProtected<BufferedImage> p = this.getProtected();
+							SwingWorkerProtected<?, BufferedImage> p = this.getProtected();
 							java.util.List<Item<BufferedImage>> out = new LinkedList<Item<BufferedImage>>();
 							for(Reader<BufferedImage, BufferedImage> reader : readers) {
 								java.util.List<Item<BufferedImage>> t = reader.process(Utilities.convertImageToBufferedImage(image), p);
