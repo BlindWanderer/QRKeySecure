@@ -84,33 +84,19 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
 		int width = input.getWidth();
 		int height = input.getHeight();
-		int[] data = new int[(width) * (height)];
-		data = input.getRGB(0, 0, width, height, data, 0, width);
-		/*
-		try {
-			;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		*/
-//		System.out.println(Arrays.toString(data));
-		
+
+		BufferedImage prog = Utilities.convertImageToBufferedImage(input);
+		swp.publish(prog);
+
+		int[] data = input.getRGB(0, 0, width, height, new int[(width) * (height)], 0, width);
 		int lower = getCenterColor(data);
-
-		//System.out.println("3");
-
 		boolean [] bw = new boolean[data.length];
-		try{
-			for (int p = 0; p < data.length; p++) {
-				if (bw[p] = (ARGBToLightness(data[p]) >= lower)) {
-					setARGB(input, p, 0xFFFFFFFF);
-				} else {
-					setARGB(input, p, 0xFF000000);
-				}
+		for (int p = 0; p < data.length; p++) {
+			if (bw[p] = (ARGBToLightness(data[p]) >= lower)) {
+				setARGB(prog, p, 0xFFFFFFFF);
+			} else {
+				setARGB(prog, p, 0xFF000000);
 			}
-		} catch(Exception e) {
-			e.printStackTrace();
-			return null;
 		}
 /*
 		try {
@@ -120,11 +106,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return null;
 		}
 	*/	
-		//System.out.println("4");
-		
-		
-		BufferedImage prog = Utilities.convertImageToBufferedImage(input);
-		swp.publish(prog);
 		
 		//List<MatchGroup> matches = new LinkedList<>();
 		List<MatchHead> matchheads = new LinkedList<>();
@@ -218,7 +199,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 
 //		System.out.println("5");
 		
-		swp.publish(prog);
+		swp.publish(Utilities.convertImageToBufferedImage(prog));
 
 		System.out.println(matchheads);		
 		System.out.println(matchheads.size());
@@ -231,11 +212,29 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (int p = 0; p < data.length; p++) {
 			distribution[ARGBToLightness(data[p])]++;
 		}
-
+		
+		
 		int lower = 0;
 		int upper = 256;
 		int lc = 0;
 		int uc = 0;
+
+		for (int p = 0; p < 128; p++) {
+			if(lc < distribution[p]) {
+				lc = distribution[p];
+				lower = p;
+			}
+		}
+		for (int p = 128; p < 256; p++) {
+			if(uc < distribution[p]) {
+				uc = distribution[p];
+				upper = p;
+			}
+		}
+		
+		return ((upper * 2) + (lower * 1)) / 3;
+
+		/*
 		while (lower < 32) {//This approach didn't take into consideration solid color backgrounds, which overwhelm the QR code signal
 				lc += distribution[lower++];
 		}
@@ -250,19 +249,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 		}
 		return lower;
+		*/
 	}
-	
-	
 	private static void setARGB(BufferedImage image, int p, int argb) {
 		int w = image.getWidth();
 		int x = p % w; 
 		int y = p / w;
 		image.setRGB(x,y,argb);
-	}
-	public String getName() {
-		return "QRCode Reader";
-	}
-	public void reset() {
 	}
 	private static int ARGBToLightness(int argb) {
 //		int a = (rgba >> 24) & 0xFF;
@@ -318,5 +311,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			v1 = v0;
 		}
 		return matches;
+	}
+	public String getName() {
+		return "QRCode Reader";
+	}
+	public void reset() {
 	}
 }

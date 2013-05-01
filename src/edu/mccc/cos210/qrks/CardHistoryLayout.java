@@ -49,4 +49,8 @@ public class CardHistoryLayout extends CardLayout {
 		RingBuffer<String> RingBuffer = map.get(parent);
 		show(parent, RingBuffer.get(gone), RingBuffer);
 	}
+	public String getCurrent(final Container parent) {
+		RingBuffer<String> RingBuffer = map.get(parent);
+		return RingBuffer.get(0);
+	}
 }

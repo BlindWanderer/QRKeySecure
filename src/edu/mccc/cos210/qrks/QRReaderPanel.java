@@ -1,13 +1,20 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.util.*;
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
 import javax.swing.filechooser.*;
 import java.io.*;
 import javax.imageio.*;
 import java.util.*;
+import java.awt.dnd.*;
+import java.awt.datatransfer.*;
+//import java.awt.*;
+import java.awt.Image;
+import java.awt.CardLayout;
+import java.awt.Dimension;
+import java.awt.BorderLayout;
+import java.awt.Image;
 
 public class QRReaderPanel extends JPanel {
     private static final long serialVersionUID = 1L;
@@ -19,13 +26,49 @@ public class QRReaderPanel extends JPanel {
 		this.setPreferredSize(new Dimension(600, 800));
 		this.setLayout(new BorderLayout());
 		
-		final Camera camera = new Camera();
-		this.add(camera, BorderLayout.CENTER);
-		
 		final CardHistoryLayout cl = new CardHistoryLayout(2);
 		final JPanel stack = new JPanel(cl);
-		
+
+		final Camera camera = new Camera();
+		this.add(camera, BorderLayout.CENTER);
 		this.add(stack, BorderLayout.SOUTH);
+
+		final DropTargetListener ddl = new DropTargetAdapter() {
+			@Override
+			public void drop(DropTargetDropEvent event) {
+				event.acceptDrop(DnDConstants.ACTION_COPY);
+				Transferable transferable = event.getTransferable();
+				DataFlavor[] flavors = transferable.getTransferDataFlavors();
+				for (DataFlavor flavor : flavors) {
+					try {
+						if (flavor.isFlavorJavaFileListType()) {
+							List files = (List) transferable.getTransferData(flavor);
+							if (files.size() > 0) {
+								BufferedImage fi;
+								File file = (File)files.get(0);
+								try {
+									fi = ImageIO.read(file);
+								} catch (IOException ex) {
+									fi = null;
+									//TODO: display error message about trouble reading file. Status bar or dialog box?
+								}
+								if (swp != null && !swp.isDone() && !swp.isCancelled()) {
+									swp.cancel(true);
+								}
+								if (fi != null) {
+									cl.show(stack, "4");
+									image = camera.setImage(fi);
+								}
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+				event.dropComplete(true);
+			}
+		};
+		new DropTarget(this, ddl);
 		
 		ActionListener sal = new ActionListener() {
 			public void actionPerformed(final ActionEvent e) {
@@ -101,7 +144,7 @@ public class QRReaderPanel extends JPanel {
 				
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					Image fi = ip.getImage();
-					if (image == null) { //don't reopen the file unless strictly necessary
+					if (fi == null) { //don't reopen the file unless strictly necessary
 						File file = fc.getSelectedFile();
 						try {
 							fi = ImageIO.read(file);
