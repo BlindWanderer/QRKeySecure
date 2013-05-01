@@ -21,14 +21,29 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		public int getCenter() {
 			//If stride > 1 and the number of strides is odd, you can't just average the two numbers as that would put you between strides!
-			//end is exclusive so we have to subtract one strides width
-			return start + (((end - start - stride) / (stride * 2)) * stride);
+			//end is exclusive <strike>so we have to subtract one strides width</strike>
+			return start + (((end - start /*- stride*/) / (stride * 2)) * stride);
 		}
 		public double getLength(int width) {
 			return Math.sqrt(Math.pow((end - start) % width, 2) + Math.pow((end - start) / width, 2));
 		}
 		public String toString() {
-			return "[start="+start+",end="+end+",stride="+stride+"]";
+			return "["+start+","+end+") +=" + stride;
+		}
+	}
+	private static class MatchGroup {
+		public final Match verticle;
+		public final Match horizontal;
+		public final Match diagonalPlus;
+		public final Match diagonalMinus;
+		MatchGroup(final Match verticle, final Match horizontal, final Match diagonalPlus, final Match diagonalMinus) {
+			this.verticle = verticle;
+			this.horizontal = horizontal;
+			this.diagonalPlus = diagonalPlus;
+			this.diagonalMinus = diagonalMinus;
+		}
+		public String toString() {
+			return Arrays.toString(Utilities.newGenericArray(verticle, horizontal, diagonalPlus, diagonalMinus));
 		}
 	}
 	public List<Item<BufferedImage>> process(BufferedImage input, SingWorkerProtected<BufferedImage> swp) {
@@ -44,17 +59,123 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		*/
 //		System.out.println(Arrays.toString(data));
-			
+		
+		int lower = getCenterColor(data);
+
+//		System.out.println("3");
+
+		boolean [] bw = new boolean[data.length];
+		try{
+			for (int p = 0; p < data.length; p++) {
+				if (bw[p] = (ARGBToLightness(data[p]) >= lower)) {
+					setARGB(input, p, 0xFFFFFFFF);
+				} else {
+					setARGB(input, p, 0xFF000000);
+				}
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+/*
+		try {
+			ImageIO.write(input, "png", new File("C:\\test.png"));
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	*/	
+//		System.out.println("4");
+		
+		swp.publish(input);
+		
+		BufferedImage prog = input;//Utilities.convertImageToBufferedImage(input);
+		
+		List<MatchGroup> matches = new LinkedList<>();
+		
+		for (int y = 0, p = 0; y < height; y++) {
+//			System.out.print("y");
+			for (Match m : process(bw, p, p+=width, 1, prog)) {//horizontal
+//				System.out.print("m");
+				int mc = m.getCenter();
+				for (Match w : process(bw, mc % width, width * height, width, prog)) {//vertical
+					if((mc >= w.start) && (mc <= w.end)){
+//						System.out.print("w");
+						int wc = w.getCenter();
+						int zstride = width + 1;
+						int zk = (wc % width);
+						int zstart = wc - zk - zk * width;
+						int zend = Math.min(zstart + width * width, width * height);
+						if (zstart < 0) {
+							zstart = (zstart % zstride) + zstride;
+						}
+						for (int a = zstart; a < zend; a+=zstride) {
+							setARGB(prog, a, 0xFF0000FF);
+						}
+						for (Match z : process(bw, zstart, zend, zstride, prog)) {//diagonal
+							if((wc >= z.start) && (wc <= z.end)) {
+//								System.out.print("z");
+								int zc = z.getCenter();
+								int sstride = width - 1;
+								int sk = sstride - (zc % width);
+								int sstart = zc + sk - sk * width;
+								int send = Math.min(sstart + width * (width - 1), width * height);//BUG? not sure why this one needs a minus 1
+								if (sstart < 0) {
+									sstart = (sstart % sstride) + sstride;
+								}
+								for (int a = sstart; a < send; a+=sstride) {
+									setARGB(prog, a, 0xFF0000FF);
+								}
+								
+								for (Match s : process(bw, sstart, send, sstride, prog)) {//diagonal
+									if((zc >= s.start) && (zc <= s.end)) {
+										matches.add(new MatchGroup(m,w,z,s));
+										setARGB(prog, m.start, 0xFFFF0000);
+										setARGB(prog, m.end - 1, 0xFFFF0000);
+										setARGB(prog, mc, 0xFF00FF00);
+										setARGB(prog, w.start, 0xFFFF0000);
+										setARGB(prog, w.end - width, 0xFFFF0000);
+										setARGB(prog, wc, 0xFF00FF00);
+										setARGB(prog, z.start, 0xFFFF0000);
+										setARGB(prog, z.end - zstride, 0xFFFF0000);
+										setARGB(prog, z.getCenter(), 0xFF00FF00);
+										setARGB(prog, s.start, 0xFFFF0000);
+										setARGB(prog, s.end - sstride, 0xFFFF0000);
+										setARGB(prog, s.getCenter(), 0xFF00FF00);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		try {
+			ImageIO.write(prog, "png", new File("C:\\test2.png"));
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+
+		swp.publish(prog);
+
+//		System.out.println("5");		
+		System.out.println(matches);		
+		System.out.println(matches.size());
+		return null;
+	}
+	private static int getCenterColor(int [] data){
 		int[] distribution = new int[256];
 		Arrays.fill(distribution, 0);
 
-		System.out.println("1");
+//		System.out.println("1");
 		
 		for (int p = 0; p < data.length; p++) {
 			distribution[ARGBToLightness(data[p])]++;
 		}
 
-		System.out.println("2");
+//		System.out.println("2");
 
 		int lower = 0;
 		int upper = 256;
@@ -73,91 +194,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				uc += distribution[--upper];
 			}
 		}
-
-		System.out.println("3");
-
-		boolean [] bw = new boolean[data.length];
-		try{
-			for (int p = 0; p < data.length; p++) {
-				if (bw[p] = (ARGBToLightness(data[p]) >= lower)) {
-					setARGB(input, p, 0xFFFFFFFF);
-				} else {
-					setARGB(input, p, 0xFF000000);
-				}
-			}
-		} catch(Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-
-		try {
-			ImageIO.write(input, "png", new File("C:\\test.png"));
-		} catch(Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-		
-		System.out.println("4");
-		
-//		swp.publish(input);
-		
-		BufferedImage prog = Utilities.convertImageToBufferedImage(input);
-		
-		List<Match[]> matches = new LinkedList<>();
-		
-		for (int y = 0, p = 0; y < height; y++) {
-//			System.out.print("y");
-			for (Match m : process(bw, p, p+=width, 1, prog)) {//horizontal
-//				System.out.print("m");
-				int mc = m.getCenter();
-				for (Match w : process(bw, mc % width, width * height, width, prog)) {//vertical
-					if((mc >= w.start) && (mc <= w.end)){
-//						System.out.print("w");
-						int wc = m.getCenter();
-						int stride = width + 1;
-						int k = (mc % width);
-						int start = wc - k - k * width;
-						int end = Math.min(start + width * width, width * height);
-						if (start < 0) {
-							start = (start % stride) + stride;
-						}
-//						for (int a = start; a < end; a+=stride) {
-//							setARGB(prog, a, 0xFF0000FF);
-//						}
-						for (Match z : process(bw, start, end, width+1, prog)) {//diagonal
-							if((wc >= z.start) && (wc <= z.end)) {
-								setARGB(prog, m.start, 0xFFFF0000);
-								setARGB(prog, m.end - 1, 0xFFFF0000);
-								setARGB(prog, mc, 0xFF00FF00);
-								setARGB(prog, w.start, 0xFFFF0000);
-								setARGB(prog, w.end - width, 0xFFFF0000);
-								setARGB(prog, wc, 0xFF00FF00);
-								setARGB(prog, z.start, 0xFFFF0000);
-								setARGB(prog, z.end - stride, 0xFFFF0000);
-								setARGB(prog, z.getCenter(), 0xFF00FF00);
-//								System.out.print("z");
-								matches.add(Utilities.newGenericArray(m,w,z));
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		try {
-			ImageIO.write(prog, "png", new File("C:\\test2.png"));
-		} catch(Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-
-		swp.publish(prog);
-
-		System.out.println("-"+matches.size());
-		System.out.println("5");		
-		System.out.println(matches);		
-		return null;
+		return lower;
 	}
+	
+	
 	private static void setARGB(BufferedImage image, int p, int argb) {
 		int w = image.getWidth();
 		int x = p % w; 
