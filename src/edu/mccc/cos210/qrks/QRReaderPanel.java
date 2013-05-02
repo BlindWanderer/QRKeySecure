@@ -71,7 +71,7 @@ public class QRReaderPanel extends JPanel {
 						if (files.size() > 0) {
 							File file = (File)files.get(0);
 							BufferedImage fi = ImageIO.read(file);
-							if (swp != null && !swp.isDone() && !swp.isCancelled()) {
+							if (swp != null && !swp.isDone()) {
 								swp.cancel(true);
 							}
 							if (fi != null) {
@@ -102,16 +102,17 @@ public class QRReaderPanel extends JPanel {
 		ActionListener pal = new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
 					cl.show(stack, "5");
-					if (swp != null && !swp.isDone() && !swp.isCancelled()) {
+					//TODO something about this line does not work.
+					if (swp != null && !swp.isDone()) {
 						swp.cancel(true);
 					}
 					swp = new DelegatingSwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage>() {
 						@Override
 						public java.util.List<Item<BufferedImage>> doInBackground() {
 							SwingWorkerProtected<?, BufferedImage> p = this.getProtected();
-							java.util.List<Item<BufferedImage>> out = new LinkedList<Item<BufferedImage>>();
+							List<Item<BufferedImage>> out = new LinkedList<Item<BufferedImage>>();
 							for(Reader<BufferedImage, BufferedImage> reader : readers) {
-								java.util.List<Item<BufferedImage>> t = reader.process(Utilities.convertImageToBufferedImage(image), p);
+								List<Item<BufferedImage>> t = reader.process(Utilities.convertImageToBufferedImage(image), p);
 								if (t != null) {
 									out.addAll(t);
 								}
@@ -122,11 +123,15 @@ public class QRReaderPanel extends JPanel {
 						public void done() {
 //							camera.setImage(image);//restore the image
 							//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
-							cl.show(stack, "6");
+							if(swp == this && !isCancelled()){
+								cl.show(stack, "6");
+							}
 						}
 						@Override
 						public void process(java.util.List<BufferedImage> imgs) {
-							camera.setImage(imgs.get(imgs.size() - 1));
+							if(swp == this){
+								camera.setImage(imgs.get(imgs.size() - 1));
+							}
 						}
 					};
 					swp.execute();
