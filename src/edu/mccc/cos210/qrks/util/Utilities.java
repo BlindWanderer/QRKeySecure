@@ -7,12 +7,29 @@ import javax.swing.*;
 import javax.swing.filechooser.*;
 import javax.imageio.*;
 import java.lang.reflect.Array;
+import java.util.Arrays;
+
 
 public final class Utilities {
 	private Utilities() {
-	}
+	}/*
+	public static void main(String [] str) {
+		Point a = new Point(0,0);
+		Point b = new Point(0,-1);
+		Point c = new Point(0,1);
+		Point d = new Point(1,0);
+		Point e = new Point(-1,0);
+		Point f = new Point(2,0);
+		System.out.println(isIntersectionBetweenSegments(a, b, d, f));
+	}*/
 	public static int crossProduct(Point a, Point b) {
 		return (a.x * b.y) - (a.y * b.x);
+	}
+	public static int crossProduct(int ax, int ay, int bx, int by) {
+		return (ax * by) - (ay * bx);
+	}
+	public static Point add(Point a, int bx, int by) {
+		return new Point(a.x + bx, a.y + by);
 	}
 	public static Point add(Point left, Point right) {
 		return new Point(left.x + right.x, left.y + right.y);
@@ -20,20 +37,51 @@ public final class Utilities {
 	public static Point subtract(Point left, Point right) {
 		return new Point(left.x - right.x, left.y - right.y);
 	}
-	public static boolean isIntersectionBetweenSegments(Point aStart, Point aEnd, Point bStart, Point bEnd) {
-			Point e = subtract(aEnd, aStart);
-			Point f = subtract(bEnd, bStart);
-			Point p = new Point(-e.y, e.x);
-			int acp = crossProduct(subtract(aStart, bStart), p);
-			int fp = crossProduct(f, p);
-			return ((acp <= fp) && (fp >= 0) && acp >= 0) || ((acp >= fp) && (fp <= 0) && acp <= 0); //0 <= (acp / fp) <= 1
+	public static int dot(Point left, Point right) {
+		return left.x * right.x + left.y * right.y;
+	}
+	public static Point scale(Point a, double m) {
+		return new Point((int)(a.x * m), (int)(a.y * m));
+	}
+	@SuppressWarnings({"unchecked"})
+	public static <T> String toString(T ... values){
+		return Arrays.toString(values);
+	}
+	static boolean isCounterClockWise(Point a, Point b, Point c) {
+		return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
+	}//http://www.bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
+	public static boolean doTheseLineSegmentsIntersect(Point aStart, Point aEnd, Point bStart, Point bEnd) {
+        return (isCounterClockWise(aStart, bStart, bEnd) != isCounterClockWise(aEnd, bStart, bEnd)) && 
+			   (isCounterClockWise(aStart, aEnd, bStart) != isCounterClockWise(aStart, aEnd, bEnd));
 	}
 	public static double getSegmentIntersectionStrength(Point aStart, Point aEnd, Point bStart, Point bEnd) {
-			Point e = subtract(aEnd, aStart);
-			Point f = subtract(bEnd, bStart);
-			Point p = new Point(-e.y, e.x);
-			int fp = crossProduct(f, p);
-			return Math.abs((2 * crossProduct(subtract(aStart, bStart), p) - fp) / (double)fp);
+		Point aM = subtract(aEnd, aStart);
+		Point bM = subtract(bEnd, bStart);
+		Point ab = subtract(aStart, bStart);
+		double cM = 1.0 / crossProduct(aM, bM);
+		double s = crossProduct(aM, ab) * cM;
+		double t = crossProduct(bM, ab) * cM;
+//		if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+//			return add(aStart, scale(aM, t));
+//			return add(bStart, scale(bM, s));
+//		}
+//		return null;
+		return Math.abs(s - .5) + Math.abs(t - .5);
+	}
+	public static Point getLineLineIntersection(Point aStart, Point aEnd, Point bStart, Point bEnd) {
+		Point aM = subtract(aEnd, aStart);
+		Point bM = subtract(bEnd, bStart);
+		Point ab = subtract(aStart, bStart);
+//		double cM = 1.0 / crossProduct(aM, bM);
+//		double s = crossProduct(aM, ab) * cM;
+//		double t = crossProduct(bM, ab) * cM;
+//		if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+			return add(aStart, scale(aM, crossProduct(bM, ab) / (double)crossProduct(aM, bM)));
+//			return add(bStart, scale(bM, crossProduct(aM, ab) / (double)crossProduct(aM, bM)));
+//			return add(aStart, scale(aM, t));
+//			return add(bStart, scale(bM, s));
+//		}
+//		return null;
 	}
 	public static BufferedImage convertImageToBufferedImage(Image image) {
 		BufferedImage bi = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
