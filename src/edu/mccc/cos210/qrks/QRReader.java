@@ -43,24 +43,18 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			//end is exclusive <strike>so we have to subtract one strides width</strike>
 			return start + (((end - start - stride) / (stride * 2)) * stride);
 		}*/
-		public Point getPerspectiveCenter(int width) {
-			//This may work or it may not most images do not have enough scew to be worth doing any perspective correction.
-			//The underlying data represents information sampled in a straight line. Restore it to the origional samples and we can do most of the math as integers.
-			int [] p = {start / stride, start_end / stride, center_start / stride, center_end / stride, end_start / stride, end / stride};
-			int [] v = {p[1] - p[0], p[2] - p[1], p[5] - p[0], p[4] - p[3], p[5] - p[4]};
-			int r1 = v[0] * v[4] + v[1] * v[3];
-			int r2 = 2 * v[1] * v[4];
-			int y = p[5] + (int)Math.Round((v[2] * r2) / (double)(r1 + r2));
-			return newPoint(y * stride + start % stride, width);
-		}
 		public Point getLinearCenter(int width) {
-			return getPerspectiveCenter(width);
-			//return newPoint(start + (((end - start - stride) / (stride * 2)) * stride), width);
+			return newPoint(start + (((end - start - stride) / (stride * 2)) * stride), width);
 		}
 		public double getLength(int width) {
-			double value = Math.sqrt(Math.pow((end % width) - (start % width), 2) + Math.pow((end / width) - (start / width), 2));
+			int x = (end % width) - (start % width);
+			int y = (end / width) - (start / width);
+			double value = Math.sqrt(x * x + y * y);
 			//System.out.println(value);
 			return value;
+		}
+		public int getScanLength() {
+			return (end / stride) - (start / stride);
 		}
 		public String toString() {
 			return "["+start+","+end+") +=" + stride;
@@ -117,6 +111,15 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 //			return Math.sqrt(Math.pow((c % this.width) - x, 2) + Math.pow((c / this.width) - y, 2)) <= radius;
 //		}
 //		@SuppressWarnings({"unchecked"})
+		public List<Point> getCentersOfInterest() {
+			List<Point> centers = null;
+			for (Match m : getAll()) {
+				int [] p = {m.start / m.stride, m.start_end / m.stride, m.center_start / m.stride, m.center_end / m.stride, m.end_start / m.stride, m.end / m.stride};
+				int [] v = {p[1] - p[0], p[2] - p[1], p[5] - p[0], p[4] - p[3], p[5] - p[4]};
+//				(v[0] + v[4]) / 4
+			}
+			return centers;
+		}
 		public void addVertical(Match ... values) {
 			addVerticals(Arrays.asList(values));
 		}
@@ -206,50 +209,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return false;
 		}
 	}
-/*
-	private static class MatchPriority implements Comparable<MatchPriority> {
-		public final double strength;
-		public final Match match;
-		public MatchPriority(final double strength, final Match match){
-			this.strength = strength;
-			this.match = match;
-		}
-		public MatchPriority(final Match match, final double strength){
-			this.strength = strength;
-			this.match = match;
-		}
-		public int compareTo(MatchPriority that) {
-			if (this.strength > that.strength) {
-				return 1;
-			}
-			if (this.strength < that.strength) {
-				return -1;
-			}
-			return 0;
-		}
-	}
-	private static class MatchGroup implements Comparable<MatchGroup> {
-		public final Match vertical;
-		public final Match horizontal;
-		public final Match diagonalPlus;
-		public final Match diagonalMinus;
-		MatchGroup(final Match vertical, final Match horizontal, final Match diagonalPlus, final Match diagonalMinus) {
-			this.vertical = vertical;
-			this.horizontal = horizontal;
-			this.diagonalPlus = diagonalPlus;
-			this.diagonalMinus = diagonalMinus;
-		}
-		public String toString() {
-			return Arrays.toString(Utilities.newGenericArray(vertical, horizontal, diagonalPlus, diagonalMinus));
-		}
-		public int getNonNullCount() {
-			return (vertical!=null?1:0) + (horizontal!=null?1:0) + (diagonalPlus!=null?1:0) + (diagonalMinus!=null?1:0);
-		}
-		public int compareTo(MatchGroup that) {
-			return this.getNonNullCount() - that.getNonNullCount();
-		}
-	}
-*/
 	private static final int START_COLOR = 0xFFFF0000;
 	private static final int END_COLOR = 0xFFFF0000;
 	private static final int CENTER_COLOR = 0xFF00FF00;
@@ -274,6 +233,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 
 		Collection<MatchHead> matchheads = dumbFinder(height, width, bw, prog, swp);
+		for (MatchHead matchhead : matchheads){
+//			List<Point> centersOfInterest 
+		}
+		
 		
 		swp.publish(Utilities.convertImageToBufferedImage(prog));
 
@@ -281,85 +244,11 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		System.out.println(matchheads.size());
 		return null;
 	}
-/*	private static Collection<MatchHead> lazyFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
-		List<MatchHead> matchheads = new LinkedList<>();
-		for (int y = 0, p = 0; y < height; y++) {
-			swp.setProgress((y * 100) / height);
-//			System.out.print("y");
-			mLoop:
-			for (Match m : process(bw, p, p+=width, 1, prog)) {//horizontal
-//				System.out.print("m");
-				int mc = m.getLinearCenter();
-				wLoop:
-				for (Match w : process(bw, mc % width, width * height, width, prog)) {//vertical
-					if((mc >= w.start) && (mc <= w.end)){
-//						System.out.print("w");
-						int wc = w.getLinearCenter();
-						int zstride = width + 1;
-						int zk = (wc % width);
-						int zstart = wc - zk - zk * width;
-						int zend = Math.min(zstart + width * width, width * height);
-						if (zstart < 0) {
-							zstart = (zstart % zstride) + zstride;
-						}
-						for (int a = zstart; a < zend; a+=zstride) {
-							setARGB(prog, a, LINE_COLOR);
-						}
-						zLoop:
-						for (Match z : process(bw, zstart, zend, zstride, prog)) {//diagonal
-							if((wc >= z.start) && (wc <= z.end)) {
-//								System.out.print("z");
-								int zc = z.getLinearCenter();
-								int sstride = width - 1;
-								int sk = sstride - (zc % width);
-								int sstart = zc + sk - sk * width;
-								int send = Math.min(sstart + width * sstride, width * height);
-								if (sstart < 0) {
-									sstart = (sstart % sstride) + sstride;
-								}
-								for (int a = sstart; a < send; a+=sstride) {
-									setARGB(prog, a, LINE_COLOR);
-								}
-								
-								sLoop:
-								for (Match s : process(bw, sstart, send, sstride, prog)) {//diagonal
-									if((zc >= s.start) && (zc <= s.end)) {
-										int sc = s.getLinearCenter();
-										setARGB(prog, m.start, START_COLOR);
-										setARGB(prog, m.end - 1, END_COLOR);
-										setARGB(prog, mc, CENTER_COLOR);
-										setARGB(prog, w.start, START_COLOR);
-										setARGB(prog, w.end - width, END_COLOR);
-										setARGB(prog, wc, CENTER_COLOR);
-										setARGB(prog, z.start, START_COLOR);
-										setARGB(prog, z.end - zstride, END_COLOR);
-										setARGB(prog, z.getLinearCenter(), CENTER_COLOR);
-										setARGB(prog, s.start, START_COLOR);
-										setARGB(prog, s.end - sstride, END_COLOR);
-										setARGB(prog, s.getLinearCenter(), CENTER_COLOR);
-										for(MatchHead mh : matchheads) {
-											if (mh.overlaps(sc)) {
-												//mh.add(new MatchGroup(m,w,z,s));
-												//continue sLoop;
-												continue mLoop;
-											}
-										}
-										matchheads.add(new MatchHead(width, s, new MatchGroup(m,w,z,s)));
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		return matchheads;
-	}*/
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
 //		try {
 		LinkedList<MatchHead> matchheads = new LinkedList<MatchHead>();
 		final double strength = 0.25;
-		for (int y = 0, p = 0; y < height; y++) {
+		for (int y = 0, p = 0; y < height; y++) {//addHorizontal
 			next:
 			for (Match m : process(bw, p, p+=width, 1, prog)) {
 				//first iteration can intersect with nothing they are all parallel
@@ -378,7 +267,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				u.addHorizontal(m);
 			}
 		}
-		for (int x = 0; x < width; x++) {
+		for (int x = 0; x < width; x++) {//addVertical
 			next:
 			for (Match m : process(bw, x, width * height, width, prog)) {
 				for (int i = 0; i < matchheads.size(); i++) {
@@ -395,7 +284,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				u.addVertical(m);
 			}
 		}
-		for (int x = 0; x < width; x++) {
+		for (int x = 0; x < width; x++) {//addDiagonalPlus
 			int stride = width + 1;
 			int start = x;
 			int end = Math.min(width * height, (width - x) * width);
@@ -419,7 +308,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				u.addDiagonalPlus(m);
 			}
 		}
-		for (int y = 1; y < height; y++) {
+		for (int y = 1; y < height; y++) {//addDiagonalPlus
 			int stride = width + 1;
 			int start = y * width;
 			int end = Math.min(width * height, (y + width) * width);
@@ -443,7 +332,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				u.addDiagonalPlus(m);
 			}
 		}
-		for (int x = 0; x < width; x++) {
+		for (int x = 0; x < width; x++) {//addDiagonalMinus
 			int stride = width - 1;
 			int start = x;
 			int end = Math.min(width * height, (x + 1) * width);
@@ -467,7 +356,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				u.addDiagonalMinus(m);
 			}
 		}
-		for (int y = 1; y < height; y++) {
+		for (int y = 1; y < height; y++) {//addDiagonalMinus
 			int stride = width - 1;
 			int start = y * width + stride;
 			int end = Math.min(width * height, width * (y + stride));
@@ -481,7 +370,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					if((bw[t.match.start] == bw[m.start]) && (t.match.getIntersectionStrength(m, width) < strength)) {
 						matchheads.remove(t);
 						matchheads.add(0, t);
-						t.addDiagonalPlus(m);
+						t.addDiagonalMinus(m);
 						continue next;
 					}
 				}
@@ -507,7 +396,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 		}
 		for (MatchHead m : matchheads) {
-			if(m != null && m.getTypeCount() > 2) {
+			if((m.getTypeCount() >= 3) && (m.getCount() >= 5)) {
 				good.add(m);
 				for(Match u : m.getAll()) {
 					drawLine(prog, u.start, u.end, u.stride, LINE_COLOR);
@@ -532,120 +421,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			setARGB(prog, a, color);
 		}
 	}
-/*	private static Collection<MatchHead> smartFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
-		List<MatchHead> matchheads = new LinkedList<>();
-		//*
-		//IDEA it must be found in 3 of the 4 scans.
-		List<Match> horizontal = new LinkedList<>();
-		List<Match> vertical = new LinkedList<>();
-		List<Match> diagonalPlus = new LinkedList<>();
-		List<Match> diagonalMinus = new LinkedList<>();
-		for (int y = 0, p = 0; y < height; y++) {
-			horizontal.addAll(process(bw, p, p+=width, 1, prog));
-		}
-		for (int x = 0; x < width; x++) {
-			vertical.addAll(process(bw, x, width * height, width, prog));
-		}
-		for (int x = 0; x < width; x++) {
-			int stride = width + 1;
-			int start = x;
-			int end = Math.min(width * height, (width - x) * width);
-			if(x % 10 == 0){
-				for (int a = start; a < end; a+=stride) {
-					setARGB(prog, a, LINE_COLOR);
-				}
-			}
-			diagonalPlus.addAll(process(bw, start, end, stride, prog));
-		}
-		for (int y = 1; y < height; y++) {
-			int stride = width + 1;
-			int start = y * width;
-			int end = Math.min(width * height, (y + width) * width);
-			if(y % 10 == 0){
-				for (int a = start; a < end; a+=stride) {
-					setARGB(prog, a, LINE_COLOR);
-				}
-			}
-			diagonalPlus.addAll(process(bw, start, end, stride, prog));
-		}
-		for (int x = 0; x < width; x++) {
-			int stride = width - 1;
-			int start = x;
-			int end = Math.min(width * height, (x + 1) * width);
-			if(x % 10 == 0){
-				for (int a = start; a < end; a+=stride) {
-					setARGB(prog, a, LINE_COLOR);
-				}
-			}
-			diagonalMinus.addAll(process(bw, start, end, stride, prog));
-		}
-		for (int y = 1; y < height; y++) {
-			int stride = width - 1;
-			int start = y * width + stride;
-			int end = Math.min(width * height, width * (y + stride));
-			if(y % 10 == 0){
-				for (int a = start; a < end; a+=stride) {
-					setARGB(prog, a, LINE_COLOR);
-				}
-			}
-			diagonalMinus.addAll(process(bw, start, end, stride, prog));
-		}
-		
-		for (Match h: horizontal){
-			int misses = 0;
-			Match k = h;
-			Match v = null;
-			Match p = null;
-			Match m = null;
-			Queue<MatchPriority> hq = new PriorityQueue<MatchPriority>();
-			for (Match t : vertical) {
-				double strength = k.getIntersectionStrength(t, width);
-				if (strength <= 1) {
-					hq.add(new MatchPriority(t, strength));
-				}
-			}
-			if(hq.isEmpty()) {
-				misses++;
-			} else {
-				v = k = hq.peek().match;
-			}
-			Queue<MatchPriority> pq = new PriorityQueue<MatchPriority>();
-			for (Match t : diagonalPlus) {//horizontal
-				double strength = k.getIntersectionStrength(t, width);
-				if (strength <= 1) {
-					pq.add(new MatchPriority(t, strength));
-				}
-			}
-			if(pq.isEmpty()) {
-				misses++;
-			} else {
-				p = k = pq.peek().match;
-			}
-			Queue<MatchPriority> mq = new PriorityQueue<MatchPriority>();
-			for (Match t : diagonalMinus) {//horizontal
-				double strength = k.getIntersectionStrength(t, width);
-				if (strength <= 1) {
-					mq.add(new MatchPriority(t, strength));
-				}
-			}
-			if(mq.isEmpty()) {
-				misses++;
-			} else {
-				m = k = mq.peek().match;
-			}
-			if (misses < 2) {
-				matchheads.add(new MatchHead(width, k, new MatchGroup(h,v,p,m)));
-				for (Match u : Arrays.asList(h,v,p,m)) {
-					if (u != null) {
-						setARGB(prog, u.getStartPoint(width), START_COLOR);
-						setARGB(prog, u.getEndPoint(width), END_COLOR);
-						setARGB(prog, u.getLinearCenter(), CENTER_COLOR);
-					}
-				}
-			}
-		}
-		return matchheads;
-	}*/
 	private static int getCenterColor(int [] data) {
 		int[] distribution = new int[256];
 		Arrays.fill(distribution, 0);
