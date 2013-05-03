@@ -23,20 +23,39 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	}
 	private static class Match {
 		public final int start;
+		public final int start_end;
+		public final int center_start;
+		public final int center_end;
+		public final int end_start;
 		public final int end;
 		public final int stride;
-		public Match(final int start, final int end, final int stride) {
+		public Match(final int start, final int start_end, final int center_start, final int center_end, final int end_start, final int end, final int stride) {
 			this.start = start;
+			this.start_end = start_end;
+			this.center_start = center_start;
+			this.center_end = center_end;
+			this.end_start = end_start;
 			this.end = end;
 			this.stride = stride;
-		}
+		}/*
 		public int getCenter() {
 			//If stride > 1 and the number of strides is odd, you can't just average the two numbers as that would put you between strides!
 			//end is exclusive <strike>so we have to subtract one strides width</strike>
-			return start + (((end - start /*- stride*/) / (stride * 2)) * stride);
+			return start + (((end - start - stride) / (stride * 2)) * stride);
+		}*/
+		public Point getPerspectiveCenter(int width) {
+			//This may work or it may not most images do not have enough scew to be worth doing any perspective correction.
+			//The underlying data represents information sampled in a straight line. Restore it to the origional samples and we can do most of the math as integers.
+			int [] p = {start / stride, start_end / stride, center_start / stride, center_end / stride, end_start / stride, end / stride};
+			int [] v = {p[1] - p[0], p[2] - p[1], p[5] - p[0], p[4] - p[3], p[5] - p[4]};
+			int r1 = v[0] * v[4] + v[1] * v[3];
+			int r2 = 2 * v[1] * v[4];
+			int y = p[5] + (int)Math.Round((v[2] * r2) / (double)(r1 + r2));
+			return newPoint(y * stride + start % stride, width);
 		}
-		public Point getCenter(int width) {
-			return newPoint(getCenter(), width);
+		public Point getLinearCenter(int width) {
+			return getPerspectiveCenter(width);
+			//return newPoint(start + (((end - start - stride) / (stride * 2)) * stride), width);
 		}
 		public double getLength(int width) {
 			double value = Math.sqrt(Math.pow((end % width) - (start % width), 2) + Math.pow((end / width) - (start / width), 2));
@@ -106,7 +125,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				completeness++;
 			}
 			for (Match m : values) {
-				sum = Utilities.add(sum,m.getCenter(width));
+				sum = Utilities.add(sum,m.getLinearCenter(width));
 				vertical.add(m);
 				count++;
 			}
@@ -119,7 +138,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				completeness++;
 			}
 			for (Match m : values) {
-				sum = Utilities.add(sum,m.getCenter(width));
+				sum = Utilities.add(sum,m.getLinearCenter(width));
 				horizontal.add(m);
 				count++;
 			}
@@ -132,7 +151,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				completeness++;
 			}
 			for (Match m : values) {
-				sum = Utilities.add(sum,m.getCenter(width));
+				sum = Utilities.add(sum,m.getLinearCenter(width));
 				diagonalPlus.add(m);
 				count++;
 			}
@@ -145,7 +164,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				completeness++;
 			}
 			for (Match m : values) {
-				sum = Utilities.add(sum,m.getCenter(width));
+				sum = Utilities.add(sum,m.getLinearCenter(width));
 				diagonalMinus.add(m);
 				count++;
 			}
@@ -270,12 +289,12 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			mLoop:
 			for (Match m : process(bw, p, p+=width, 1, prog)) {//horizontal
 //				System.out.print("m");
-				int mc = m.getCenter();
+				int mc = m.getLinearCenter();
 				wLoop:
 				for (Match w : process(bw, mc % width, width * height, width, prog)) {//vertical
 					if((mc >= w.start) && (mc <= w.end)){
 //						System.out.print("w");
-						int wc = w.getCenter();
+						int wc = w.getLinearCenter();
 						int zstride = width + 1;
 						int zk = (wc % width);
 						int zstart = wc - zk - zk * width;
@@ -290,7 +309,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						for (Match z : process(bw, zstart, zend, zstride, prog)) {//diagonal
 							if((wc >= z.start) && (wc <= z.end)) {
 //								System.out.print("z");
-								int zc = z.getCenter();
+								int zc = z.getLinearCenter();
 								int sstride = width - 1;
 								int sk = sstride - (zc % width);
 								int sstart = zc + sk - sk * width;
@@ -305,7 +324,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 								sLoop:
 								for (Match s : process(bw, sstart, send, sstride, prog)) {//diagonal
 									if((zc >= s.start) && (zc <= s.end)) {
-										int sc = s.getCenter();
+										int sc = s.getLinearCenter();
 										setARGB(prog, m.start, START_COLOR);
 										setARGB(prog, m.end - 1, END_COLOR);
 										setARGB(prog, mc, CENTER_COLOR);
@@ -314,10 +333,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 										setARGB(prog, wc, CENTER_COLOR);
 										setARGB(prog, z.start, START_COLOR);
 										setARGB(prog, z.end - zstride, END_COLOR);
-										setARGB(prog, z.getCenter(), CENTER_COLOR);
+										setARGB(prog, z.getLinearCenter(), CENTER_COLOR);
 										setARGB(prog, s.start, START_COLOR);
 										setARGB(prog, s.end - sstride, END_COLOR);
-										setARGB(prog, s.getCenter(), CENTER_COLOR);
+										setARGB(prog, s.getLinearCenter(), CENTER_COLOR);
 										for(MatchHead mh : matchheads) {
 											if (mh.overlaps(sc)) {
 												//mh.add(new MatchGroup(m,w,z,s));
@@ -343,15 +362,17 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (int y = 0, p = 0; y < height; y++) {
 			next:
 			for (Match m : process(bw, p, p+=width, 1, prog)) {
+				//first iteration can intersect with nothing they are all parallel
+				/*
 				for (int i = 0; i < matchheads.size(); i++) {
 					MatchHead t = matchheads.get(i);
-					if(t.match.getIntersectionStrength(m, width) < strength) {
+					if((bw[t.match.start] == bw[m.start]) && (t.match.getIntersectionStrength(m, width) < strength)) {
 						matchheads.remove(t);
 						matchheads.add(0, t);
 						t.addHorizontal(m);
 						continue next;
 					}
-				}
+				}*/
 				MatchHead u = new MatchHead(width, m);
 				matchheads.add(u);
 				u.addHorizontal(m);
@@ -362,7 +383,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Match m : process(bw, x, width * height, width, prog)) {
 				for (int i = 0; i < matchheads.size(); i++) {
 					MatchHead t = matchheads.get(i);
-					if(t.match.getIntersectionStrength(m, width) < strength) {
+					if((bw[t.match.start] == bw[m.start]) && (t.match.getIntersectionStrength(m, width) < strength)) {
 						matchheads.remove(t);
 						matchheads.add(0, t);
 						t.addVertical(m);
@@ -385,13 +406,14 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Match m : process(bw, start, end, stride, prog)) {
 				for (int i = 0; i < matchheads.size(); i++) {
 					MatchHead t = matchheads.get(i);
-					if(t.match.getIntersectionStrength(m, width) < strength) {
+					if((bw[t.match.start] == bw[m.start]) && (t.match.getIntersectionStrength(m, width) < strength)) {
 						matchheads.remove(t);
 						matchheads.add(0, t);
 						t.addDiagonalPlus(m);
 						continue next;
 					}
 				}
+				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
 				matchheads.add(u);
 				u.addDiagonalPlus(m);
@@ -408,13 +430,14 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Match m : process(bw, start, end, stride, prog)) {
 				for (int i = 0; i < matchheads.size(); i++) {
 					MatchHead t = matchheads.get(i);
-					if(t.match.getIntersectionStrength(m, width) < strength) {
+					if((bw[t.match.start] == bw[m.start]) && (t.match.getIntersectionStrength(m, width) < strength)) {
 						matchheads.remove(t);
 						matchheads.add(0, t);
 						t.addDiagonalPlus(m);
 						continue next;
 					}
 				}
+				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
 				matchheads.add(u);
 				u.addDiagonalPlus(m);
@@ -431,13 +454,14 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Match m : process(bw, start, end, stride, prog)) {
 				for (int i = 0; i < matchheads.size(); i++) {
 					MatchHead t = matchheads.get(i);
-					if(t.match.getIntersectionStrength(m, width) < strength) {
+					if((bw[t.match.start] == bw[m.start]) && (t.match.getIntersectionStrength(m, width) < strength)) {
 						matchheads.remove(t);
 						matchheads.add(0, t);
 						t.addDiagonalMinus(m);
 						continue next;
 					}
 				}
+				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
 				matchheads.add(u);
 				u.addDiagonalMinus(m);
@@ -454,13 +478,14 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Match m : process(bw, start, end, stride, prog)) {
 				for (int i = 0; i < matchheads.size(); i++) {
 					MatchHead t = matchheads.get(i);
-					if(t.match.getIntersectionStrength(m, width) < strength) {
+					if((bw[t.match.start] == bw[m.start]) && (t.match.getIntersectionStrength(m, width) < strength)) {
 						matchheads.remove(t);
 						matchheads.add(0, t);
 						t.addDiagonalPlus(m);
 						continue next;
 					}
 				}
+				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
 				matchheads.add(u);
 				u.addDiagonalMinus(m);
@@ -471,9 +496,12 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (int i = 0; i < matchheads.size(); i++) {
 			MatchHead m = matchheads.get(i);
 			for (int j = i + 1; j < matchheads.size(); ) {
-				if (m.merge(matchheads.get(j), strength)){
-					matchheads.remove(j);
-					continue;
+				MatchHead t = matchheads.get(j);
+				if (bw[t.match.start] == bw[m.match.start]){
+					if (m.merge(t, strength)) {
+						matchheads.remove(j);
+						continue;
+					}
 				}
 				j++;
 			}
@@ -490,7 +518,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for(Match u : m.getAll()) {
 				setARGB(prog, u.getStartPoint(width), START_COLOR);
 				setARGB(prog, u.getEndPoint(width), END_COLOR);
-				setARGB(prog, u.getCenter(), CENTER_COLOR);
+				setARGB(prog, u.getLinearCenter(width), CENTER_COLOR);
 			}
 		}
 		Collections.sort(good);
@@ -504,8 +532,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			setARGB(prog, a, color);
 		}
 	}
-	/*
-	private static Collection<MatchHead> smartFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
+/*	private static Collection<MatchHead> smartFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
 		List<MatchHead> matchheads = new LinkedList<>();
 		//*
 		//IDEA it must be found in 3 of the 4 scans.
@@ -612,7 +639,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					if (u != null) {
 						setARGB(prog, u.getStartPoint(width), START_COLOR);
 						setARGB(prog, u.getEndPoint(width), END_COLOR);
-						setARGB(prog, u.getCenter(), CENTER_COLOR);
+						setARGB(prog, u.getLinearCenter(), CENTER_COLOR);
 					}
 				}
 			}
@@ -723,7 +750,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				int t5 = (total * 5) / 14;
 				int t7 = total / 2;
 				if ((v0 >= t1) && (v0 <=t3) && (v1 >= t1) && (v1 <=t3) && (v2 >= t5) && (v2 <=t7) && (v3 >= t1) && (v3 <=t3) && (v4 >= t1) && (v4 <=t3)) {
-					matches.add(new Match(start + (x - total), start + x, stride));
+					int e = start + x;
+					matches.add(new Match(e - total, e - v3 - v2 - v1 - v0, e - v2 - v1 - v0, e - v1 - v0, e - v0, e, stride));
 				}
 			}
 			total -= v4;

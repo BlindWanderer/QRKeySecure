@@ -41,37 +41,39 @@ public class Camera extends JPanel {
 		setLayout(cardLayout);
 		setBorder(BorderFactory.createLineBorder(Color.BLACK, BORDER));
 		
-		java.util.List<VideoFormat> videoFormats = null;
-		int area = -1;
-		for (Format f : cdi.getFormats()) {
-			if (f instanceof VideoFormat) {
-				VideoFormat vf = (VideoFormat)f;
-				Dimension d = vf.getSize();
-				int a = d.height * d.width;
-				if (a > area) {
-					videoFormats = new LinkedList<VideoFormat>();
-					videoFormats.add(vf);
-					area = a;
-				} else if (a == area ) {
-					videoFormats.add(vf);
-				}
-			}
-		}
 		imagePanel = new ImagePanel();
 		add(imagePanel, "image");
 		boolean success = false;
-		if (videoFormats != null) {
-			try {
-				videoFormat = videoFormats.get(0);
-				player = Manager.createRealizedPlayer(cdi.getLocator());
-				frameGrabber = (FrameGrabbingControl)player.getControl("javax.media.control.FrameGrabbingControl");
-				FormatControl formatControl = (FormatControl)player.getControl("javax.media.control.FormatControl");
-				formatControl.setFormat(videoFormat);
-				success = true;
-			} catch (Exception e) {
-				//System.out.println(cdi);
-				//System.out.println(videoFormats);
-				//e.printStackTrace();
+		if (cdi != null) {
+			java.util.List<VideoFormat> videoFormats = null;
+			int area = -1;
+			for (Format f : cdi.getFormats()) {
+				if (f instanceof VideoFormat) {
+					VideoFormat vf = (VideoFormat)f;
+					Dimension d = vf.getSize();
+					int a = d.height * d.width;
+					if (a > area) {
+						videoFormats = new LinkedList<VideoFormat>();
+						videoFormats.add(vf);
+						area = a;
+					} else if (a == area ) {
+						videoFormats.add(vf);
+					}
+				}
+			}
+			if (videoFormats != null) {
+				try {
+					videoFormat = videoFormats.get(0);
+					player = Manager.createRealizedPlayer(cdi.getLocator());
+					frameGrabber = (FrameGrabbingControl)player.getControl("javax.media.control.FrameGrabbingControl");
+					FormatControl formatControl = (FormatControl)player.getControl("javax.media.control.FormatControl");
+					formatControl.setFormat(videoFormat);
+					success = true;
+				} catch (Exception e) {
+					//System.out.println(cdi);
+					//System.out.println(videoFormats);
+					//e.printStackTrace();
+				}
 			}
 		}
 		if (cameraAvailable = success) {

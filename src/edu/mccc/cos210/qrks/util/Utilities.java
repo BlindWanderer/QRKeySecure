@@ -40,6 +40,9 @@ public final class Utilities {
 	public static int dot(Point left, Point right) {
 		return left.x * right.x + left.y * right.y;
 	}
+	public static int dot(Point left) {
+		return left.x * left.x + left.y * left.y;
+	}
 	public static Point scale(Point a, double m) {
 		return new Point((int)(a.x * m), (int)(a.y * m));
 	}
