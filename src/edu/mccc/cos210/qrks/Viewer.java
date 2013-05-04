@@ -14,9 +14,9 @@ public class Viewer extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
 	private Reader<BufferedImage, BufferedImage> [] readers = Utilities.newGenericArray(new QRReader());
+	private static final String DEFAULT_NAME = "QRKey";
 	public Viewer() {
-		
-		super("QRKey");
+		super(DEFAULT_NAME);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel builderPanel = generateBuilderPanel();
 		JPanel readerPanel = new QRReaderPanel(this, readers);
@@ -29,6 +29,13 @@ public class Viewer extends JFrame {
 		add(tabbedPane, BorderLayout.CENTER);
 		pack();
 		setVisible(true);
+	}
+	public void setTitle(String title) {
+		if(title == null || title == ""){
+			super.setTitle(DEFAULT_NAME);
+		} else {
+			super.setTitle(DEFAULT_NAME + " - " + title);
+		}
 	}
 	private JPanel generateBuilderPanel() {
 		JPanel builderPanel = new JPanel(new BorderLayout());

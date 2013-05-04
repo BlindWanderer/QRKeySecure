@@ -116,7 +116,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Match m : getAll()) {
 				int [] p = {m.start / m.stride, m.start_end / m.stride, m.center_start / m.stride, m.center_end / m.stride, m.end_start / m.stride, m.end / m.stride};
 				int [] v = {p[1] - p[0], p[2] - p[1], p[5] - p[0], p[4] - p[3], p[5] - p[4]};
-//				(v[0] + v[4]) / 4
+//				(v[0] + v[4]) / 4/* WORK ON ME */
 			}
 			return centers;
 		}

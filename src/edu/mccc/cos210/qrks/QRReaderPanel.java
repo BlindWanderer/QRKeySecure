@@ -71,12 +71,13 @@ public class QRReaderPanel extends JPanel {
 						if (files.size() > 0) {
 							File file = (File)files.get(0);
 							BufferedImage fi = ImageIO.read(file);
-							if (swp != null && !swp.isDone()) {
-								swp.cancel(true);
-							}
 							if (fi != null) {
+								if (swp != null && !swp.isDone()) {
+									swp.cancel(true);
+								}
 								cl.show(stack, "4");
 								image = camera.setImage(fi);
+								viewer.setTitle(file.getName());
 							}
 							success = true;
 						}
@@ -97,6 +98,7 @@ public class QRReaderPanel extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				camera.setImage(null);
 				cl.show(stack, "1");
+				viewer.setTitle("");
 			}
 		};
 		ActionListener pal = new ActionListener() {
@@ -146,6 +148,7 @@ public class QRReaderPanel extends JPanel {
 		ActionListener scal = new ActionListener() {
 				public void actionPerformed(final ActionEvent e) {
 					camera.showCamera();
+					viewer.setTitle("<Camera>");
 					cl.show(stack, "2");
 				}
 			};
@@ -164,8 +167,8 @@ public class QRReaderPanel extends JPanel {
 				
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					Image fi = ip.getImage();
+					File file = fc.getSelectedFile();
 					if (fi == null) { //don't reopen the file unless strictly necessary
-						File file = fc.getSelectedFile();
 						try {
 							fi = ImageIO.read(file);
 						} catch (IOException ex) {
@@ -174,8 +177,12 @@ public class QRReaderPanel extends JPanel {
 						}
 					}
 					if (fi != null) {
+						if (swp != null && !swp.isDone()) {
+							swp.cancel(true);
+						}
 						cl.show(stack, "4");
 						image = camera.setImage(fi);
+						viewer.setTitle(file.getName());
 					}
 				}
 				//Reset the file chooser for the next time it's shown.
@@ -257,15 +264,5 @@ public class QRReaderPanel extends JPanel {
 		}
 		
 		cl.show(stack, "1");
-	}
-	/**
-	 * Quick and dirty closure to unify similar code.
-	 */
-	private ActionListener showActionListener(final CardLayout cl, final JPanel stack, final String target) {
-		return new ActionListener() {
-			public void actionPerformed(final ActionEvent e) {
-				cl.show(stack, target);
-			}
-		};
 	}
 }
