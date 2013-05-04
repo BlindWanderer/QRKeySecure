@@ -241,26 +241,25 @@ public class QRBuilder implements Builder<BufferedImage> {
 		format = format & (error << 13);
 		//TODO: need to put in preferred mask type
 		int xorMask = 0b101010000010010;
-		int fi = format ^ xorMask;
+		final int fi = format ^ xorMask;
 		//format info:
-		int size = Version.getSize(version);
-		//TODO check theses row/column values. I think some may be one off.
-		for (int x = 0; x <=8; x++) {	//lease significant 0-7
-			field[size - x][8] = (fi >>> x) !=0;
+		final int size = Version.getSize(version);
+		for (int x = 0; x < 8; x++) {	//lease significant 0-7
+			field[size - x - 1][8] = (fi & (1 << x)) !=0;
 		}
-		field[8][size - 8] = true; 
-		for (int y = 0; y <=8; y++) {	//most significant 8-14
-			field[8][size - 7 + y] = (fi >>> (y + 8)) !=0;
+		field[8][size - 8] = true;
+		for (int b = 8; b < 15; b++) {	//most significant 8-14
+			field[8][size + b - 15] = (fi & (1 << y)) !=0;
 		}
 		//left side (angle)
-		for (int y = 0; y <= 6; y++) {
+		for (int y = 0; y < 6; y++) {
 			field [8][y] = fi >>> y != 0;
 		}
-		field [8][7] = (fi >>> 6) != 0;
-		field [8][8] = (fi >>> 7) != 0;
-		field [7][8] = (fi >>> 8) != 0;
-		for (int x = 5; x >= 0; x--) {
-			field[x][8] = (fi >>> (15 - x)) !=0;
+		field [8][7] = fi & (1 << 6) != 0;
+		field [8][8] = fi & (1 << 7) != 0;
+		field [7][8] = fi & (1 << 8) != 0;
+		for (int x = 0; x < 6; x++) {
+			field[x][8] = fi & ((1 << 14) >> x) !=0;
 		}
 		if (version >= 7) {
 			int dataBits = version; //??? how do i get a binary representation of this #?
