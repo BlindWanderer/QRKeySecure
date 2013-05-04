@@ -77,6 +77,35 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 	}
 	private static class MatchHead/*<T>*/ implements Comparable<MatchHead> {
+		private class MatchSorter implements Comparable<MatchSorter> {
+			public final double distance;
+			public final Match match;
+			public MatchSorter(final double distance, final Match match) {
+				this.distance = distance;
+				this.match = match;
+			}
+			public int compareTo(MatchHead that) {
+				return Math.signum(that.distance - this.distance);
+			}
+		}
+		private static MatchHeadLight {
+			public final double distance;
+			public final Match match;
+			private Point sum = new Point(0,0);
+			public List<Match> matches = new LinkedList<Match>();
+			public MatchHeadLight(Match match, double distance) {
+				this.distance = distance;
+				this.match = match;
+				this.matches.add(match);
+			}
+			public getCenter(){
+				return Utilities.scale(sum, 1.0 / matches.size());
+			}
+			public add(Match m){
+				matches.add(m);
+				sum = Utilities.add(sum, m.getCenter());
+			}
+		}
 		private int width;
 		private Match match;
 		private double radius;
@@ -108,14 +137,71 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return Utilities.scale(sum, 1.0 / count);
 		}
 //		@SuppressWarnings({"unchecked"})
-		public List<Point> getCentersOfInterest() {
-			List<Point> centers = null;
+		public List<Line2D> getLines() {
+			List<Line2D> lines = new List<Line2D>();
+			List<MatchSorter> matches = ArrayList<>();
+			Point center = getCenter();
 			for (Match m : getAll()) {
-				int [] p = {m.start / m.stride, m.start_end / m.stride, m.center_start / m.stride, m.center_end / m.stride, m.end_start / m.stride, m.end / m.stride};
-				int [] v = {p[1] - p[0], p[2] - p[1], p[3] - p[2], p[4] - p[3], p[5] - p[4]};
-//				(v[0] + v[4]) / 4
+				matches.add(new MatchSorter(Utilities.getDistance(center, m.getCenter()), m));
 			}
-			return centers;
+			Collections.sort(matches);
+			
+			//1) sort Matches by distance of center from MatchHead center.
+			//2) chew them off and group them by 1/7 their scale
+			//3) Get 5 groups. Discard the 5th.
+			//4) Take the 4 groups and turn them into line segments that intersect and hopefully traverse the center.
+			//X) if not even points exist try to figure it out.
+			List<MatchHeadLight> groups = new LinkedList<>();
+			for (MatchSorter m : matches) {
+				for (int i = 0;  i < groups.size(); i++) {
+					MatchHeadLight g = groups.get(i);
+					if(Utilities.distance(g.match.getCenter(), m.match.getCenter()) < (m.distance / 2)) {
+						g.add(m);
+						groups.remove(i);
+						groups.add(i);
+						break;
+					}
+				}
+				if (groups.size() == 4) {
+					break;
+				}
+				groups.add(new MatchHeadLight(m), m.distance);
+			}
+			switch (groups.size()) {
+				case 4: {
+					double max = 0;
+					int a = 0, b = 0;
+					for(int i = 0; i < groups.size(); i++) {
+						for(int j = i + 1; j < groups.size(); j++) {
+							double d = Utilities.distance(groups.get(i).getCenter(), groups.get(i).getCenter());
+							if(d > max) {
+								a = i;
+								b = j;
+								max = d;
+							}
+						}
+					}
+					lines.add(new Line2D.Float(groups.get(a),groups.get(b)));
+					groups.remove(a);
+					groups.remove(b);
+					lines.add(new Line2D.Float(groups.get(0),groups.get(1)));
+					break;	
+				}
+				case 3:
+					//MH center is not real center.
+					//Two furthest points likely form a line unless there is large amounts off scew.
+					//TODO write me!
+				case 2:
+					//MH center is not real center.
+					//If the center lies between the points, you have one line.
+					//If the center does not lie between the points you have two lines.
+					//TODO write me!
+				case 1:
+					//So Screwed.
+				default:
+					break;
+			}
+			return lines;
 		}
 		public void addVertical(Match ... values) {
 			addVerticals(Arrays.asList(values));
