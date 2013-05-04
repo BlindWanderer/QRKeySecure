@@ -60,10 +60,10 @@ public class QRBuilder implements Builder<BufferedImage> {
 			final BitBuffer memory = getMemorySpace(version);
 			writeToMemory(memory, data, em, version, ec);
 			final boolean [][] field = getBasicQRCode(version);
-			final byte[][] dataBlocks = makeDataBlocks(memory, version);
+			final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
 			final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
 
-			Mask mask = getPreferredMask(version, field);
+			int mask = getPreferredMask(version, field);
 			writeMetaData(field, version, ec);
 			writeDataToField(field, dataBlocks, ecBlocks);
 			final boolean[][] finalField = applyMask(version, field, mask);
@@ -162,10 +162,29 @@ public class QRBuilder implements Builder<BufferedImage> {
 		byte[] dataCodeWords = memory.getData();
 		//determine from table how many data blocks and how many code words in each.
 		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
-		Version.SymbolCharacterInfo scis = Version.nosc[ec.index][version - 1];
-		int a = scis.dataCodeWordBits;
+		int numberDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
+		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
+			numberDataBlocks = numberDataBlocks + ecc.errorCorrectionRows[1].ecBlocks;
+		}
+		byte [][] dataBlocks = new byte[numberDataBlocks][]; //row 1 has longer blocks
 		//make sub arrays for each "block"
-		byte[][] dataBlocks = null;
+		int shortBlock = ecc.errorCorrectionRows[0].k;
+		for (int i = 0; i < ecc.errorCorrectionRows[0].ecBlocks; i++) {
+			dataBlocks[i] = new byte[shortBlock];
+			for (int j = 0; j < shortBlock; j++) {
+				dataBlocks[i][j] = dataCodeWords[(i * shortBlock) + j];
+			}
+		}
+		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
+			int longBlock = ecc.errorCorrectionRows[1].k;
+			int w = ecc.errorCorrectionRows[0].ecBlocks * ecc.errorCorrectionRows[0].k;
+			for (int i = 0; i < longBlock; i++) {
+				dataBlocks[i] = new byte[ecc.errorCorrectionRows[0].k];
+				for (int j = 0; j < ecc.errorCorrectionRows[1].k; j++) {
+					dataBlocks[i + ecc.errorCorrectionRows[0].ecBlocks][j] = dataCodeWords[w + (i * longBlock) + j];
+				}
+			}
+		}
 		return dataBlocks;
 	}
 	private static byte[][] makeECBlocks (byte[][] dataBlocks, int version, ErrorCorrectionLevel ec) {
@@ -223,7 +242,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//TODO: draw metainfo
 		return qr;
 	}
-	private static Mask getPreferredMask(int version, boolean [][] field) {
+	private static int getPreferredMask(int version, boolean [][] field) {
 		//TODO: Write me
 		//get masks, evaluate
 		//N1=3, N2=3, N3=40, N4=10
@@ -232,10 +251,9 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//modules in the symbol from 50% in steps of 5%. Although the data masking operation is only performed on
 		//the encoding region of the symbol excluding the format information, the area to be evaluated is the complete
 		//symbol.
-		Mask mask = null;
-		return mask;
+		return 0;
 	}
-	private static void writeMetaData(boolean [][] field, int version, ErrorCorrectionLevel ec) {
+	private static void writeMetaData(boolean [][] field, int version, ErrorCorrectionLevel ec, int mask) {
 		//Write metadata to field
 		/*2 bit ec
 		 3 bit mask 
@@ -244,8 +262,13 @@ public class QRBuilder implements Builder<BufferedImage> {
 		*/
 		int format = 0b000000000000000; //some random value 15 bits
 		int error = ec.index;
-		format = format | (error << 13);
+		format = format | (error << 13); //???CHECK
+		int dataBits = 0b00000;
+		dataBits = dataBits | (error << 3);
 		//TODO: need to put in preferred mask type
+		format = format | (mask << 10); //??? how do i get mask's number?
+		//get BCH bits from table 9
+		int bch = FormatInfo[]
 		int xorMask = 0b101010000010010;
 		final int fi = format ^ xorMask;
 		//format info:
@@ -281,6 +304,8 @@ public class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks) {
 		//??? convert to bitBuffer???
+	//IMPORTANT: make sure to check the vertical length (the lenght of each dataBlock... j 
+	
 		//Write memory into field
 		//TODO: Write me
 	}

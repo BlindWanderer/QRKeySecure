@@ -161,7 +161,36 @@ public final class Version {
 		for (Point p: getAlignmentPatternLocations(version)) {
 			clearSquare(mask, Constants.ALIGNMENT_PATTERN_SIZE, p.x + Constants.ALIGNMENT_PATTERN_OFFSET, p.y + Constants.ALIGNMENT_PATTERN_OFFSET);
 		}
-		//TODO: block out meta data areas and timing strips
+		//timing
+		for (int x = 0; x < version; x++) {
+			mask[x][6] = false;
+		}
+		for (int y = 0; y < version; y++) {
+			mask[6][y] = false;
+		}
+		//metaData
+			//format info
+		for (int y = 0; y < 8; y++) {
+			mask[8][y] = false;
+			mask[8][version - y] = false;
+		}
+		for (int x = 0; x < 8; x++) {
+			mask[x][8] = false;
+			mask[version - x][8] = false;
+		}
+			//version info (only for version 7 and up)
+		if (version >= 7) {
+			for (int y = 0; y < 8; y++) {
+				mask[version - 8][y] = false;
+				mask[version - 9][y] = false;
+				mask[version - 10][y] = false;
+			}
+			for (int x = 0; x < 8; x++) {
+				mask[x][version - 8] = false;
+				mask[x][version - 9] = false;
+				mask[x][version - 10] = false;
+			}
+		}
 		return mask;
 	}
 	/*public static List<boolean [][]> getMasks(int version) {
@@ -337,7 +366,7 @@ public final class Version {
 		0x26A64, //38
 		0x27541, //39
 		0x28C69, //40
-	}
+	};
 	public static Integer getVersionInfoBitStream(int version) {
 		if (version < 7 || version > 40) {
 			return null;
