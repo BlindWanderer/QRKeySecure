@@ -257,7 +257,7 @@ public final class Version {
 			this.errorCorrectionRows = t;
 		}
 	}
-	public ErrorCorrectionCharacteristic getErrorCorrectionCharacteristic(int version, ErrorCorrectionLevel ec){
+	public static ErrorCorrectionCharacteristic getErrorCorrectionCharacteristic(int version, ErrorCorrectionLevel ec){
 		return ecc[version -1][ec.index];
 	}
 	private static ErrorCorrectionCharacteristic [][] ecc = {
@@ -302,4 +302,46 @@ public final class Version {
 		/*39, 3532*/ { new ErrorCorrectionCharacteristic(/*L, */720, new ErrorCorrectionRow(0, 20, 147, 117, 15), new ErrorCorrectionRow(0, 4, 148, 118, 15)), new ErrorCorrectionCharacteristic(/*M, */1316, new ErrorCorrectionRow(0, 40, 75, 47, 14), new ErrorCorrectionRow(0, 7, 76, 48, 14)), new ErrorCorrectionCharacteristic(/*Q, */1950, new ErrorCorrectionRow(0, 43, 54, 24, 15), new ErrorCorrectionRow(0, 22, 55, 25, 15)), new ErrorCorrectionCharacteristic(/*H, */2310, new ErrorCorrectionRow(0, 10, 45, 15, 15), new ErrorCorrectionRow(0, 67, 46, 16, 15)), },
 		/*40, 3706*/ { new ErrorCorrectionCharacteristic(/*L, */750, new ErrorCorrectionRow(0, 19, 148, 118, 15), new ErrorCorrectionRow(0, 6, 149, 119, 15)), new ErrorCorrectionCharacteristic(/*M, */1372, new ErrorCorrectionRow(0, 18, 75, 47, 14), new ErrorCorrectionRow(0, 31, 76, 48, 14)), new ErrorCorrectionCharacteristic(/*Q, */2040, new ErrorCorrectionRow(0, 34, 54, 24, 15), new ErrorCorrectionRow(0, 34, 55, 25, 15)), new ErrorCorrectionCharacteristic(/*H, */2430, new ErrorCorrectionRow(0, 20, 45, 15, 15), new ErrorCorrectionRow(0, 61, 46, 16, 15)), },
 	};
+	private static int [] vibs = {
+		0x07C94, //7
+		0x085BC, //8
+		0x09A99, //9
+		0x0A4D3, //10
+		0x0BBF6, //11
+		0x0C762, //12
+		0x0D847, //13
+		0x0E60D, //14
+		0x0F928, //15
+		0x10B78, //16
+		0x1145D, //17
+		0x12A17, //18
+		0x13532, //19
+		0x149A6, //20
+		0x15683, //21
+		0x168C9, //22
+		0x177EC, //23
+		0x18EC4, //24
+		0x191E1, //25
+		0x1AFAB, //26
+		0x1B08E, //27
+		0x1CC1A, //28
+		0x1D33F, //29
+		0x1ED75, //30
+		0x1F250, //31
+		0x209D5, //32
+		0x216F0, //33
+		0x228BA, //34
+		0x2379F, //35
+		0x24B0B, //36
+		0x2542E, //37
+		0x26A64, //38
+		0x27541, //39
+		0x28C69, //40
+	}
+	public static Integer getVersionInfoBitStream(int version) {
+		if (version < 7 || version > 40) {
+			return null;
+		}
+		return vibs[version - 7];
+	}
 }

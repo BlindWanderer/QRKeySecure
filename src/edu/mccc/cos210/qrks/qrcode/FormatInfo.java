@@ -1,3 +1,5 @@
+package edu.mccc.cos210.qrks.qrcode;
+
 public class FormatInfo
 {
 	public static final int [] DataBitsToErrorCorrectionBits = {
