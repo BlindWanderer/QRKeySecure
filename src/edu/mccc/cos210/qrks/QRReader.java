@@ -84,11 +84,11 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				this.distance = distance;
 				this.match = match;
 			}
-			public int compareTo(MatchHead that) {
-				return Math.signum(that.distance - this.distance);
+			public int compareTo(MatchSorter that) {
+				return (int)Math.signum(that.distance - this.distance);
 			}
 		}
-		private static MatchHeadLight {
+		private class MatchHeadLight {
 			public final double distance;
 			public final Match match;
 			private Point sum = new Point(0,0);
@@ -98,12 +98,12 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				this.match = match;
 				this.matches.add(match);
 			}
-			public getCenter(){
+			public Point getCenter(){
 				return Utilities.scale(sum, 1.0 / matches.size());
 			}
-			public add(Match m){
+			public void add(Match m){
 				matches.add(m);
-				sum = Utilities.add(sum, m.getCenter());
+				sum = Utilities.add(sum, m.getLinearCenter(width));
 			}
 		}
 		private int width;
@@ -138,11 +138,12 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 //		@SuppressWarnings({"unchecked"})
 		public List<Line2D> getLines() {
-			List<Line2D> lines = new List<Line2D>();
-			List<MatchSorter> matches = ArrayList<>();
+			List<Line2D> lines = new ArrayList<Line2D>(2);
+			List<Match> all = getAll();
+			List<MatchSorter> matches = new ArrayList<>(all.size());
 			Point center = getCenter();
-			for (Match m : getAll()) {
-				matches.add(new MatchSorter(Utilities.getDistance(center, m.getCenter()), m));
+			for (Match m : all) {
+				matches.add(new MatchSorter(Utilities.distance(center, m.getLinearCenter(width)), m));
 			}
 			Collections.sort(matches);
 			
@@ -155,17 +156,17 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (MatchSorter m : matches) {
 				for (int i = 0;  i < groups.size(); i++) {
 					MatchHeadLight g = groups.get(i);
-					if(Utilities.distance(g.match.getCenter(), m.match.getCenter()) < (m.distance / 2)) {
-						g.add(m);
+					if(Utilities.distance(g.match.getLinearCenter(width), m.match.getLinearCenter(width)) < (m.distance / 2)) {
+						g.add(m.match);
 						groups.remove(i);
-						groups.add(i);
+						groups.add(g);
 						break;
 					}
 				}
 				if (groups.size() == 4) {
 					break;
 				}
-				groups.add(new MatchHeadLight(m), m.distance);
+				groups.add(new MatchHeadLight(m.match, m.distance));
 			}
 			switch (groups.size()) {
 				case 4: {
@@ -173,7 +174,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					int a = 0, b = 0;
 					for(int i = 0; i < groups.size(); i++) {
 						for(int j = i + 1; j < groups.size(); j++) {
-							double d = Utilities.distance(groups.get(i).getCenter(), groups.get(i).getCenter());
+							double d = Utilities.distance(groups.get(i).match.getLinearCenter(width), groups.get(j).match.getLinearCenter(width));
 							if(d > max) {
 								a = i;
 								b = j;
@@ -181,10 +182,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 							}
 						}
 					}
-					lines.add(new Line2D.Float(groups.get(a),groups.get(b)));
+					lines.add(new Line2D.Float(groups.get(a).match.getLinearCenter(width), groups.get(b).match.getLinearCenter(width)));
 					groups.remove(a);
 					groups.remove(b);
-					lines.add(new Line2D.Float(groups.get(0),groups.get(1)));
+					lines.add(new Line2D.Float(groups.get(0).match.getLinearCenter(width),groups.get(1).match.getLinearCenter(width)));
 					break;	
 				}
 				case 3:
