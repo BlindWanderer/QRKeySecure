@@ -4,10 +4,10 @@ import javax.swing.*;
 import java.awt.*;
 
 public enum ErrorCorrectionLevel {
-	L(0, 7),
-	M(1, 15),
-	Q(2, 25),
-	H(3, 30);
+	L(0b00, 7),
+	M(0b01, 15),
+	Q(0b10, 25),
+	H(0b11, 30);
 	private static ErrorCorrectionLevel[] ecls;
 	static {
 		ErrorCorrectionLevel[] t = ErrorCorrectionLevel.values();
