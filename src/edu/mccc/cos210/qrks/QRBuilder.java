@@ -64,7 +64,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 			final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
 
 			int mask = getPreferredMask(version, field);
-			writeMetaData(field, version, ec);
+			writeMetaData(field, version, ec, mask);
 			writeDataToField(field, dataBlocks, ecBlocks);
 			final boolean[][] finalField = applyMask(version, field, mask);
 			return new Item<BufferedImage>(){
@@ -260,15 +260,18 @@ public class QRBuilder implements Builder<BufferedImage> {
 		10 BCH bits from Annex c
 		Mask pattern for XOR operation: 101010000010010
 		*/
-		int format = 0b000000000000000; //some random value 15 bits
+		int format = 0b000000000000000; // 15 bits
 		int error = ec.index;
-		format = format | (error << 13); //???CHECK
+		format = format | (error << 13); 
 		int dataBits = 0b00000;
 		dataBits = dataBits | (error << 3);
 		//TODO: need to put in preferred mask type
-		format = format | (mask << 10); //??? how do i get mask's number?
+		format = format | (mask << 10); 
+		dataBits = dataBits | mask;
 		//get BCH bits from table 9
-		int bch = FormatInfo[]
+		int[] array = FormatInfo.DataBitsToErrorCorrectionBits;
+		int bch = array[dataBits];
+		format = format | bch;
 		int xorMask = 0b101010000010010;
 		final int fi = format ^ xorMask;
 		//format info:
@@ -291,25 +294,101 @@ public class QRBuilder implements Builder<BufferedImage> {
 			field[x][8] = (fi & ((1 << 14) >> x)) !=0;
 		}
 		if (version >= 7) {
-			int dataBits = version; //??? how do i get a binary representation of this #?
 			//write version info 
-			//It consists of an 18-bit
-			//sequence containing 6 data bits, with 12 error correction bits calculated using the (18, 6) Golay code. For
-			//details of the error correction calculation for the version information, refer to Annex D. The six data bits contain
-			//the Version of the symbol, most significant bit first.
-			//??? doesNOT get masked (if version<7 - is the space blank of filled?
-			//B: The space is available for data and error correction codewords. This means the dataMask changes between version 6 and 7.
+			//18-bit
+			//6 data bits
+			//12 error correction bits calculated using the (18, 6) Golay code. Table D.1
+			int versionInfo = 0b000000000000000000;
+			int ecBits = Version.getVersionInfoBitStream(version); 
+			versionInfo = versionInfo | (version << 12);
+			versionInfo = versionInfo | ecBits;
+			//vert
+			BitBuffer bf = new BitBuffer(18);
+			bf.write(versionInfo, 18);
+			for (int y = 8; y >= 0; y--) {
+				for (int x = version - 8; x >= version - 10; x--) {
+					field[x][y] = bf.getBitAndIncrementPosition();
+				}
+			}
+			//horiz
+			for (int y = version - 8; y >= version - 10; y--) {
+				for (int x = 8; x >= 0; x--) {
+					field[x][y] = bf.getBitAndIncrementPosition();
+				}
+			}
 		}
-		//TODO: Write me
 	}
 	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks) {
-		//??? convert to bitBuffer???
-	//IMPORTANT: make sure to check the vertical length (the lenght of each dataBlock... j 
-	
+		BitBuffer bf = new BitBuffer(dataBlocks.length + ecBlocks.length);
+		int first = dataBlocks.length;
+		int second = dataBlocks[first - 1].length;
+		for (int j = 0; j < second; j++) {
+			for (int i = 0; i < first; i++) {
+				if(j < dataBlocks[i].length) {
+					bf.write((byte)dataBlocks[i][j]);
+				}
+			}
+		}
+		int firstEC = ecBlocks.length;
+		int secondEC = ecBlocks[first - 1].length;
+
+		for (int j = 0; j < secondEC; j++) {
+			for (int i = 0; i < firstEC; i++) {
+				if(j < ecBlocks[i].length) {
+					bf.write((byte)ecBlocks[i][j]);
+				}
+			}
+		}
 		//Write memory into field
-		//TODO: Write me
+		boolean direction = false; //0 = up; 1 = down;
+		boolean lastlocation = false; //0 = going right; 1 = going left
+		int size = field.length;
+		boolean[][] dataMask = Version.getDataMask(size);
+		int x = size - 1;
+		int y = size - 1;
+		int max = Math.min(bf.getSize(), size * size);
+		for (int i = 0; i < max; i++) {
+			if (shouldWrite(x , y, dataMask)) {
+				field[x][y] = bf.getBitAndIncrementPosition();
+			}
+			if (!direction) {//up
+				if (!lastlocation) {//going right
+					x--;
+				} else
+				if (lastlocation) {//going left
+					if(y == 0) {
+						x--;
+						direction = !direction;
+					} else {
+						x++;
+						y--;
+					}
+				}
+			} else 
+			if (direction) { //down
+				if (!lastlocation) { //going right
+					x--;
+				} else
+				if (lastlocation) { //going left
+					if(y == size) {
+						x--;
+						direction = !direction;
+					} else {
+						x++;
+						y++;
+					}
+				}
+			}	
+			lastlocation = !lastlocation;
+		}
 	}
-	private static boolean[][] applyMask(int version, boolean [][] field, Mask mask) {
+	private static boolean shouldWrite (int x, int y, boolean[][] dataMask) {
+		if (dataMask[x][y]) {//true is good, we write on true
+			return true;
+		}
+		return false;
+	}
+	private static boolean[][] applyMask(int version, boolean [][] field, int mask) {
 		//xor datafield with preferredmask
 		boolean[][] finalField = null;
 		return finalField;

@@ -31,6 +31,11 @@ public class BitBuffer {
 	public void seek(int pos) {
 		this.pos = pos;
 	}
+	public boolean getBitAndIncrementPosition(){
+		boolean v = (data[pos >> 3] & (0x80 >> (pos & 7))) != 0;;
+		pos++;
+		return v; 
+	}
 	public byte [] getInternalArray() {
 		return data;
 	}
