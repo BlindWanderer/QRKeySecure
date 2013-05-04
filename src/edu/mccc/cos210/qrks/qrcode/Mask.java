@@ -5,7 +5,7 @@ public class Mask {
 	public boolean[][] generateMask (int maskNum, int version) {
 		boolean[][] mask = new boolean[Version.getSize(version)][Version.getSize(version)];
 		switch(maskNum) {
-			case 1:
+			case 0b000:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = (i+j) % 2 == 0;
@@ -13,7 +13,7 @@ public class Mask {
 				}
 				return mask;
 				
-			case 2:
+			case 0b001:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = i % 2 == 0;
@@ -21,7 +21,7 @@ public class Mask {
 				}
 				return mask;
 				
-			case 3:
+			case 0b010:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = j % 3 == 0;
@@ -29,7 +29,7 @@ public class Mask {
 				}
 				return mask;
 				
-			case 4:
+			case 0b011:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = (i+j) % 3 == 0;
@@ -37,7 +37,7 @@ public class Mask {
 				}
 				return mask;
 				
-			case 5:
+			case 0b100:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = ((i / 2) + (j / 3)) % 2 == 0;
@@ -45,7 +45,7 @@ public class Mask {
 				}
 				return mask;
 				
-			case 6:
+			case 0b101:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = (i * j) % 2 + (i * j) % 3 == 0;
@@ -53,7 +53,7 @@ public class Mask {
 				}
 				return mask;
 				
-			case 7:
+			case 0b110:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = ((i* j) % 2 + (i *j) % 3) % 2 == 0;
@@ -61,7 +61,7 @@ public class Mask {
 				}
 				return mask;
 			
-			case 8:
+			case 0b111:
 				for (int i = 0; i < Version.getSize(version); i++) {
 					for (int j = 0; j < Version.getSize(version); j++) {
 						mask[i][j] = ((i* j) % 3 + (i+j) % 2) % 2 == 0;

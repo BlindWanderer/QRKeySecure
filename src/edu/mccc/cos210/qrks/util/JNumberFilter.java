@@ -1,4 +1,4 @@
-package edu.mccc.cos210.qrks;
+package edu.mccc.cos210.qrks.util;
 import javax.swing.*;
 import javax.swing.text.*;
 /**
