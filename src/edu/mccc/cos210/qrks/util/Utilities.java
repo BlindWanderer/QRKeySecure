@@ -22,6 +22,11 @@ public final class Utilities {
 		Point f = new Point(2,0);
 		System.out.println(isIntersectionBetweenSegments(a, b, d, f));
 	}*/
+	public static double getDistance(Point a, Point b) {
+		int x = a.x - b.x;
+		int y = a.y - b.y;
+		return  Math.sqrt(x * x + y * y);
+	}
 	public static int crossProduct(Point a, Point b) {
 		return (a.x * b.y) - (a.y * b.x);
 	}
