@@ -257,7 +257,7 @@ public final class Version {
 			this.errorCorrectionRows = t;
 		}
 	}
-	public ErrorCorrectionCharacteristic getErrorCorrectionCharacteristic(int version, ErrorCorrectionLevel ec){
+	public static ErrorCorrectionCharacteristic getErrorCorrectionCharacteristic(int version, ErrorCorrectionLevel ec){
 		return ecc[version -1][ec.index];
 	}
 	private static ErrorCorrectionCharacteristic [][] ecc = {

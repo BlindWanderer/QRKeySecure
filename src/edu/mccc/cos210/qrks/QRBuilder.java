@@ -1,8 +1,11 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.qrcode.*;
 import edu.mccc.cos210.qrks.util.BitBuffer;
+
 import java.util.*;
+
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.image.*;
 /**
@@ -63,17 +66,17 @@ public class QRBuilder implements Builder<BufferedImage> {
 			Mask mask = getPreferredMask(version, field);
 			writeMetaData(field, version, ec);
 			writeDataToField(field, dataBlocks, ecBlocks);
-			applyMask(version, field, mask);
+			final boolean[][] finalField = applyMask(version, field, mask);
 			return new Item<BufferedImage>(){
 				private BufferedImage img = null;
 				public BufferedImage save() {
 					if (img == null) {
-						img = makeImage(field, ppu, true);
+						img = makeImage(finalField, ppu, true);
 					}
 					return img;
 				}
 				public JPanel generateGUI() {
-					final BufferedImage si = makeImage(field, 3, false);
+					final BufferedImage si = makeImage(field, ppu, false);
 					JPanel gui = new JPanel();
 					gui.add(new ImagePanel(si));
 					//add some other elements with stats and text.
@@ -117,7 +120,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 	private static void writeToMemory(BitBuffer memory, byte [] data, EncodingMode em, int version, ErrorCorrectionLevel ec) {
 		//WARNING! We need a BitBuffer of some sort, QRCodes are not Byte Aligned!
 		//Places Encoding Mode (4 bit), Data Size (version 0-9 8 bits, version 10-40 16 bits), Terminator (4 bits), and Padding (to fill DataCapacity) into a BitBuffer
-		memory.write(em.value, 4);	//???? what is the second # doing?
+		memory.write(em.value, 4);	
 		switch (em) {
 			case BYTE:
 				if (0 < version && version < 10) {
@@ -128,7 +131,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 				}
 				memory.write(data);
 				//terminator
-				memory.write(0b0000);
+				memory.write(0b0000, 4);
 				//PADDING
 				//PADDING - if too few data, Pad with 11101100 and 00010001 alternatingly to get to the right # of codewords
 				int memSize = memory.getSize();
@@ -154,10 +157,13 @@ public class QRBuilder implements Builder<BufferedImage> {
 				throw new UnsupportedOperationException();	
 		}
 	}
-	private static byte[][] makeDataBlocks (BitBuffer memory, int version) {
+	private static byte[][] makeDataBlocks (BitBuffer memory, int version, ErrorCorrectionLevel ec) {
 		//Subdivide Data Codewords into Blocks, according to each block. 
 		byte[] dataCodeWords = memory.getData();
 		//determine from table how many data blocks and how many code words in each.
+		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		Version.SymbolCharacterInfo scis = Version.nosc[ec.index][version - 1];
+		int a = scis.dataCodeWordBits;
 		//make sub arrays for each "block"
 		byte[][] dataBlocks = null;
 		return dataBlocks;
@@ -238,7 +244,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		*/
 		int format = 0b000000000000000; //some random value 15 bits
 		int error = ec.index;
-		format = format & (error << 13);
+		format = format | (error << 13);
 		//TODO: need to put in preferred mask type
 		int xorMask = 0b101010000010010;
 		final int fi = format ^ xorMask;
@@ -249,17 +255,17 @@ public class QRBuilder implements Builder<BufferedImage> {
 		}
 		field[8][size - 8] = true;
 		for (int b = 8; b < 15; b++) {	//most significant 8-14
-			field[8][size + b - 15] = (fi & (1 << y)) !=0;
+			field[8][size + b - 15] = (fi & (1 << b)) !=0;
 		}
 		//left side (angle)
 		for (int y = 0; y < 6; y++) {
-			field [8][y] = fi >>> y != 0;
+			field [8][y] = ((fi >>> y) & 1) != 0;
 		}
-		field [8][7] = fi & (1 << 6) != 0;
-		field [8][8] = fi & (1 << 7) != 0;
-		field [7][8] = fi & (1 << 8) != 0;
+		field [8][7] = (fi & (1 << 6)) != 0;
+		field [8][8] = (fi & (1 << 7)) != 0;
+		field [7][8] = (fi & (1 << 8)) != 0;
 		for (int x = 0; x < 6; x++) {
-			field[x][8] = fi & ((1 << 14) >> x) !=0;
+			field[x][8] = (fi & ((1 << 14) >> x)) !=0;
 		}
 		if (version >= 7) {
 			int dataBits = version; //??? how do i get a binary representation of this #?
@@ -278,8 +284,10 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//Write memory into field
 		//TODO: Write me
 	}
-	private static void applyMask(int version, boolean [][] field, Mask mask) {
+	private static boolean[][] applyMask(int version, boolean [][] field, Mask mask) {
 		//xor datafield with preferredmask
+		boolean[][] finalField = null;
+		return finalField;
 	}
 	private static BufferedImage makeImage (boolean [][] field, int ppu, boolean quietZone) {
 		BufferedImage bi = new BufferedImage(field.length * ppu, field.length * ppu, BufferedImage.TYPE_INT_ARGB);
