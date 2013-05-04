@@ -18,7 +18,7 @@ import java.awt.Point;
 import java.awt.geom.*;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
-	public static Point newPoint(int p, int width) {
+	private static Point newPoint(int p, int width) {
 		return new Point(p % width, p / width);
 	}
 	private static class Match {
@@ -107,16 +107,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		public Point getCenter() {
 			return Utilities.scale(sum, 1.0 / count);
 		}
-//		public boolean overlaps(int c) {
-//			return Math.sqrt(Math.pow((c % this.width) - x, 2) + Math.pow((c / this.width) - y, 2)) <= radius;
-//		}
 //		@SuppressWarnings({"unchecked"})
 		public List<Point> getCentersOfInterest() {
 			List<Point> centers = null;
 			for (Match m : getAll()) {
 				int [] p = {m.start / m.stride, m.start_end / m.stride, m.center_start / m.stride, m.center_end / m.stride, m.end_start / m.stride, m.end / m.stride};
-				int [] v = {p[1] - p[0], p[2] - p[1], p[5] - p[0], p[4] - p[3], p[5] - p[4]};
-//				(v[0] + v[4]) / 4/* WORK ON ME */
+				int [] v = {p[1] - p[0], p[2] - p[1], p[3] - p[2], p[4] - p[3], p[5] - p[4]};
+//				(v[0] + v[4]) / 4
 			}
 			return centers;
 		}
