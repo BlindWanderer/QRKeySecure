@@ -25,6 +25,16 @@ public class BitBuffer {
 	public String toString() {
 		return Arrays.toString(getData()) + " @ " + pos + " of " + size;
 	}
+	public int toInt() {
+		int myInt = 0;
+		if (getSize() < 32) {	
+			for (int i = getSize() - 1; i >= 0; i++) {
+				int bitInt = (getBitAndIncrementPosition()) ? 1 : 0;
+				myInt = myInt & (bitInt << i);
+			}
+		}
+		return myInt;
+	}
 	public int advance(int count) {
 		return pos += count;
 	}
@@ -44,6 +54,10 @@ public class BitBuffer {
 	}
 	public int getSize() {
 		return size;
+	}
+	public void write(boolean x) {
+		int myInt = x ? 1 : 0;
+		write(myInt, 1);
 	}
 	public void write(byte x) {
 		write(x, 8);
