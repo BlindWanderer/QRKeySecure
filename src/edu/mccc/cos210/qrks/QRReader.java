@@ -465,8 +465,9 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	private class Octopus {//a possibly valid QR code
 	}
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
-		int width = input.getWidth();
-		int height = input.getHeight();
+		final int width = input.getWidth();
+		final int height = input.getHeight();
+		final double scanUncertainty = 0.25;
 
 		BufferedImage prog = Utilities.convertImageToBufferedImage(input);
 		swp.publish(prog);
@@ -590,29 +591,34 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			//2) Read format information and verify it makes sense.
 			List<Monkey> monkeys = new ArrayList<>(code.possibles);
 			for (int i = 0; i < monkeys.size() - 2; i++) {
-				Monkey ma = monkeys.get(i);
-				Point middel = ma.matchpoint.center;
+				Monkey mm = monkeys.get(i);
+				Point mc = ma.matchpoint.center;
 				for (int j = i + 1; j < code.possibles - 1; j++) {
-					Monkey mb = monkeys.get(j);
-					Point end = mb.matchpoint.center;
-					Point travel = Utilities.subtract(end, start);
-					int steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
-					boolean [] scan = new boolean [steps + 1];
-					for(int p = 0; p < scan.length; p++) {
-						scan[k] = bw[(start.x + (travel.x * p) / scan) + (start.y + (travel.y * k) / scan) * width];
-					}
-					List<Integer> rle = runLengthEncode(scan, 0, scan.length, 1);
-					int sp = rle.get(0);
-					int s = rle.get(1);
-					int e = rle.get(rle.size() - 2);
-					int ep = rle.get(rle.size() - 1);
-					int sd = sp * 3 - s * 2;
-					double sq = sp * 3 + s * 2;
-					int ed = ep * 3 - e * 2;
-					double eq = ep * 3 + e * 2;
-					if((((sd * sd) / (sq * sq)) < 0.25) && (((ed * ed) / (eq * eq)) < 0.25)){
-						for (int j = i + 1; j < code.possibles - 1; j++) {
-
+					Monkey ml = monkeys.get(j);
+					Point bc = mb.matchpoint.center;
+					Point bt = Utilities.subtract(end, start);
+					{
+						int steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
+						final boolean [] scan = new boolean [steps + 1];
+						for(int p = 0; p < scan.length; p++) {
+							scan[k] = bw[(start.x + (travel.x * p) / scan) + (start.y + (travel.y * k) / scan) * width];
+						}
+						final List<Integer> mlrle = runLengthEncode(scan, 0, scan.length, 1);
+						final int mls = rle.get(1);
+						final int mle = rle.get(mlrle.size() - 2);
+						final int mlsp = mlrle.get(0);
+						final int mlep = mlrle.get(mlrle.size() - 1);
+						final int mlsd = mlsp * 3 - mls * 2;
+						final double mlsq = mlsp * 3 + mls * 2;
+						final int mled = mlep * 3 - mle * 2;
+						final double mleq = mlep * 3 + mle * 2;
+						final double mlsv = (mlsd * mlsd) / (mlsq * mlsq);
+						final double mlev = (mled * mled) / (mleq * mleq);
+						if((mlsv < scanUncertainty) && (mlev < scanUncertainty)){
+							for (int k = j + 1; k < code.possibles - 1; k++) {
+								Monkey mr = monkeys.get(k);
+								
+							}
 						}
 					}
 				}
@@ -629,6 +635,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		System.out.println(matchheads.size());
 		return octopodes;
 	}
+	
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
 //		try {
 		LinkedList<MatchHead> matchheads = new LinkedList<MatchHead>();

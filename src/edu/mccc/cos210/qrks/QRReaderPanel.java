@@ -20,7 +20,7 @@ public class QRReaderPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 	private Image image;
 	private Reader<BufferedImage, BufferedImage> [] readers;
-	private SwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage> swp;
+	private volatile SwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage> swp;
 	public static final List<javax.swing.filechooser.FileFilter> IMAGE_FILE_NAME_FILTERS;
 	static {
 		FileNameExtensionFilter[] fnef = {

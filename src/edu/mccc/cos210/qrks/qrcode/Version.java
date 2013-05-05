@@ -3,6 +3,16 @@ import java.util.*;
 import java.awt.Point;
 
 public final class Version {
+	public static class Info {
+		public final int errors;
+		public final int original;
+		public final int corrected;
+		private Info(int errors, int original, int corrected) {
+			this.errors = errors;
+			this.original = original;
+			this.corrected = corrected;
+		}
+	}
 	public static class SymbolCharacterInfo {
 		private SymbolCharacterInfo(final int dataCodeWordBits, 
 									final int dataCapacityNumeric,
@@ -373,4 +383,16 @@ public final class Version {
 		}
 		return vibs[version - 7];
 	}
+	public static CorrectedInfo getCorrectedVersionInfo(int sequence) {
+		for(int i = 0; i < vibs.length; i++){
+			int data = vibs[i];
+			int xor = data ^ sequence;
+			int count = Integer.bitCount(xor);
+			if (count < 4) {
+				return new CorrectedInfo(count, sequence, data);
+			}
+		}
+		return null;
+	}
+
 }
