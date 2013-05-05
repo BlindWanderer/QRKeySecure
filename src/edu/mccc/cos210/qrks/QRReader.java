@@ -338,13 +338,20 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 			return false;
 		}
+		/*
+		public double getMaxLength() {
+			double max = 0;
+			for(Match m : getAll()) {
+				max = Math.max(max, Utilities.distance(m.getStartPoint(width), m.getEndPoint(width)));
+			}
+			return max;
+		}*/
 	}
 	private static final int START_COLOR = 0xFFFF0000;
 	private static final int END_COLOR = 0xFFFF0000;
 	private static final int CENTER_COLOR = 0xFF00FF00;
 	private static final int RLE_COLOR = 0xFF0000FF;
 	private static final int LINE_COLOR = 0xFFFADADD;
-
 	private class MatchPoint implements Comparable<MatchPoint>{
 		public int compareTo(MatchPoint o) {
 			if (o == null)
@@ -356,6 +363,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Monkey m : mh.possibles) {
 				total += m.hits / m.scanSize;
 			}
+			return total;
 		}
 		final int width;
 		final int height;
@@ -367,7 +375,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		final List<Match> matches;
 		final List<Point> points;
 		final Point center;
-		final List<Monkey> possibles = new LinkList<Monkey>();
+		final HashSet<Monkey> possibles = new HashSet<>();
 		public MatchPoint(MatchHead mh, int width, int height) {
 			int x_min = width;
 			int x_max = 0;
@@ -439,15 +447,22 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return "<"+center+", "+this.points.size()+">";
 		}
 	}
-	private class Monkey {//I'm running out of names for classes
+	private class Monkey implements Comparable<Monkey>{//I'm running out of names for classes
 		public int scanSize;
 		public int hits;
 		public final MatchPoint matchpoint;
 		Monkey(MatchPoint mp, int scanSize, int hits) {
-			this.matchpoint = mp;
+//			this.matchpoint = mp;
 			this.scanSize = scanSize;
 			this.hits = hits;
 		}
+		public int compareTo(Monkey o) {
+			if (o == null)
+				return 1;
+			return scanSize - o.scanSize;
+		}
+	}
+	private class Octopus {//a possibly valid QR code
 	}
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
 		int width = input.getWidth();
@@ -484,6 +499,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			MatchPoint mh = mps.get(j);
 			work = new ArrayList<>(mps);
 			work.set(j, null);
+			for (int k = 0; k < work.size(); k++) {
+				MatchPoint mp = work.get(k);
+				
+			}
 			Collections.sort(work, compares.setCenter(mh.center));
 			
 			BufferedImage field = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -534,7 +553,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						}
 						if (hits > 0) {
 							if (hits > Math.min(i, mp.matches.size() * 0.75)) {
-								mh.possibles.add(new Monkey(mp, i, hits));
+								mh.possibles.put(mp, new Monkey(mp, i, hits));
 								work.set(k, null);
 							}
 						}
@@ -545,19 +564,62 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					}
 				}
 			}
-			for (Monkey m : mh.possibles) {
-				
-			}
-			//Tasks:
-			//1) Test found patters to see if they make sense. That is, try to read the complete finding patter.
-			//2) Decode!
-			//3) 
-			
-			
-			
 			g.dispose();
 			//matrix[compares.center.x][compares.center.y] = null;
 		}
+		List<MatchPoint> possibleCodes = new ArrayList<>(mps.size());
+		for (MatchPoint mh : mps) {
+			//A valid code is made up of three interlocking monkeys
+			//Find me the central Monkey, delete all others from the list.
+			for (Iterator<Monkey> it = new HashSet<>(mh.possibles.iterator()); it.hasNext(); ) {
+				Monkey value = it.next();
+				//If the connections aren't recipricated, delete them.
+				if (!value.matchpoint.possibles.contains(value)) {
+					it.remove(); //EXTERMINATE! EXTERMINATE!
+				}
+			}
+			if (possibles.size() > 1) {
+				possibleCodes.add(mh);//The Doctor is in!
+			}
+		}
+		Collections.sort(possibleCodes);
+		List<Item<BufferedImage>> octopodes = new ArrayList<>(possibleCodes.size());
+		for (MatchPoint code : possibleCodes) {
+			//Steps:
+			//1) Figure out size of finding patter.
+			//2) Read format information and verify it makes sense.
+			List<Monkey> monkeys = new ArrayList<>(code.possibles);
+			for (int i = 0; i < monkeys.size() - 2; i++) {
+				Monkey ma = monkeys.get(i);
+				Point middel = ma.matchpoint.center;
+				for (int j = i + 1; j < code.possibles - 1; j++) {
+					Monkey mb = monkeys.get(j);
+					Point end = mb.matchpoint.center;
+					Point travel = Utilities.subtract(end, start);
+					int steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
+					boolean [] scan = new boolean [steps + 1];
+					for(int p = 0; p < scan.length; p++) {
+						scan[k] = bw[(start.x + (travel.x * p) / scan) + (start.y + (travel.y * k) / scan) * width];
+					}
+					List<Integer> rle = runLengthEncode(scan, 0, scan.length, 1);
+					int sp = rle.get(0);
+					int s = rle.get(1);
+					int e = rle.get(rle.size() - 2);
+					int ep = rle.get(rle.size() - 1);
+					int sd = sp * 3 - s * 2;
+					double sq = sp * 3 + s * 2;
+					int ed = ep * 3 - e * 2;
+					double eq = ep * 3 + e * 2;
+					if((((sd * sd) / (sq * sq)) < 0.25) && (((ed * ed) / (eq * eq)) < 0.25)){
+						for (int j = i + 1; j < code.possibles - 1; j++) {
+
+						}
+					}
+				}
+			}
+		}
+		
+		
 		//g.dispose();
 		} catch (Exception e) {e.printStackTrace();}
 		swp.publish(prog);
@@ -565,7 +627,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 
 		System.out.println(matchheads);		
 		System.out.println(matchheads.size());
-		return null;
+		return octopodes;
 	}
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
 //		try {
@@ -848,6 +910,21 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (int p = start + stride; p < end; p+= stride) {
 			if (bw[p] != b) {
 				setARGB(prog, p, RLE_COLOR);
+				rle.add(c);
+				b = !b;
+				c = 0;
+			}
+			c += stride;
+		}
+		rle.add(c);
+		return rle;
+	}
+	private static List<Integer> runLengthEncode(final boolean [] bw, final int start /*inclusive*/, final int end /*exclusive*/, int stride) {
+		List<Integer> rle = new LinkedList<Integer>();
+		int c = stride;
+		boolean b = bw[start];
+		for (int p = start + stride; p < end; p+= stride) {
+			if (bw[p] != b) {
 				rle.add(c);
 				b = !b;
 				c = 0;

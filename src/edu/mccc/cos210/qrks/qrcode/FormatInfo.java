@@ -2,6 +2,14 @@ package edu.mccc.cos210.qrks.qrcode;
 
 public class FormatInfo
 {
+	public final int errors;
+	public final int original;
+	public final int corrected;
+	private FormatInfo(int errors, int original, int corrected) {
+		this.errors = errors;
+		this.original = original;
+		this.corrected = corrected;
+	}
 	public static final int [] DataBitsToErrorCorrectionBits = {
 		0b0000000000,
 		0b0100110111,
@@ -36,4 +44,32 @@ public class FormatInfo
 		0b1011001000,
 		0b1111111111,
 	};
+	public static int getErrorCorrectionBits(int databits) {
+		return DataBitsToErrorCorrectionBits[databits];
+	}
+	public static FormatInfo getFormatInfo(int sequence) {
+		for(int i = 0; i < 32; i++){
+			int data = (i << 10) | DataBitsToErrorCorrectionBits[0];
+			int xor = data ^ sequence;
+			if(xor == 0) {
+				return new FormatInfo(0, sequence, data);
+			} else {
+				xor = xor & (xor - 1);
+				if(xor == 0) {
+					return new FormatInfo(1, sequence, data);
+				} else {
+					xor = xor & (xor - 1);
+					if(xor == 0) {
+						return new FormatInfo(2, sequence, data);
+					} else {
+						xor = xor & (xor - 1);
+						if(xor == 0) {
+							return new FormatInfo(3, sequence, data);
+						}
+					}
+				}
+			}
+		}
+		return null;
+	}
 }
