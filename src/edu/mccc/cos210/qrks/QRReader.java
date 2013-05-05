@@ -19,6 +19,20 @@ import java.awt.Point;
 import java.awt.geom.*;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
+	private static class MatchPointDistanceComparator implements Comparator<MatchPoint>{
+		public Point center = null;
+		public int compare(MatchPoint o1, MatchPoint o2) {
+			if (o1 == null) 
+				return -1;
+			if (o2 == null)
+				return 1;
+			return -(int)Math.signum(Utilities.distance(o1.center, center) - Utilities.distance(o2.center, center));
+		}
+		public MatchPointDistanceComparator setCenter(Point p) {
+			center = p;
+			return this;
+		}
+	}
 	private static Point newPoint(int p, int width) {
 		return new Point(p % width, p / width);
 	}
@@ -330,6 +344,91 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	private static final int CENTER_COLOR = 0xFF00FF00;
 	private static final int RLE_COLOR = 0xFF0000FF;
 	private static final int LINE_COLOR = 0xFFFADADD;
+
+	private class MatchPoint {
+		final int width;
+		final int height;
+		final int symetric_width;
+		final int symetric_height;
+		final int symetric_x;
+		final int symetric_y;
+		final MatchHead mh;
+		final List<Match> matches;
+		final List<Point> points;
+		final Point center;
+		final Map<MatchPoint,Integer> possibles = new HashMap<MatchPoint,Integer>();
+		public MatchPoint(MatchHead mh, int width, int height) {
+			int x_min = width;
+			int x_max = 0;
+			int y_min = height;
+			int y_max = 0;
+			Point center = mh.getCenter();
+			this.mh = mh;
+			this.matches = mh.getAll();
+			this.points = new ArrayList<Point>(matches.size());
+			for (Match match : matches) {
+				Point mc = match.getLinearCenter(width);
+				this.points.add(mc);
+				x_min = Math.min(x_min, mc.x);
+				x_max = Math.max(x_max, mc.x);
+				y_min = Math.min(y_min, mc.y);
+				y_max = Math.max(y_max, mc.y);
+			}
+			this.width = x_max - x_min + 1;
+			this.height = y_max - y_min + 1;
+			//TODO get this code working
+			/* - I don't know why this isn't working. It's impossible for the score to always be zero
+			//I just figured it out: It needs to be rotated about the center point, not by how it is placed in the matrix.
+			int shift_x = 0;
+			int shift_y = 0;
+			int high_score = 0;
+			int pokes = 0;
+			{
+				int start = -3;
+				int end = -start;
+//			System.out.println("!1");
+				for (int p = start; p <= end; p++){
+//			System.out.println("!2");
+					for (int q = start; q <= end; q++){
+						int score = 0;
+						boolean [][] mask = new boolean[width + Math.abs(p) * 2][height + Math.abs(q) * 2];
+						for (Point point : points) {
+							int x = (point.x - x_min) + (Math.max(0, p) * 2);
+							int y = (point.y - y_min) + (Math.max(0, q) * 2);
+							mask[x][y] = true;
+							pokes++;
+						}
+						for (Point point : points) {
+							int x = (point.x - x_min) + (Math.max(0, -p) * 2);
+							int y = (point.y - y_min) + (Math.max(0, -q) * 2);
+							if (mask[mask.length - 1 - x][mask[0].length - 1 - y]){
+								score++;
+							}
+						}
+						if(score > high_score) {
+							high_score = score;
+							shift_x = p;
+							shift_y = q;
+						}
+					}
+				}
+			}
+			System.out.println(Utilities.subtract(center, this.center) + " ~ " +high_score + " ~ " + pokes);
+			//*/
+			this.center = center;
+			this.symetric_x = Math.max(x_max - center.x, center.x - x_min);
+			this.symetric_y = Math.max(y_max - center.y, center.y - y_min);
+			this.symetric_width = 2 * symetric_x + 1;
+			this.symetric_height = 2 * symetric_y + 1;
+		}
+		public double getDistanceFrom(Point p){
+			return Utilities.distance(p, center);
+		}
+		public String toString() {
+			return "<"+center+", "+this.points.size()+">";
+		}
+	}
+
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
 		int width = input.getWidth();
 		int height = input.getHeight();
@@ -350,20 +449,93 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 
 		Collection<MatchHead> matchheads = dumbFinder(height, width, bw, prog, swp);
 		try{
-		Graphics2D g = prog.createGraphics();
-		for (MatchHead mh : matchheads){
-			List<MatchHead.MatchingLine2D> lines = mh.getFindingPattern();
-			System.out.println(lines);
-			if (lines != null) {
-				for (MatchHead.MatchingLine2D line : lines) {
-					if (line != null) {
-						g.setColor(Color.DARK_GRAY);
-						g.drawLine((int)line.x1, (int)line.y1, (int)line.x2, (int)line.y2);
+		//Graphics2D g = prog.createGraphics();
+		
+		List<MatchHead> sorted = new LinkedList<>();
+		sorted.addAll(matchheads);
+		MatchPointDistanceComparator compares = new MatchPointDistanceComparator();
+		
+		List<MatchPoint> mps = new ArrayList<>(matchheads.size());
+		List<MatchPoint> work = new ArrayList<>(matchheads.size());
+		//Graphics2D g = prog.createGraphics()
+		for (MatchHead mh : matchheads) {
+			mps.add(new MatchPoint(mh, width, height));
+		}
+			
+		for (int j = 0; j < mps.size(); j++){
+			MatchPoint mh = mps.get(j);
+			work = new ArrayList<>(mps);
+			work.set(j, null);
+			Collections.sort(work, compares.setCenter(mh.center));
+			
+			BufferedImage field = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = field.createGraphics();
+			g.setColor(new Color(0x00000000, true));
+			g.fillRect(0,0, width, height);
+			
+			BufferedImage mini = new BufferedImage(mh.symetric_width, mh.symetric_height, BufferedImage.TYPE_INT_ARGB);
+//			System.out.println(mini);
+			Graphics2D mg = mini.createGraphics();
+			mg.setColor(new Color(0x00000000, true));
+			mg.fillRect(0,0, mh.symetric_width, mh.symetric_height);
+			mg.dispose();
+			for (Point point : mh.points) {
+				int x = point.x - mh.center.x + mh.symetric_x;
+				int y = point.y - mh.center.y + mh.symetric_y;
+				mini.setRGB(x, y, 0x8000FFFF);
+				//TODO: symbols should be symetric, we can use this to denoise this.
+				mini.setRGB(mh.symetric_width - 1 - x, mh.symetric_height - 1 - y, 0x8000FFFF);
+			}
+			
+			for (int i = 3, q = 2 * width / mh.width; i < q; i = (int)(i * 1.5)) {//this should be smarter
+				g.drawImage(mini,
+								-mh.symetric_x * i + mh.center.x + i / 2,
+								-mh.symetric_y * i + mh.center.y + i / 2, 
+								mh.symetric_x * i + mh.center.x + i / 2,
+								mh.symetric_y * i + mh.center.y + i / 2, 0, 0, mh.symetric_width, mh.symetric_height, null);
+//				swp.publish(field);
+				{
+					BufferedImage display = Utilities.convertImageToBufferedImage(prog);
+					Graphics2D blah = display.createGraphics();
+					blah.drawImage(field, 0, 0, width, height, 0, 0, width, height, null);
+					blah.dispose();
+					swp.publish(display);
+				}
+				System.out.println(i + " - " + mh.possibles);
+//				Thread.sleep(1000);
+				for (int k = 0; k < work.size(); k++) {
+					MatchPoint mp = work.get(k);
+					if (mp != null) {
+						int hits = 0;
+						for (Point point : mp.points) {
+							if(field.getRGB(point.x, point.y) != 0x00000000) {
+								hits++;
+							}
+						}
+						if (hits > 0) {
+							if (hits > Math.min(i, mp.matches.size() * 0.75)) {
+								mh.possibles.put(mp, hits);
+								work.set(k, null);
+							}
+						}
+						Point a = Utilities.subtract(mp.center, mh.center);
+						if ((Math.abs(a.x) / (double)mh.symetric_x > i) || Math.abs(a.y) / (double)mh.symetric_y > i) {
+							break;
+						}
 					}
 				}
 			}
+			//Tasks:
+			//1) Test found patters to see if they make sense. That is, try to read the complete finding patter.
+			//2) Decode!
+			//3) 
+			
+			
+			
+			g.dispose();
+			//matrix[compares.center.x][compares.center.y] = null;
 		}
-		g.dispose();
+		//g.dispose();
 		} catch (Exception e) {e.printStackTrace();}
 		swp.publish(prog);
 		//swp.publish(Utilities.convertImageToBufferedImage(prog));
@@ -376,6 +548,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 //		try {
 		LinkedList<MatchHead> matchheads = new LinkedList<MatchHead>();
 		final double strength = 0.25;
+		final double certainty = 0.75;
 		for (int y = 0, p = 0; y < height; y++) {//addHorizontal
 			next:
 			for (Match m : process(bw, p, p+=width, 1, prog)) {
@@ -540,7 +713,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 		}
 		for (MatchHead m : matchheads) {
-			if((m.getTypeCount() >= 3) && (m.getCount() >= 5) && m.getCertainty() > 0.65) {
+			if((m.getTypeCount() >= 3) && (m.getCount() >= 5) && m.getCertainty() > certainty) {
 				good.add(m);
 				for(Match u : m.getAll()) {
 					drawLine(prog, u.start, u.end, u.stride, LINE_COLOR);
@@ -569,14 +742,11 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	private static int getCenterColor(int [] data) {
 		int[] distribution = new int[256];
 		Arrays.fill(distribution, 0);
-
-		try {
+		//try {
 		for (int p = 0; p < data.length; p++) {
 			distribution[ARGBToLightness(data[p])]++;
 		}
-		} catch (Exception e){
-			e.printStackTrace();
-		}
+		// } catch (Exception e){ e.printStackTrace(); }
 		
 		int lower = 0;
 		int upper = 256;
@@ -682,9 +852,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		return matches;
 	}
-	public String getName() {
-		return "QRCode Reader";
-	}
-	public void reset() {
-	}
+	public String getName() { return "QRCode Reader"; }
+	public void reset() { }
 }
