@@ -297,11 +297,8 @@ public class QRBuilder implements Builder<BufferedImage> {
 			//write version info 
 			//18-bit
 			//6 data bits
-			//12 error correction bits calculated using the (18, 6) Golay code. Table D.1
-			int versionInfo = 0b000000000000000000;
-			int ecBits = Version.getVersionInfoBitStream(version); 
-			versionInfo = versionInfo | (version << 12);
-			versionInfo = versionInfo | ecBits;
+			//12 error correction bits calculated using the (18, 6) Golay code. Table D.1 for all 18 bits.
+			int versionInfo = Version.getVersionInfoBitStream(version); 
 			//vert
 			BitBuffer bf = new BitBuffer(18);
 			bf.write(versionInfo, 18);

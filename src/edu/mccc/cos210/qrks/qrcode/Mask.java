@@ -75,8 +75,8 @@ public class Mask {
 	}
 
 	public boolean[][] finalMask (boolean[][] patternMask, boolean[][] dataMask, int num, int version) {
-		dataMask = Version.getDataMask(version);
-		patternMask = generateMask(num, version);
+		//dataMask = Version.getDataMask(version);
+		//patternMask = generateMask(num, version);
 		boolean[][] finalMask = new boolean[dataMask.length][dataMask.length];
 		for (int i = 0; i < Version.getSize(version); i++) {
 			for (int j = 0; j < Version.getSize(version); j++) {
