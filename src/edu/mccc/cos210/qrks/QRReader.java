@@ -345,7 +345,18 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	private static final int RLE_COLOR = 0xFF0000FF;
 	private static final int LINE_COLOR = 0xFFFADADD;
 
-	private class MatchPoint {
+	private class MatchPoint implements Comparable<MatchPoint>{
+		public int compareTo(MatchPoint o) {
+			if (o == null)
+				return 1;
+			return -(int)Math.signum(getPossiblesWeight() - o.getPossiblesWeight());
+		}
+		public double getPossiblesWeight() {
+			double total = 0;
+			for (Monkey m : mh.possibles) {
+				total += m.hits / m.scanSize;
+			}
+		}
 		final int width;
 		final int height;
 		final int symetric_width;
@@ -356,7 +367,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		final List<Match> matches;
 		final List<Point> points;
 		final Point center;
-		final Map<MatchPoint,Integer> possibles = new HashMap<MatchPoint,Integer>();
+		final List<Monkey> possibles = new LinkList<Monkey>();
 		public MatchPoint(MatchHead mh, int width, int height) {
 			int x_min = width;
 			int x_max = 0;
@@ -428,7 +439,16 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return "<"+center+", "+this.points.size()+">";
 		}
 	}
-
+	private class Monkey {//I'm running out of names for classes
+		public int scanSize;
+		public int hits;
+		public final MatchPoint matchpoint;
+		Monkey(MatchPoint mp, int scanSize, int hits) {
+			this.matchpoint = mp;
+			this.scanSize = scanSize;
+			this.hits = hits;
+		}
+	}
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
 		int width = input.getWidth();
 		int height = input.getHeight();
@@ -450,9 +470,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		Collection<MatchHead> matchheads = dumbFinder(height, width, bw, prog, swp);
 		try{
 		//Graphics2D g = prog.createGraphics();
-		
-		List<MatchHead> sorted = new LinkedList<>();
-		sorted.addAll(matchheads);
+
 		MatchPointDistanceComparator compares = new MatchPointDistanceComparator();
 		
 		List<MatchPoint> mps = new ArrayList<>(matchheads.size());
@@ -461,7 +479,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (MatchHead mh : matchheads) {
 			mps.add(new MatchPoint(mh, width, height));
 		}
-			
+		
 		for (int j = 0; j < mps.size(); j++){
 			MatchPoint mh = mps.get(j);
 			work = new ArrayList<>(mps);
@@ -486,6 +504,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				//TODO: symbols should be symetric, we can use this to denoise this.
 				mini.setRGB(mh.symetric_width - 1 - x, mh.symetric_height - 1 - y, 0x8000FFFF);
 			}
+			mini.setRGB(mh.symetric_x, mh.symetric_height, 0x00000000);//no center
 			
 			for (int i = 3, q = 2 * width / mh.width; i < q; i = (int)(i * 1.5)) {//this should be smarter
 				g.drawImage(mini,
@@ -493,6 +512,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 								-mh.symetric_y * i + mh.center.y + i / 2, 
 								mh.symetric_x * i + mh.center.x + i / 2,
 								mh.symetric_y * i + mh.center.y + i / 2, 0, 0, mh.symetric_width, mh.symetric_height, null);
+				
 //				swp.publish(field);
 				{
 					BufferedImage display = Utilities.convertImageToBufferedImage(prog);
@@ -514,7 +534,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						}
 						if (hits > 0) {
 							if (hits > Math.min(i, mp.matches.size() * 0.75)) {
-								mh.possibles.put(mp, hits);
+								mh.possibles.add(new Monkey(mp, i, hits));
 								work.set(k, null);
 							}
 						}
@@ -524,6 +544,9 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						}
 					}
 				}
+			}
+			for (Monkey m : mh.possibles) {
+				
 			}
 			//Tasks:
 			//1) Test found patters to see if they make sense. That is, try to read the complete finding patter.
@@ -549,6 +572,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		LinkedList<MatchHead> matchheads = new LinkedList<MatchHead>();
 		final double strength = 0.25;
 		final double certainty = 0.75;
+		LinkedList<MatchHead> newmatchheads = new LinkedList<MatchHead>();
 		for (int y = 0, p = 0; y < height; y++) {//addHorizontal
 			next:
 			for (Match m : process(bw, p, p+=width, 1, prog)) {
@@ -564,10 +588,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					}
 				}*/
 				MatchHead u = new MatchHead(width, m);
-				matchheads.add(u);
+				newmatchheads.add(u);
 				u.addHorizontal(m);
 			}
 		}
+		swp.publish(prog);
+		matchheads.addAll(newmatchheads);
+		newmatchheads.clear();
 		for (int x = 0; x < width; x++) {//addVertical
 			next:
 			for (Match m : process(bw, x, width * height, width, prog)) {
@@ -581,10 +608,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					}
 				}
 				MatchHead u = new MatchHead(width, m);
-				matchheads.add(u);
+				newmatchheads.add(u);
 				u.addVertical(m);
 			}
 		}
+		swp.publish(prog);
+		matchheads.addAll(newmatchheads);
+		newmatchheads.clear();
 		for (int x = 0; x < width; x++) {//addDiagonalPlus
 			int stride = width + 1;
 			int start = x;
@@ -605,7 +635,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
-				matchheads.add(u);
+				newmatchheads.add(u);
 				u.addDiagonalPlus(m);
 			}
 		}
@@ -629,10 +659,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
-				matchheads.add(u);
+				newmatchheads.add(u);
 				u.addDiagonalPlus(m);
 			}
 		}
+		swp.publish(prog);
+		matchheads.addAll(newmatchheads);
+		newmatchheads.clear();
 		for (int x = 0; x < width; x++) {//addDiagonalMinus
 			int stride = width - 1;
 			int start = x;
@@ -653,7 +686,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
-				matchheads.add(u);
+				newmatchheads.add(u);
 				u.addDiagonalMinus(m);
 			}
 		}
@@ -677,10 +710,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 				//Shouldn't add new heads at this point since they will only be orphaned.
 				MatchHead u = new MatchHead(width, m);
-				matchheads.add(u);
+				newmatchheads.add(u);
 				u.addDiagonalMinus(m);
 			}
 		}
+		swp.publish(prog);
+		matchheads.addAll(newmatchheads);
+		newmatchheads.clear();
 		
 		BufferedImage first = Utilities.convertImageToBufferedImage(prog);
 		for (MatchHead mh : matchheads){
