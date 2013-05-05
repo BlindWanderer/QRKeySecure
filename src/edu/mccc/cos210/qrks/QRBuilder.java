@@ -276,12 +276,12 @@ public class QRBuilder implements Builder<BufferedImage> {
 		final int fi = format ^ xorMask;
 		//format info:
 		final int size = Version.getSize(version);
-		for (int x = 0; x < 8; x++) {	//lease significant 0-7
+		for (int x = 0; x < 8; x++) {	//least significant 0-7
 			field[size - x - 1][8] = (fi & (1 << x)) !=0;
 		}
-		field[8][size - 8] = true;
-		for (int b = 8; b < 15; b++) {	//most significant 8-14
-			field[8][size + b - 15] = (fi & (1 << b)) !=0;
+		field[8][size - 7] = true;
+		for (int y = 6; y < 0; y--) {	//most significant 8-14
+			field[8][size - y - 1] = (fi & (1 << y)) !=0;
 		}
 		//left side (angle)
 		for (int y = 0; y < 6; y++) {
@@ -303,12 +303,12 @@ public class QRBuilder implements Builder<BufferedImage> {
 			BitBuffer bf = new BitBuffer(18);
 			bf.write(versionInfo, 18);
 			for (int y = 8; y >= 0; y--) {
-				for (int x = version - 8; x >= version - 10; x--) {
+				for (int x = size - 8; x >= size - 10; x--) {
 					field[x][y] = bf.getBitAndIncrementPosition();
 				}
 			}
 			//horiz
-			for (int y = version - 8; y >= version - 10; y--) {
+			for (int y = size - 8; y >= size - 10; y--) {
 				for (int x = 8; x >= 0; x--) {
 					field[x][y] = bf.getBitAndIncrementPosition();
 				}
