@@ -28,7 +28,7 @@ public enum ErrorCorrectionLevel {
 	public String getName() {
 		return super.toString();
 	}
-	static ErrorCorrectionLevel parseIndex(final int index) {
+	public static ErrorCorrectionLevel parseIndex(final int index) {
 		return ecls[index];
 	}
 	/*
