@@ -1,7 +1,7 @@
 package edu.mccc.cos210.qrks.qrcode;
 
-public class Mask {
-	static public boolean[][] generateMask (int maskNum, int version) {
+public class Mask { 
+	static public boolean[][] generateSubMask (int maskNum, int version) {
 		boolean[][] mask = new boolean[Version.getSize(version)][Version.getSize(version)];
 		switch(maskNum) {
 			case 0b000:
@@ -74,9 +74,9 @@ public class Mask {
 	
 	}
 
-	public boolean[][] finalMask (boolean[][] patternMask, boolean[][] dataMask, int num, int version) {
-		//dataMask = Version.getDataMask(version);
-		//patternMask = generateMask(num, version);
+	public static boolean[][] generateFinalMask(int num, int version) {
+		boolean[][] dataMask = Version.getDataMask(version);
+		boolean[][] patternMask = generateSubMask(num, version);
 		boolean[][] finalMask = new boolean[dataMask.length][dataMask.length];
 		for (int i = 0; i < Version.getSize(version); i++) {
 			for (int j = 0; j < Version.getSize(version); j++) {
