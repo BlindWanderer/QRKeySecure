@@ -3,16 +3,6 @@ import java.util.*;
 import java.awt.Point;
 
 public final class Version {
-	public static class Info {
-		public final int errors;
-		public final int original;
-		public final int corrected;
-		private Info(int errors, int original, int corrected) {
-			this.errors = errors;
-			this.original = original;
-			this.corrected = corrected;
-		}
-	}
 	public static class SymbolCharacterInfo {
 		private SymbolCharacterInfo(final int dataCodeWordBits, 
 									final int dataCapacityNumeric,

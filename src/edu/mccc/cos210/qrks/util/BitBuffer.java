@@ -1,7 +1,7 @@
-//package edu.mccc.cos210.qrks.util;
+package edu.mccc.cos210.qrks.util;
 import java.util.*;
 public class BitBuffer {
-	/**/
+	/*/
 	public static void main(String [] args) {
 		BitBuffer b = new BitBuffer(36);
 		byte [] blah = {(byte)0xF0,(byte)0x00,(byte)0x80,(byte)0x01};

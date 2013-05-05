@@ -360,7 +360,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		public double getPossiblesWeight() {
 			double total = 0;
-			for (Monkey m : mh.possibles) {
+			for (Monkey m : possibles) {
 				total += m.hits / m.scanSize;
 			}
 			return total;
@@ -452,7 +452,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		public int hits;
 		public final MatchPoint matchpoint;
 		Monkey(MatchPoint mp, int scanSize, int hits) {
-//			this.matchpoint = mp;
+			this.matchpoint = mp;
 			this.scanSize = scanSize;
 			this.hits = hits;
 		}
@@ -484,6 +484,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 
 		Collection<MatchHead> matchheads = dumbFinder(height, width, bw, prog, swp);
+		List<Item<BufferedImage>> octopodes = null;
 		try{
 		//Graphics2D g = prog.createGraphics();
 
@@ -554,7 +555,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						}
 						if (hits > 0) {
 							if (hits > Math.min(i, mp.matches.size() * 0.75)) {
-								mh.possibles.put(mp, new Monkey(mp, i, hits));
+								mh.possibles.add(new Monkey(mp, i, hits));
 								work.set(k, null);
 							}
 						}
@@ -572,52 +573,33 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (MatchPoint mh : mps) {
 			//A valid code is made up of three interlocking monkeys
 			//Find me the central Monkey, delete all others from the list.
-			for (Iterator<Monkey> it = new HashSet<>(mh.possibles.iterator()); it.hasNext(); ) {
+			for (Iterator<Monkey> it = mh.possibles.iterator(); it.hasNext(); ) {
 				Monkey value = it.next();
 				//If the connections aren't recipricated, delete them.
 				if (!value.matchpoint.possibles.contains(value)) {
 					it.remove(); //EXTERMINATE! EXTERMINATE!
 				}
 			}
-			if (possibles.size() > 1) {
+			if (mh.possibles.size() > 1) {
 				possibleCodes.add(mh);//The Doctor is in!
 			}
 		}
 		Collections.sort(possibleCodes);
-		List<Item<BufferedImage>> octopodes = new ArrayList<>(possibleCodes.size());
+		/*List<Item<BufferedImage>> */octopodes = new ArrayList<>(possibleCodes.size());
 		for (MatchPoint code : possibleCodes) {
 			//Steps:
 			//1) Figure out size of finding patter.
 			//2) Read format information and verify it makes sense.
 			List<Monkey> monkeys = new ArrayList<>(code.possibles);
 			for (int i = 0; i < monkeys.size() - 2; i++) {
-				Monkey mm = monkeys.get(i);
-				Point mc = ma.matchpoint.center;
-				for (int j = i + 1; j < code.possibles - 1; j++) {
-					Monkey ml = monkeys.get(j);
-					Point ml = mb.matchpoint.center;
-					Point bt = Utilities.subtract(end, start);
-					{
-						int mlsteps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
-						final boolean [] scan = new boolean [steps + 1];
-						for(int p = 0; p < scan.length; p++) {
-							scan[k] = bw[(start.x + (travel.x * p) / scan) + (start.y + (travel.y * k) / scan) * width];
-						}
-						final List<Integer> mlrle = runLengthEncode(scan, 0, scan.length, 1);
-						final int mls = rle.get(1);
-						final int mle = rle.get(mlrle.size() - 2);
-						final int mlsp = mlrle.get(0);
-						final int mlep = mlrle.get(mlrle.size() - 1);
-						final int mlsd = mlsp * 3 - mls * 2;
-						final double mlsq = mlsp * 3 + mls * 2;
-						final int mled = mlep * 3 - mle * 2;
-						final double mleq = mlep * 3 + mle * 2;
-						final double mlsv = (mlsd * mlsd) / (mlsq * mlsq);
-						final double mlev = (mled * mled) / (mleq * mleq);
-						if((mlsv < scanUncertainty) && (mlev < scanUncertainty)){
-							for (int k = j + 1; k < code.possibles - 1; k++) {
-								Monkey mr = monkeys.get(k);
-								
+				Monkey rootMonkey = monkeys.get(i);
+				for (int j = i + 1; j < monkeys.size() - 1; j++) {
+					Freud left = new Freud(rootMonkey, monkeys.get(j), width, bw);
+					if((left.sv < scanUncertainty) && (left.ev < scanUncertainty)){
+						for (int k = j + 1; k < monkeys.size(); k++) {
+							Freud right = new Freud(rootMonkey, monkeys.get(k), width, bw);
+							if((right.sv < scanUncertainty) && (right.ev < scanUncertainty)){
+								System.out.println("OMG OMG OMG");
 							}
 						}
 					}
@@ -636,15 +618,48 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		return octopodes;
 	}
 	private static class Freud {
-		Monkey ms;
-		Monkey me;
-		public int s;
-		public int e;
-		public int ;
-		public int;
-		public int;
-		public int;
-		public int;
+		public Freud(Monkey ms, Monkey me, int width, boolean [] bw) {
+			monkeyStart = ms;
+			monkeyEnd = me;
+			start = ms.matchpoint.center;
+			end = me.matchpoint.center;
+			travel = Utilities.subtract(start, end);
+			steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
+			scan = new boolean [steps + 1];
+			for(int p = 0; p < scan.length; p++) {
+				scan[p] = bw[(start.x + (travel.x * p) / steps) + (start.y + (travel.y * p) / steps) * width];
+			}
+			rle = runLengthEncode(scan, 0, scan.length, 1);
+			s = rle.get(1);
+			e = rle.get(rle.size() - 2);
+			sp = rle.get(0);
+			ep = rle.get(rle.size() - 1);
+			sd = sp * 3 - s * 2;
+			sq = sp * 3 + s * 2;
+			ed = ep * 3 - e * 2;
+			eq = ep * 3 + e * 2;
+			sv = (sd * sd) / (sq * sq);
+			ev = (ed * ed) / (eq * eq);
+			
+		}
+		final public Monkey monkeyStart;
+		final public Monkey monkeyEnd;
+		final public Point start;
+		final public Point end;
+		final public List<Integer> rle;
+		final public Point travel;
+		final public int steps;
+		final public boolean [] scan;
+		final public int s;
+		final public int e;
+		final public int sp;
+		final public int ep;
+		final public int sd;
+		final public int sq;
+		final public int ed;
+		final public int eq;
+		final double sv;
+		final double ev;
 	}
 	
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {

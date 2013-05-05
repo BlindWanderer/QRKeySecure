@@ -317,7 +317,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int j = 0; j < second; j++) {
 			for (int i = 0; i < first; i++) {
 				if(j < dataBlocks[i].length) {
-					bf.write((byte)dataBlocks[i][j]);
+					bf.write(dataBlocks[i][j]);
 				}
 			}
 		}
@@ -327,7 +327,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int j = 0; j < secondEC; j++) {
 			for (int i = 0; i < firstEC; i++) {
 				if(j < ecBlocks[i].length) {
-					bf.write((byte)ecBlocks[i][j]);
+					bf.write(ecBlocks[i][j]);
 				}
 			}
 		}
