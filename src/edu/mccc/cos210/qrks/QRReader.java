@@ -8,7 +8,8 @@ package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.util.*;
 import java.util.*;
 import javax.swing.*;
-//import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.event.*;
 import java.awt.image.*;
 import javax.swing.filechooser.*;
@@ -77,6 +78,16 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 	}
 	private static class MatchHead/*<T>*/ implements Comparable<MatchHead> {
+		private class MatchingLine2D extends Line2D.Float{
+			private static final long serialVersionUID = 1L;
+			public final Match start;
+			public final Match end;
+			public MatchingLine2D(Match start, Match end) {
+				super(start.getLinearCenter(width), end.getLinearCenter(width));
+				this.start = start;
+				this.end = end;
+			}
+		}
 		private class MatchSorter implements Comparable<MatchSorter> {
 			public final double distance;
 			public final Match match;
@@ -157,8 +168,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return Utilities.scale(sum, 1.0 / count);
 		}
 //		@SuppressWarnings({"unchecked"})
-		public List<Line2D> getLines() {
-			List<Line2D> lines = new ArrayList<Line2D>(2);
+		public List<MatchingLine2D> getFindingPattern() {
+			List<MatchingLine2D> lines = new ArrayList<MatchingLine2D>(2);
 			List<Match> all = getAll();
 			List<MatchSorter> matches = new ArrayList<>(all.size());
 			Point center = getCenter();
@@ -196,16 +207,17 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						for(int j = i + 1; j < groups.size(); j++) {
 							double d = Utilities.distance(groups.get(i).match.getLinearCenter(width), groups.get(j).match.getLinearCenter(width));
 							if(d > max) {
-								a = i;
-								b = j;
+								a = Math.max(i, j);
+								b = Math.min(i, j);
 								max = d;
 							}
 						}
 					}
-					lines.add(new Line2D.Float(groups.get(a).match.getLinearCenter(width), groups.get(b).match.getLinearCenter(width)));
+					//TODO this is quite neive.
+					lines.add(new MatchingLine2D(groups.get(a).match, groups.get(b).match));
 					groups.remove(a);
 					groups.remove(b);
-					lines.add(new Line2D.Float(groups.get(0).match.getLinearCenter(width),groups.get(1).match.getLinearCenter(width)));
+					lines.add(new MatchingLine2D(groups.get(0).match, groups.get(1).match));
 					break;	
 				}
 				case 3:
@@ -337,12 +349,24 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 
 		Collection<MatchHead> matchheads = dumbFinder(height, width, bw, prog, swp);
-		for (MatchHead matchhead : matchheads){
-//			List<Point> centersOfInterest 
+		try{
+		Graphics2D g = prog.createGraphics();
+		for (MatchHead mh : matchheads){
+			List<MatchHead.MatchingLine2D> lines = mh.getFindingPattern();
+			System.out.println(lines);
+			if (lines != null) {
+				for (MatchHead.MatchingLine2D line : lines) {
+					if (line != null) {
+						g.setColor(Color.DARK_GRAY);
+						g.drawLine((int)line.x1, (int)line.y1, (int)line.x2, (int)line.y2);
+					}
+				}
+			}
 		}
-		
-		
-		swp.publish(Utilities.convertImageToBufferedImage(prog));
+		g.dispose();
+		} catch (Exception e) {e.printStackTrace();}
+		swp.publish(prog);
+		//swp.publish(Utilities.convertImageToBufferedImage(prog));
 
 		System.out.println(matchheads);		
 		System.out.println(matchheads.size());
