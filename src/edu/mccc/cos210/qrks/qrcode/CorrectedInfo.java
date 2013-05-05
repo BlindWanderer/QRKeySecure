@@ -1,6 +1,6 @@
 package edu.mccc.cos210.qrks.qrcode;
 
-public static class CorrectedInfo {
+public class CorrectedInfo {
 	public final int errors;
 	public final int original;
 	public final int corrected;

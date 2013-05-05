@@ -1,6 +1,7 @@
 package edu.mccc.cos210.qrks;
 
 import edu.mccc.cos210.qrks.qrcode.ErrorCorrectionLevel;
+import edu.mccc.cos210.qrks.qrcode.FormatInfo;
 import edu.mccc.cos210.qrks.qrcode.Mask;
 import edu.mccc.cos210.qrks.qrcode.Version;
 import edu.mccc.cos210.qrks.util.BitBuffer;
@@ -11,6 +12,9 @@ public class Decoder {
 		byte[] message = null;
 		int version = versionInfo(cleanMatrix);
 		int formatInfo = formatInfo(cleanMatrix, version); 
+		if (version == 0 || formatInfo == 0) {
+			return null;
+		}
 		int ec = getECFromFormatInfo(formatInfo);
 		int maskNum = getMaskFromFormatInfo(formatInfo);
 		//unmask
@@ -39,7 +43,7 @@ public class Decoder {
 			for (int y = 8; y >= 0; y--) {
 				for (int x = size - 8; x >= size - 10; x--) {
 					boolean b = cleanMatrix[x][y];
-					bf.write(b);		//TODO: need a write(bit) method for bit buffer.
+					bf.write(b);		
 				}
 			}
 			
@@ -50,20 +54,16 @@ public class Decoder {
 					bf2.write(b);
 				}
 			}
-			//TODO: write a BitBuffer.toInt(bitBuffer)
 			int ibf = bf.toInt();
 			int ibf2 = bf.toInt();
 			// see if all is well
-			//check one both version cleanMatrixs and see if they match (trying to NAND)
-			if (~(ibf & ibf2) == 0 && ibf == Version.getVersionInfoBitStream(assumedVersion - 7)) { //TODO: write a BitBuffer.toInt(bitBuffer)
-				return assumedVersion;
-			}
-			//if not so good, then match to the nearest value from the table
-			for (int i = 0; i <= 33; i++) {
-				int versionInfo = Version.getVersionInfoBitStream(i);
-				int comp = ~(ibf & versionInfo);
-				//TODO:see how may 1's comp has (to see how much we deviate from what's given to us	
-					
+			ibf = Version.getCorrectedVersionInfo(ibf).corrected;
+			ibf2 = Version.getCorrectedVersionInfo(ibf).corrected;
+			if (ibf == ibf2) {
+				version = version | (ibf >>> 12);
+			} 
+			if (ibf != ibf2 && ibf != assumedVersion && ibf2 != assumedVersion) {
+				return 0; //
 			}
 		}
 		return version;
@@ -101,16 +101,12 @@ public class Decoder {
 		ibf = ibf ^ (0b101010000010010);
 		ibf2 = ibf2 ^ (0b101010000010010);
 		// see if all is well
-		if (~(ibf & ibf) == 0) {
-			int ecInfo = 0b00 & ((bf.getBitAndIncrementPosition()? 1 : 0) << 1);
-			ecInfo = ecInfo & (bf.getBitAndIncrementPosition() ? 1 : 0);
-			int maskInfo = 0b000 & ((bf.getBitAndIncrementPosition() ? 1 : 0) << 2);
-			maskInfo = maskInfo & ((bf.getBitAndIncrementPosition() ? 1 : 0) << 1);
-			maskInfo = maskInfo & ((bf.getBitAndIncrementPosition() ? 1 : 0) << 2);
-			//???how to return two values from one method?
-		}
-		//TODO: if all is not well, check differences from table values (3 at most)
-		return ibf; //???return happy int
+		ibf = FormatInfo.getCorrectedFormatInfo(ibf).corrected;
+		ibf2 = FormatInfo.getCorrectedFormatInfo(ibf2).corrected;
+		if (ibf == ibf2) {
+			return ibf;
+		} else
+		return 0;	
 	}
 	private static int getECFromFormatInfo(int formatInfo) {
 		int ec = 0;
@@ -250,19 +246,19 @@ public class Decoder {
 		//Encoding Mode (4 bit), Data Size (version 0-9 8 bits, version 10-40 16 bits), Terminator (4 bits), and Padding (to fill DataCapacity) into a BitBuffer
 		int em = 0;
 		for (int i = 4; i>=0; i++){
-			em = em & ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
+			em = em | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
 		}
 		int dataSize = 0;	
 		int dataStartPosition = 0; //where actual dataStarts after prefixes
 		if (0 < version && version < 10) {
 			for (int i = 8; i>=0; i++){
-				dataSize = dataSize & ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
+				dataSize = dataSize | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
 			}
 			dataStartPosition = 12; //???am i off by 1 
 		}
 		if (9 < version && version < 41) {
 			for (int i = 16; i>=0; i++){
-				dataSize = dataSize & ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
+				dataSize = dataSize | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
 			}
 			dataStartPosition = 16; //???am i off by 1 
 		}

@@ -54,35 +54,39 @@ public class QRBuilder implements Builder<BufferedImage> {
 		 * @return The QRCode generated from user inputs.
 		 */
 		public Item<BufferedImage> runFactory() {
-			final EncodingMode em = getEncoding(text);
-			final byte [] data = encode(text, em);
-			final int version = getVersion(data, ec, em);
-			final BitBuffer memory = getMemorySpace(version);
-			writeToMemory(memory, data, em, version, ec);
-			final boolean [][] field = getBasicQRCode(version);
-			final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
-			final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
-
-			int mask = getPreferredMask(version, field);
-			writeMetaData(field, version, ec, mask);
-			writeDataToField(field, dataBlocks, ecBlocks);
-			final boolean[][] finalField = applyMask(version, field, mask);
-			return new Item<BufferedImage>(){
-				private BufferedImage img = null;
-				public BufferedImage save() {
-					if (img == null) {
-						img = makeImage(finalField, ppu, true);
+			try {
+				final EncodingMode em = getEncoding(text);			
+				final byte [] data = encode(text, em);
+				final int version = getVersion(data, ec, em);
+				final BitBuffer memory = getMemorySpace(version);
+				writeToMemory(memory, data, em, version, ec);
+				final boolean [][] field = getBasicQRCode(version);
+				final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
+				final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
+	
+				int mask = getPreferredMask(version, field);
+				writeMetaData(field, version, ec, mask);
+				writeDataToField(field, dataBlocks, ecBlocks);
+				final boolean[][] finalField = applyMask(version, field, mask);
+				return new Item<BufferedImage>(){
+					private BufferedImage img = null;
+					public BufferedImage save() {
+						if (img == null) {
+							img = makeImage(finalField, ppu, true);
+						}
+						return img;
 					}
-					return img;
-				}
-				public JPanel generateGUI() {
-					final BufferedImage si = makeImage(field, ppu, false);
-					JPanel gui = new JPanel();
-					gui.add(new ImagePanel(si));
-					//add some other elements with stats and text.
-					return gui;
-				}
-			};
+					public JPanel generateGUI() {
+						final BufferedImage si = makeImage(field, ppu, false);
+						JPanel gui = new JPanel();
+						gui.add(new ImagePanel(si));
+						//add some other elements with stats and text.
+						return gui;
+					}
+				};
+			} catch (Exception e) {
+				e.printStackTrace(); return null;
+			}
 		}
 	}
 	private static int getVersion(byte [] data, ErrorCorrectionLevel ec, EncodingMode em) {
@@ -268,21 +272,21 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//format info:
 		final int size = Version.getSize(version);
 		for (int x = 0; x < 8; x++) {	//least significant 0-7
-			field[size - x][8] = (fi & (1 << x)) !=0; //???am i off by one?
+			field[size - x][8] = (fi | (1 << x)) !=0; //???am i off by one?
 		}
 		field[8][size - 7] = true;	//???am i off by one
 		for (int y = 6; y < 0; y--) {	//most significant 8-14
-			field[8][size - y] = (fi & (1 << y)) !=0;	//???am i off by 1?
+			field[8][size - y] = (fi | (1 << y)) !=0;	//???am i off by 1?
 		}
 		//left side (angle)
 		for (int y = 0; y <= 6; y++) {
-			field [8][y] = ((fi >>> y) & 1) != 0;
+			field [8][y] = ((fi >>> y) | 1) != 0;
 		}
-		field [8][7] = (fi & (1 << 6)) != 0;
-		field [8][8] = (fi & (1 << 7)) != 0;
-		field [7][8] = (fi & (1 << 8)) != 0;
+		field [8][7] = (fi | (1 << 6)) != 0;
+		field [8][8] = (fi | (1 << 7)) != 0;
+		field [7][8] = (fi | (1 << 8)) != 0;
 		for (int x = 0; x < 6; x++) {
-			field[x][8] = (fi & ((1 << 14) >> x)) !=0;
+			field[x][8] = (fi | ((1 << 14) >> x)) !=0;
 		}
 		if (version >= 7) {
 			//write version info 
@@ -383,9 +387,9 @@ public class QRBuilder implements Builder<BufferedImage> {
 		int N3 = 40;
 		int N4 = 10;
 		int[] penalty = new int[8];
+		int penaltyValue = 0;
 		for (int i = 0; i < 8; i++) {
 			boolean[][] trialMask = Mask.generateFinalMask(i, version);
-			int penaltyValue = 0;
 			penalty[i] = penaltyValue;
 		}
 		//get least penalty
