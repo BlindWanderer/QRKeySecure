@@ -242,17 +242,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//TODO: draw metainfo
 		return qr;
 	}
-	private static int getPreferredMask(int version, boolean [][] field) {
-		//TODO: Write me
-		//get masks, evaluate
-		//N1=3, N2=3, N3=40, N4=10
-		//is the amount by which the number of
-		//adjacent modules of the same color exceeds 5 and k is the rating of the deviation of the proportion of dark
-		//modules in the symbol from 50% in steps of 5%. Although the data masking operation is only performed on
-		//the encoding region of the symbol excluding the format information, the area to be evaluated is the complete
-		//symbol.
-		return 0;
-	}
+	
 	private static void writeMetaData(boolean [][] field, int version, ErrorCorrectionLevel ec, int mask) {
 		//Write metadata to field
 		/* FormatInfo
@@ -385,6 +375,36 @@ public class QRBuilder implements Builder<BufferedImage> {
 			return true;
 		}
 		return false;
+	}
+	private static int getPreferredMask(int version, boolean [][] field) {
+		//TODO: Write me
+		int N1 = 3;
+		int N2 = 3;
+		int N3 = 40;
+		int N4 = 10;
+		int[] penalty = new int[8];
+		for (int i = 0; i < 8; i++) {
+			boolean[][] trialMask = Mask.generateFinalMask(i, version);
+			int penaltyValue = 0;
+			penalty[i] = penaltyValue;
+		}
+		//get least penalty
+		int minPenalty = 1000000000;
+		for (int i = 0; i < penalty.length; i++) {
+			minPenalty = Math.min(minPenalty, penalty[i]);
+		}
+		//rule1 = module strings of same color (bad if more than 5 in a row / column)
+			//horiz scan:
+		
+		
+		//get masks, evaluate
+		//N1=3, N2=3, N3=40, N4=10
+		//is the amount by which the number of
+		//adjacent modules of the same color exceeds 5 and k is the rating of the deviation of the proportion of dark
+		//modules in the symbol from 50% in steps of 5%. Although the data masking operation is only performed on
+		//the encoding region of the symbol excluding the format information, the area to be evaluated is the complete
+		//symbol.
+		return 0;
 	}
 	private static boolean[][] applyMask(int version, boolean [][] field, int maskNum) {
 		//xor datafield with preferredmask
