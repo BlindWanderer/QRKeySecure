@@ -388,10 +388,13 @@ public class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static boolean[][] applyMask(int version, boolean [][] field, int maskNum) {
 		//xor datafield with preferredmask
-		
 		boolean[][] maskMatrix = Mask.generateFinalMask(maskNum, version);
-		boolean[][] finalField = field ^ maskMatrix;
-		return finalField;
+		for (int i = 0; i < field.length; i++) {
+			for (int j = 0; j < field[i].length; j++) {
+				field[i][j] = field[i][j] ^ maskMatrix[i][j];
+			}
+		}
+		return field;
 	}
 	private static BufferedImage makeImage (boolean [][] field, int ppu, boolean quietZone) {
 		BufferedImage bi = new BufferedImage(field.length * ppu, field.length * ppu, BufferedImage.TYPE_INT_ARGB);

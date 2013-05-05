@@ -12,10 +12,9 @@ public class Decoder {
 		int version = versionInfo(cleanMatrix);
 		int formatInfo = formatInfo(cleanMatrix, version); 
 		int ec = getECFromFormatInfo(formatInfo);
-		int mask = getMaskFromFormatInfo(formatInfo);
+		int maskNum = getMaskFromFormatInfo(formatInfo);
 		//unmask
-		boolean[][] maskMatrix = Mask.generateFinalMask(mask, version);
-		cleanMatrix = cleanMatrix ^ maskMatrix;
+		applyMask(version, cleanMatrix, maskNum);
 		byte[] unsortedData = getDataStream(cleanMatrix, version);
 		byte[][] dataBlocks= sortDataStream(unsortedData, version, ec);
 		message = dealWithData(dataBlocks, version);
@@ -121,6 +120,16 @@ public class Decoder {
 		int mask = 0;
 		return mask;
 	}
+	private static boolean[][] applyMask(int version, boolean [][] cleanMatrix, int maskNum) {
+		//xor datacleanMatrix with preferredmask
+		boolean[][] maskMatrix = Mask.generateFinalMask(maskNum, version);
+		for (int i = 0; i < cleanMatrix.length; i++) {
+			for (int j = 0; j < cleanMatrix[i].length; j++) {
+				cleanMatrix[i][j] = cleanMatrix[i][j] ^ maskMatrix[i][j];
+			}
+		}
+		return cleanMatrix;
+	}
 	
 	private static byte[] getDataStream(boolean[][] cleanMatrix, int version) {
 		boolean[][] mask = Version.getDataMask(version);
@@ -177,7 +186,7 @@ public class Decoder {
 	
 	private static byte[][] sortDataStream(byte[] unsortedData, int version, int ec) {
 		//need to determine number / length of DataBlocks & number of ECBlocks
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ErrorCorrectionLevel.parseIndex(ec));
 		int numberDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberDataBlocks = numberDataBlocks + ecc.errorCorrectionRows[1].ecBlocks;
@@ -205,7 +214,7 @@ public class Decoder {
 	}
 	private static byte[][] sortECStream(byte[] unsortedData, int version, int ec) {
 		//create ecBlocks
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ErrorCorrectionLevel.parseIndex(ec));
 		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
 		int ecBlockLength = ecc.errorCorrectionRows[0].c - ecc.errorCorrectionRows[0].k; //always same, regardless of dataBlock length
 		//create block[][]
@@ -265,5 +274,6 @@ public class Decoder {
 		message = messageBuffer.getData();
 		return message;
 	}
+	
 	
 }
