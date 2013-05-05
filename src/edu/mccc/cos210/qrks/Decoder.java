@@ -204,7 +204,7 @@ public class Decoder {
 		}
 		while (index < totalNumberDataCodeWords){		//???double check this crap
 			for (int j = 0; j < numberDataBlocks; j++) {
-				if (i >= numberShortDataBlocks  && j == shortDataBlockLength) {i++;}
+				if (j >= shortDataBlockLength) {i++; continue;}
 				dataBlocks[i][j] = unsortedData[index];
 				if (j == numberDataBlocks - 1) {i++;}
 				index++;
