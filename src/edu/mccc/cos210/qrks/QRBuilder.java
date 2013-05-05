@@ -255,7 +255,8 @@ public class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static void writeMetaData(boolean [][] field, int version, ErrorCorrectionLevel ec, int mask) {
 		//Write metadata to field
-		/*2 bit ec
+		/* FormatInfo
+		 2 bit ec
 		 3 bit mask 
 		10 BCH bits from Annex c
 		Mask pattern for XOR operation: 101010000010010
@@ -277,14 +278,14 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//format info:
 		final int size = Version.getSize(version);
 		for (int x = 0; x < 8; x++) {	//least significant 0-7
-			field[size - x - 1][8] = (fi & (1 << x)) !=0;
+			field[size - x][8] = (fi & (1 << x)) !=0; //???am i off by one?
 		}
-		field[8][size - 7] = true;
+		field[8][size - 7] = true;	//???am i off by one
 		for (int y = 6; y < 0; y--) {	//most significant 8-14
-			field[8][size - y - 1] = (fi & (1 << y)) !=0;
+			field[8][size - y] = (fi & (1 << y)) !=0;	//???am i off by 1?
 		}
 		//left side (angle)
-		for (int y = 0; y < 6; y++) {
+		for (int y = 0; y <= 6; y++) {
 			field [8][y] = ((fi >>> y) & 1) != 0;
 		}
 		field [8][7] = (fi & (1 << 6)) != 0;
@@ -303,7 +304,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 			BitBuffer bf = new BitBuffer(18);
 			bf.write(versionInfo, 18);
 			for (int y = 8; y >= 0; y--) {
-				for (int x = size - 8; x >= size - 10; x--) {
+				for (int x = size - 8; x >= size - 10; x--) { //start with most significant
 					field[x][y] = bf.getBitAndIncrementPosition();
 				}
 			}
@@ -385,9 +386,11 @@ public class QRBuilder implements Builder<BufferedImage> {
 		}
 		return false;
 	}
-	private static boolean[][] applyMask(int version, boolean [][] field, int mask) {
+	private static boolean[][] applyMask(int version, boolean [][] field, int maskNum) {
 		//xor datafield with preferredmask
-		boolean[][] finalField = null;
+		
+		boolean[][] maskMatrix = Mask.generateFinalMask(maskNum, version);
+		boolean[][] finalField = field ^ maskMatrix;
 		return finalField;
 	}
 	private static BufferedImage makeImage (boolean [][] field, int ppu, boolean quietZone) {
