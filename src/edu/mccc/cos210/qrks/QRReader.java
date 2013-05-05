@@ -595,10 +595,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				Point mc = ma.matchpoint.center;
 				for (int j = i + 1; j < code.possibles - 1; j++) {
 					Monkey ml = monkeys.get(j);
-					Point bc = mb.matchpoint.center;
+					Point ml = mb.matchpoint.center;
 					Point bt = Utilities.subtract(end, start);
 					{
-						int steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
+						int mlsteps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
 						final boolean [] scan = new boolean [steps + 1];
 						for(int p = 0; p < scan.length; p++) {
 							scan[k] = bw[(start.x + (travel.x * p) / scan) + (start.y + (travel.y * k) / scan) * width];
@@ -634,6 +634,17 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		System.out.println(matchheads);		
 		System.out.println(matchheads.size());
 		return octopodes;
+	}
+	private static class Freud {
+		Monkey ms;
+		Monkey me;
+		public int s;
+		public int e;
+		public int ;
+		public int;
+		public int;
+		public int;
+		public int;
 	}
 	
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {

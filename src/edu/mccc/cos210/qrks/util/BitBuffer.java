@@ -1,12 +1,12 @@
-package edu.mccc.cos210.qrks.util;
+//package edu.mccc.cos210.qrks.util;
 import java.util.*;
 public class BitBuffer {
-	/*/
+	/**/
 	public static void main(String [] args) {
 		BitBuffer b = new BitBuffer(36);
 		byte [] blah = {(byte)0xF0,(byte)0x00,(byte)0x80,(byte)0x01};
 		System.out.println(b);
-		b.write(0xFFFFFFFEL, 1);
+		b.write(0b10, 1);
 //		b.write(0xEFEFEFEF, 31);
 		System.out.println(b);
 		b.write(blah);
@@ -25,12 +25,18 @@ public class BitBuffer {
 	public String toString() {
 		return Arrays.toString(getData()) + " @ " + pos + " of " + size;
 	}
-	public int toInt() {
+	public boolean getBitAndIncrementPosition(){
+		boolean v = (data[pos >> 3] & (0x80 >> (pos & 7))) != 0;;
+		pos++;
+		return v; 
+	}
+	public int getIntAndIncrementPosition(int bitCount) {
 		int myInt = 0;
-		if (getSize() < 32) {	
-			for (int i = getSize() - 1; i >= 0; i++) {
-				int bitInt = (getBitAndIncrementPosition()) ? 1 : 0;
-				myInt = myInt & (bitInt << i);
+		int min = Math.max(bitCount - getSize(), 0);
+		int max = Math.min(bitCount, getSize()) - 1;
+		for (int i = max; i >= min; i--) {
+			if (getBitAndIncrementPosition()) {
+				myInt |= 1 << i ;
 			}
 		}
 		return myInt;
@@ -40,11 +46,6 @@ public class BitBuffer {
 	}
 	public void seek(int pos) {
 		this.pos = pos;
-	}
-	public boolean getBitAndIncrementPosition(){
-		boolean v = (data[pos >> 3] & (0x80 >> (pos & 7))) != 0;;
-		pos++;
-		return v; 
 	}
 	public byte [] getInternalArray() {
 		return data;
@@ -56,8 +57,7 @@ public class BitBuffer {
 		return size;
 	}
 	public void write(boolean x) {
-		int myInt = x ? 1 : 0;
-		write(myInt, 1);
+		write(x ? 1 : 0, (byte)1);
 	}
 	public void write(byte x) {
 		write(x, 8);
@@ -105,62 +105,30 @@ public class BitBuffer {
 	}
 	public void write(byte x, int count) {
 		count = Math.min(Math.max(count, 0), 8);
-		int d = ((x << (8 - count)) & 0xFF) & (0xFF00 >> count);
-		int used = pos & 7;
-		int p = pos >> 3;
-		data[p] = (byte)(data[p] | (d >> used));
-		data[p+1] = (byte)(d << (8 - used));
+		final int d = (x << (8 - count)) & 0xFF;
+		final int used = pos & 7;
+		final int p = pos >> 3;
+		final int mask = (0xFF & (0xFF00 >> count));
+		data[p] = (byte)((data[p] & ~(mask >> used)) | ((d >>> used)));
+		data[p+1] = (byte)((data[p+1] & ~(mask >> (8 - used))) | (d << (8 - used)));
 		pos += count;
 	}
 	public void write(char x, int count) {
-		count = Math.min(Math.max(count, 0), 16);
-		int d = ((x << (16 - count)) & 0xFFFF) & (0xFFFF << (16 - count));
-		int used = pos & 7;
-		int p = pos >> 3;
-		data[p] = (byte)(data[p] | (d >> (used + 8)));
-		data[p+1] = (byte)(d >> used);
-		data[p+2] = (byte)(d << (8 - used));
-		pos += count;
+		if(count > 8) {
+			write((byte)(x >> 8), count - 8);
+		}
+		write((byte)x, count);
 	}
 	public void write(int x, int count) {
 		if(count > 16) {
 			write((char)(x >> 16), count - 16);
 		}
 		write((char)x, count);
-		/*
-		count = Math.min(Math.max(count, 0), 32);
-		int mask = ~(-1 << count);
-		int d = x << (32 - count);
-		int used = pos & 7;
-		int p = pos >> 3;
-		data[p] = (byte)(data[p] | ((d >> (used + 24)) & (mask >> 24)));
-		data[p+1] = (byte)((d >> (used + 16)) & (mask >> 16));
-		data[p+2] = (byte)((d >> (used + 8)) & (mask >> 16));
-		data[p+3] = (byte)((d >> used) & mask);
-		data[p+4] = (byte)(d << (8 - used));
-		pos += count;
-		*/
 	}
 	public void write(long x, int count) {
 		if(count > 32) {
 			write((int)(x >> 32), count - 32);
 		}
 		write((int)x, count);
-		/*count = Math.min(Math.max(count, 0), 64);
-		long mask = ~(-1L << count);
-		long d = ((int)(x << (64 - count)));
-		int used = pos & 7;
-		int p = pos >> 3;
-		data[p] = (byte)(data[p] | ((d >> (used + 56))) & (mask >> 56));
-		data[p+1] = (byte)((d >> (used + 48)) & (mask >> 48));
-		data[p+2] = (byte)((d >> (used + 40)) & (mask >> 40));
-		data[p+3] = (byte)((d >> (used + 32)) & (mask >> 32));
-		data[p+4] = (byte)((d >> (used + 24)) & (mask >> 24));
-		data[p+5] = (byte)((d >> (used + 16)) & (mask >> 16));
-		data[p+6] = (byte)((d >> (used + 8)) & (mask >> 8));
-		data[p+7] = (byte)((d >> used) & mask);
-		data[p+8] = (byte)(d << (8 - used));
-		pos += count;
-		*/
 	}
 }
