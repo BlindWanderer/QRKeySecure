@@ -123,6 +123,26 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			this.width = width;
 			setHead(match);
 		}
+		private static int getTotal(List<Match> list) {
+			int length = 0;
+			for (Match m : list) {
+				length += m.getScanLength();
+			}
+			return length;
+		}
+		private double getCertainty() {
+			int v = getTotal(vertical);
+			int h = getTotal(horizontal);
+			int p = getTotal(diagonalPlus);
+			int m = getTotal(diagonalMinus);
+			int vh = v - h;
+			int hv = v + h;
+			int pm = p - m;
+			int mp = p + m;
+			int hhvv = hv * hv;
+			int mmpp = mp * mp;
+			return 1.0 - ((vh * vh * mmpp + pm * pm * hhvv) / (2.0 * hhvv * mmpp));
+		}
 		public Match getHead(){
 			return match;
 		}
@@ -464,6 +484,22 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				u.addDiagonalMinus(m);
 			}
 		}
+		
+		BufferedImage first = Utilities.convertImageToBufferedImage(prog);
+		for (MatchHead mh : matchheads){
+			for (Match u : mh.getAll()) {
+				drawLine(first, u.start, u.end, u.stride, LINE_COLOR);
+			}
+		}
+		for (MatchHead mh : matchheads){
+			for (Match u : mh.getAll()) {
+				setARGB(first, u.getStartPoint(width), START_COLOR);
+				setARGB(first, u.getEndPoint(width), END_COLOR);
+				setARGB(first, u.getLinearCenter(width), CENTER_COLOR);
+			}
+		}
+		swp.publish(first);
+		
 //		System.out.println(matchheads);
 		LinkedList<MatchHead> good = new LinkedList<MatchHead>();
 		for (int i = 0; i < matchheads.size(); i++) {
@@ -480,7 +516,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 		}
 		for (MatchHead m : matchheads) {
-			if((m.getTypeCount() >= 3) && (m.getCount() >= 5)) {
+			if((m.getTypeCount() >= 3) && (m.getCount() >= 5) && m.getCertainty() > 0.65) {
 				good.add(m);
 				for(Match u : m.getAll()) {
 					drawLine(prog, u.start, u.end, u.stride, LINE_COLOR);
@@ -494,6 +530,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				setARGB(prog, u.getLinearCenter(width), CENTER_COLOR);
 			}
 		}
+		swp.publish(prog);
 		Collections.sort(good);
 		return good;//new PriorityQueue<MatchHead>(matchheads);
 
