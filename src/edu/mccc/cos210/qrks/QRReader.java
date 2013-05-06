@@ -1,9 +1,3 @@
-//NOTES:
-//Use center on MatchHead to associate Matches better.
-//Consider a post processing step to merge MatchHeads.
-//Histagram of edges only, current method doesn't really work.
-//Also it shouldn't pick colors in the middle of a gradiant.
-
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.util.*;
 import java.util.*;
@@ -437,8 +431,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			this.center = center;
 			this.symetric_x = Math.max(x_max - center.x, center.x - x_min);
 			this.symetric_y = Math.max(y_max - center.y, center.y - y_min);
-			this.symetric_width = 2 * symetric_x + 1;
-			this.symetric_height = 2 * symetric_y + 1;
+			this.symetric_width = (2 * symetric_x) | 1;
+			this.symetric_height = (2 * symetric_y) | 1;
 		}
 		public double getDistanceFrom(Point p){
 			return Utilities.distance(p, center);
@@ -465,12 +459,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return scanSize - o.scanSize;
 		}
 	}
-	private class Octopus {//a possibly valid QR code
-	}
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
 		final int width = input.getWidth();
 		final int height = input.getHeight();
-		final double scanUncertainty = 0.25;
+		final double hitPercent = 0.75;
+		final double baseUncertainty = 0.26;
+		final double secondaryUncertainty = 0.1;
+//		final double ignoreMultipler = 0.2;
 
 		BufferedImage prog = Utilities.convertImageToBufferedImage(input);
 		swp.publish(prog);
@@ -487,19 +482,19 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 
 		Collection<MatchHead> matchheads = dumbFinder(height, width, bw, prog, swp);
-		List<Item<BufferedImage>> octopodes = null;
-		try{
 		//Graphics2D g = prog.createGraphics();
 
 		MatchPointDistanceComparator compares = new MatchPointDistanceComparator();
-		
+		List<Item<BufferedImage>> carp = new LinkedList<>();
+		try{
+
 		List<MatchPoint> mps = new ArrayList<>(matchheads.size());
 		List<MatchPoint> work = new ArrayList<>(matchheads.size());
 		//Graphics2D g = prog.createGraphics()
 		for (MatchHead mh : matchheads) {
 			mps.add(new MatchPoint(mh, width, height));
 		}
-		
+
 		for (int j = 0; j < mps.size(); j++){
 			MatchPoint mh = mps.get(j);
 			work = new ArrayList<>(mps);
@@ -545,33 +540,41 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					blah.dispose();
 					swp.publish(display);
 				}
-//				Thread.sleep(1000);
+//				Thread.sleep(500);
 				for (int k = 0; k < work.size(); k++) {
 					MatchPoint mp = work.get(k);
 					if (mp != null) {
-						int hits = 0;
-						for (Point point : mp.points) {
-							if(field.getRGB(point.x, point.y) != 0x00000000) {
-								hits++;
-							}
-						}
-						if (hits > 0) {
-							if (hits > Math.min(i, mp.matches.size() * 0.75)) {
-								mh.possibles.add(new Monkey(mp, i, hits));
-								work.set(k, null);
-							}
-						}
 						Point a = Utilities.subtract(mp.center, mh.center);
-						if ((Math.abs(a.x) / (double)mh.symetric_x > i) || Math.abs(a.y) / (double)mh.symetric_y > i) {
-							break;
-						}
+//						double x = Math.abs(a.x) / (double)(i * mh.symetric_x);
+//						double y = Math.abs(a.y) / (double)(i * mh.symetric_y);
+//						System.out.println("ig = " + x + ","+y);
+//						if ((x > ignoreMultipler) || (y > ignoreMultipler)) {
+							int hits = 0;
+							for (Point point : mp.points) {
+								if(field.getRGB(point.x, point.y) != 0x00000000) {
+									hits++;
+								}
+							}
+							if (hits > 0) {
+								if (hits > Math.min(i, mp.matches.size() * hitPercent)) {
+									mh.possibles.add(new Monkey(mp, i, hits));
+									work.set(k, null);
+//									System.out.println("hit");
+								}
+							}
+							if ((Math.abs(a.x) / (double)mh.symetric_x > i) || Math.abs(a.y) / (double)mh.symetric_y > i) {
+								break;
+							}
+//						}
 					}
 				}
-				System.out.println(i + " - " + mh.possibles);
+//				System.out.println(i + " - " + mh.possibles);
 			}
 			g.dispose();
 			//matrix[compares.center.x][compares.center.y] = null;
 		}
+
+
 		List<MatchPoint> possibleCodes = new ArrayList<>(mps.size());
 		for (MatchPoint mh : mps) {
 			//A valid code is made up of three interlocking monkeys
@@ -590,87 +593,165 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					it.remove(); //EXTERMINATE! EXTERMINATE!
 				}
 			}
-			if (mh.possibles.size() > 1) {
+			if (mh.possibles.size() >= 1) {
 				possibleCodes.add(mh);//The Doctor is in!
 			}
 		}
+		
+		swp.publish(prog);
+		Graphics2D pg = prog.createGraphics();
+		pg.setColor(Color.GREEN);
 		Collections.sort(possibleCodes);
-		/*List<Item<BufferedImage>> */octopodes = new ArrayList<>(possibleCodes.size());
+		List<Octopus> octopodes = new ArrayList<>(possibleCodes.size());
+System.out.println();
 		for (MatchPoint code : possibleCodes) {
 			//Steps:
 			//1) Figure out size of finding patter.
 			//2) Read format information and verify it makes sense.
 			List<Monkey> monkeys = new ArrayList<>(code.possibles);
-			for (int i = 0; i < monkeys.size() - 2; i++) {
-				Monkey rootMonkey = monkeys.get(i);
-				for (int j = i + 1; j < monkeys.size() - 1; j++) {
-					Freud left = new Freud(rootMonkey, monkeys.get(j), width, bw);
-					if((left.sv < scanUncertainty) && (left.ev < scanUncertainty)){
-						for (int k = j + 1; k < monkeys.size(); k++) {
-							Freud right = new Freud(rootMonkey, monkeys.get(k), width, bw);
-							if((right.sv < scanUncertainty) && (right.ev < scanUncertainty)){
-								System.out.println("OMG OMG OMG");
+			for (int j = 0 /*i + 1*/; j < monkeys.size() - 1; j++) {
+				Freud left = new Freud(code, monkeys.get(j).matchpoint, width, bw);
+				if(left.checkUncertainty(baseUncertainty, secondaryUncertainty)){
+					for (int k = j + 1; k < monkeys.size(); k++) {
+						Freud right = new Freud(code, monkeys.get(k).matchpoint, width, bw);
+						if(right.checkUncertainty(baseUncertainty, secondaryUncertainty)){
+							Freud across = new Freud(left.matchEnd, right.matchEnd, width, bw);
+							if(across.checkUncertainty(baseUncertainty, secondaryUncertainty)){
+								Octopus o = new Octopus(left, right, across, width, bw);
+								pg.drawLine(code.center.x, code.center.y, left.end.x, left.end.y);
+								pg.drawLine(code.center.x, code.center.y, right.end.x, right.end.y);
+								pg.drawLine(left.end.x, left.end.y, right.end.x, right.end.y);
+								
+								octopodes.add(o);
+								//Tasks 1
+								//1) Find black outline to read formatinfo
+	//							System.out.println(o);
+	//							System.out.println("right " + right.getUncertainties());
+	//							System.out.println("left " + left.getUncertainties());
+	//							System.out.println(left.modules + " == " + right.modules);
+	//							System.out.println();
+							} else {
+								System.out.println("L: " + left);
+								System.out.println("R: " + right);
+								System.out.println("A: " + across + " ~ " + across.getUncertainties());
 							}
 						}
 					}
 				}
 			}
 		}
-		System.out.println("possibleCodes - "+ possibleCodes);
-		
+//		System.out.println("possibleCodes<"+possibleCodes.size()+"> - "+ possibleCodes);
+		System.out.println();
+//		System.out.println("possibleQR<"+octopodes.size()+"> - "+ octopodes);
+		System.out.println(octopodes.size());
 		
 		//g.dispose();
 		} catch (Exception e) {e.printStackTrace();}
 		swp.publish(prog);
 		//swp.publish(Utilities.convertImageToBufferedImage(prog));
 
-		System.out.println(matchheads);
-		System.out.println(matchheads.size());
-		return octopodes;
+//		System.out.println(matchheads);
+//		System.out.println(matchheads.size());
+		return carp;
+	}
+	private static class Octopus {
+		public final Freud left;
+		public final Freud right;
+		public final Freud across;
+		public Octopus(Freud left, Freud right, Freud across, int width, boolean [] bw){
+			this.left = left;
+			this.right = right;
+			this.across = across;
+		}
+		public String toString() {
+			return "left: " + left + "\nright: " + right + "\nacross: " + across;
+		}
 	}
 	private static class Freud {
-		public Freud(Monkey ms, Monkey me, int width, boolean [] bw) {
-			monkeyStart = ms;
-			monkeyEnd = me;
-			start = ms.matchpoint.center;
-			end = me.matchpoint.center;
-			travel = Utilities.subtract(start, end);
-			steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
-			scan = new boolean [steps + 1];
-			for(int p = 0; p < scan.length; p++) {
-				scan[p] = bw[(start.x + (travel.x * p) / steps) + (start.y + (travel.y * p) / steps) * width];
-			}
-			rle = runLengthEncode(scan, 0, scan.length, 1);
-			s = rle.get(1);
-			e = rle.get(rle.size() - 2);
-			sp = rle.get(0);
-			ep = rle.get(rle.size() - 1);
-			sd = sp * 3 - s * 2;
-			sq = sp * 3 + s * 2;
-			ed = ep * 3 - e * 2;
-			eq = ep * 3 + e * 2;
-			sv = (sd * sd) / (sq * sq);
-			ev = (ed * ed) / (eq * eq);
-			
+		public static double run(int a, int b) {
+			int c = a - b;
+			double d = a + b;
+			return (c * c) / (d * d);
 		}
-		final public Monkey monkeyStart;
-		final public Monkey monkeyEnd;
+		public Freud(MatchPoint matchStart, MatchPoint matchEnd, int width, boolean [] bw) {
+			this.matchStart = matchStart;
+			this.matchEnd = matchEnd;
+			start = matchStart.center;
+			end = matchEnd.center;
+			travel = Utilities.subtract(end, start);
+			steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
+			boolean [] scan = new boolean [steps + 1];
+			for(int p = 0; p < steps; p++) {
+				scan[p] = bw[(this.start.x + (travel.x * p) / steps) + (this.start.y + (travel.y * p) / steps) * width];
+			}
+			scan[steps] = bw[matchStart.center.x + matchStart.center.y * width];
+			rle = runLengthEncode(scan, 0, scan.length, 1);
+		}
+		public boolean checkUncertainty(double baseUncertainty, double secondaryUncertainty) {
+//			scan[steps] = bw[end.x + end.y * width];
+			int count = rle.size();
+			if(count < 7 || count % 2 == 0){
+				return false;
+			}
+			sp = rle.get(0); //black
+			s = rle.get(1);//white
+			sm = rle.get(2);//black
+			sw = rle.get(3);//white - could be 1 - 5 wide
+			
+			ew = rle.get(count - 4);//white - could be 1 - 5 wide
+			em = rle.get(count - 3); //black
+			e = rle.get(count - 2); //white
+			ep = rle.get(count - 1); //black
+			
+			sv = run(sp * 3, s * 2);
+			ev = run(sp * 3, s * 2);
+//			double sc = Math.round(sw / (double)s);
+//			double ec = Math.round(ew / (double)e);
+			
+			se = run(sm, s);
+			ee = run(em, e);
+			
+//			su = ((sc * sc) / 100.0) + Math.abs(Math.IEEEremainder(sw, s) / (sw * ((s + sm) / 2)));
+//			eu = ((ec * ec) / 100.0) + Math.abs(Math.IEEEremainder(ew, e) / (ew * ((e + em) / 2)));
+			
+//			printUncertainties();
+			modules = (int)Math.round((4.0 * steps) / (s + sm + e + ep));
+			if(modules < 10) {
+				return false;
+			}
+			return sv < baseUncertainty && se < secondaryUncertainty && //su < baseUncertainty && 
+						ev < baseUncertainty && ee < secondaryUncertainty; //&& eu < baseUncertainty;
+		}
+		public String getUncertainties(){
+			return "B<" + sv + "," + ev + "> S<"+se+","+ee+">";
+		}
+		public String toString() {
+			return matchEnd.toString();
+		}
+		final public MatchPoint matchStart;
+		final public MatchPoint matchEnd;
 		final public Point start;
 		final public Point end;
 		final public List<Integer> rle;
 		final public Point travel;
 		final public int steps;
-		final public boolean [] scan;
-		final public int s;
-		final public int e;
-		final public int sp;
-		final public int ep;
-		final public int sd;
-		final public int sq;
-		final public int ed;
-		final public int eq;
-		final double sv;
-		final double ev;
+		int sp = 0;
+		int s = 0;
+		int sm = 0;
+		int sw = 0;
+		int ep = 0;
+		int e = 0;
+		int em = 0;
+		int ew = 0;
+		double se = 0;
+		double ee = 0;
+		double sv = 0;
+		double ev = 0;
+		double su = 0;
+		double eu = 0;
+		int modules = 0;
+		int modules_min;
+		int modules_max;
 	}
 	
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
@@ -868,6 +949,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				setARGB(prog, u.getEndPoint(width), END_COLOR);
 				setARGB(prog, u.getLinearCenter(width), CENTER_COLOR);
 			}
+			setARGB(prog, m.getCenter(), 0xFF0000FF);
 		}
 		swp.publish(prog);
 		Collections.sort(good);
