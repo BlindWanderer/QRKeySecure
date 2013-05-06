@@ -456,6 +456,9 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			this.scanSize = scanSize;
 			this.hits = hits;
 		}
+		public String toString() {
+			return "<"+matchpoint + "," + scanSize + "," + hits +">";
+		}
 		public int compareTo(Monkey o) {
 			if (o == null)
 				return 1;
@@ -525,7 +528,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				//TODO: symbols should be symetric, we can use this to denoise this.
 				mini.setRGB(mh.symetric_width - 1 - x, mh.symetric_height - 1 - y, 0x8000FFFF);
 			}
-			mini.setRGB(mh.symetric_x, mh.symetric_height, 0x00000000);//no center
+			mini.setRGB(mh.symetric_x, mh.symetric_y, 0x00000000);//no center
 			
 			for (int i = 3, q = 2 * width / mh.width; i < q; i = (int)(i * 1.5)) {//this should be smarter
 				g.drawImage(mini,
@@ -542,7 +545,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					blah.dispose();
 					swp.publish(display);
 				}
-				System.out.println(i + " - " + mh.possibles);
 //				Thread.sleep(1000);
 				for (int k = 0; k < work.size(); k++) {
 					MatchPoint mp = work.get(k);
@@ -565,6 +567,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						}
 					}
 				}
+				System.out.println(i + " - " + mh.possibles);
 			}
 			g.dispose();
 			//matrix[compares.center.x][compares.center.y] = null;
@@ -576,7 +579,14 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Iterator<Monkey> it = mh.possibles.iterator(); it.hasNext(); ) {
 				Monkey value = it.next();
 				//If the connections aren't recipricated, delete them.
-				if (!value.matchpoint.possibles.contains(value)) {
+				boolean bad = true;
+				for(Monkey remote : value.matchpoint.possibles){
+					if (remote.matchpoint == mh) {
+						bad = false;
+						break;
+					}
+				}
+				if (bad) {
 					it.remove(); //EXTERMINATE! EXTERMINATE!
 				}
 			}
@@ -606,6 +616,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 			}
 		}
+		System.out.println("possibleCodes - "+ possibleCodes);
 		
 		
 		//g.dispose();
@@ -613,7 +624,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		swp.publish(prog);
 		//swp.publish(Utilities.convertImageToBufferedImage(prog));
 
-		System.out.println(matchheads);		
+		System.out.println(matchheads);
 		System.out.println(matchheads.size());
 		return octopodes;
 	}
