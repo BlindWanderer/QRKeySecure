@@ -346,6 +346,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	private static final int CENTER_COLOR = 0xFF00FF00;
 	private static final int RLE_COLOR = 0xFF0000FF;
 	private static final int LINE_COLOR = 0xFFFADADD;
+	private static final int PATTERN_CENTER_COLOR = 0xFF0000FF;
 	private class MatchPoint implements Comparable<MatchPoint>{
 		public int compareTo(MatchPoint o) {
 			if (o == null)
@@ -608,35 +609,72 @@ System.out.println();
 			//Steps:
 			//1) Figure out size of finding patter.
 			//2) Read format information and verify it makes sense.
+			//keep in mind the horizontal and vertical tags have no bearing on it being horizontal or vertical.
 			List<Monkey> monkeys = new ArrayList<>(code.possibles);
 			for (int j = 0 /*i + 1*/; j < monkeys.size() - 1; j++) {
-				Freud left = new Freud(code, monkeys.get(j).matchpoint, width, bw);
-				if(left.checkUncertainty(baseUncertainty, secondaryUncertainty)){
+				Freud vertical = new Freud(code, monkeys.get(j).matchpoint, width, bw);
+				if(vertical.checkUncertainty(baseUncertainty, secondaryUncertainty)){
 					for (int k = j + 1; k < monkeys.size(); k++) {
-						Freud right = new Freud(code, monkeys.get(k).matchpoint, width, bw);
-						if(right.checkUncertainty(baseUncertainty, secondaryUncertainty)){
-							Freud across = new Freud(left.matchEnd, right.matchEnd, width, bw);
-							if(across.checkUncertainty(baseUncertainty, secondaryUncertainty)){
-								Octopus o = new Octopus(left, right, across, width, bw);
-								pg.drawLine(code.center.x, code.center.y, left.end.x, left.end.y);
-								pg.drawLine(code.center.x, code.center.y, right.end.x, right.end.y);
-								pg.drawLine(left.end.x, left.end.y, right.end.x, right.end.y);
+						Freud horizontal = new Freud(code, monkeys.get(k).matchpoint, width, bw);
+						if(horizontal.checkUncertainty(baseUncertainty, secondaryUncertainty)){
+							Freud diagonal = new Freud(vertical.matchEnd, horizontal.matchEnd, width, bw);
+							if(diagonal.checkUncertainty(baseUncertainty, secondaryUncertainty)){
+								Octopus o = new Octopus(vertical, horizontal, diagonal, width, bw);
+								Utilities.drawLine(pg, code.center, vertical.end);
+								Utilities.drawLine(pg, code.center, horizontal.end);
+								Utilities.drawLine(pg, vertical.end, horizontal.end);
+								setARGB(prog, code.center, PATTERN_CENTER_COLOR);
+								setARGB(prog, vertical.end, PATTERN_CENTER_COLOR);
+								setARGB(prog, horizontal.end, PATTERN_CENTER_COLOR);
+								
+								Point p6n7 = diagonal.getStartEdgeCenter();
+								Point pn76 = diagonal.getEndEdgeCenter();
+								Point p63 = horizontal.getStartEdgeCenter();
+								Point pn73 = horizontal.getEndEdgeCenter();
+								Point p36 = vertical.getStartEdgeCenter();
+								Point p3n7 = vertical.getEndEdgeCenter();
+								
+								Point pn7n7 = Utilities.getLineLineIntersection(p3n7, p6n7, pn73, pn76);
+								Point p66 = Utilities.getLineLineIntersection(p36, pn76, p63, p6n7);
+								
+								setARGB(prog, p66, 0xFFFF0000);
+								
+								Utilities.drawLine(pg, p6n7, p66);
+								Utilities.drawLine(pg, pn76, p66);
+								Utilities.drawLine(pg, p6n7, pn7n7);
+								Utilities.drawLine(pg, pn76, pn7n7);
+								
+								Utilities.drawLine(pg, code.center, p66);
+								
+								Scanner vtimer = new Scanner(p63, p6n7, width, bw);
+								Scanner htimer = new Scanner(p36, pn76, width, bw);
+								
+								System.out.println("Timing: v" + vtimer.rle.size() + "\th"+ vtimer.rle.size());
+								System.out.println("Found: p66" + p66 + "\tp-7-7"+ pn7n7);
 								
 								octopodes.add(o);
 								//Tasks 1
 								//1) Find black outline to read formatinfo
-	//							System.out.println(o);
-	//							System.out.println("right " + right.getUncertainties());
-	//							System.out.println("left " + left.getUncertainties());
-	//							System.out.println(left.modules + " == " + right.modules);
+								System.out.println(o);
+	//							System.out.println("horizontal " + horizontal.getUncertainties());
+	//							System.out.println("vertical " + vertical.getUncertainties());
+	//							System.out.println(vertical.modules + " == " + horizontal.modules);
 	//							System.out.println();
 							} else {
-								System.out.println("L: " + left);
-								System.out.println("R: " + right);
-								System.out.println("A: " + across + " ~ " + across.getUncertainties());
+								System.out.println("Diagonal Failed");
+								System.out.println("V: " + vertical);
+								System.out.println("H: " + horizontal);
+								System.out.println("A: " + diagonal + " ~ " + diagonal.getUncertainties());
 							}
+						} else {
+							System.out.println("Horizontal Failed");
+							System.out.println("V: " + vertical);
+							System.out.println("H: " + horizontal + " ~ " + horizontal.getUncertainties());
 						}
 					}
+				} else {
+					System.out.println("Vertical Failed");
+					System.out.println("V: " + vertical + " ~ " + vertical.getUncertainties());
 				}
 			}
 		}
@@ -654,6 +692,36 @@ System.out.println();
 //		System.out.println(matchheads.size());
 		return carp;
 	}
+	private static class Scanner {
+		public final int width;
+		public final Point start;
+		public final Point end;
+		public final Point travel;
+		public final List<Integer> rle;
+		public final int steps;
+		public Scanner(Point start, Point end, int width, boolean [] bw) {
+			this.width = width;
+			this.start = start;
+			this.end = end;
+			travel = Utilities.subtract(end, start);
+			steps = Math.max(Math.abs(travel.x), Math.abs(travel.y)) + 1;
+			boolean [] scan = new boolean[steps];
+			for(int p = 0; p < scan.length; p++) {
+				scan[p] = bw[(this.start.x + (travel.x * p) / steps) + (this.start.y + (travel.y * p) / steps) * width];
+			}
+			rle = runLengthEncode(scan, 0, scan.length, 1);
+		}
+		public Point getCenterOf(int index) {
+			int p = -1;
+			for(int i = 0; i < index - 1; i ++) {
+				p += rle.get(0);
+			}
+			return indexToPoint(p + rle.get(index) / 2);
+		}
+		public Point indexToPoint(int p){
+			return new Point(this.start.x + (travel.x * p) / steps, this.start.y + (travel.y * p) / steps);
+		}
+	}
 	private static class Octopus {
 		public final Freud left;
 		public final Freud right;
@@ -667,30 +735,33 @@ System.out.println();
 			return "left: " + left + "\nright: " + right + "\nacross: " + across;
 		}
 	}
-	private static class Freud {
+	private static class Freud extends Scanner {
 		public static double run(int a, int b) {
 			int c = a - b;
 			double d = a + b;
 			return (c * c) / (d * d);
 		}
 		public Freud(MatchPoint matchStart, MatchPoint matchEnd, int width, boolean [] bw) {
+			super(matchStart.center, matchEnd.center, width, bw);
 			this.matchStart = matchStart;
 			this.matchEnd = matchEnd;
-			start = matchStart.center;
-			end = matchEnd.center;
-			travel = Utilities.subtract(end, start);
-			steps = Math.max(Math.abs(travel.x), Math.abs(travel.y));
-			boolean [] scan = new boolean [steps + 1];
-			for(int p = 0; p < steps; p++) {
-				scan[p] = bw[(this.start.x + (travel.x * p) / steps) + (this.start.y + (travel.y * p) / steps) * width];
-			}
-			scan[steps] = bw[matchStart.center.x + matchStart.center.y * width];
-			rle = runLengthEncode(scan, 0, scan.length, 1);
+		}
+		public Point getStartEdgeCenter() {
+			return indexToPoint(sp + s + (sm / 2) - 1);
+		}
+		public Point getEndEdgeCenter() {
+			return indexToPoint(steps - (ep + e + (em / 2)));
+		}
+		public Point getStartEdgeCenter(int offset) {
+			return indexToPoint(sp + s + (sm / 2) - 1 + offset);
+		}
+		public Point getEndEdgeCenter(int offset) {
+			return indexToPoint(steps - (ep + e + (em / 2)+ offset));
 		}
 		public boolean checkUncertainty(double baseUncertainty, double secondaryUncertainty) {
 //			scan[steps] = bw[end.x + end.y * width];
 			int count = rle.size();
-			if(count < 7 || count % 2 == 0){
+			if((count < 7) || ((count & 1) == 0)){
 				return false;
 			}
 			sp = rle.get(0); //black
@@ -703,8 +774,12 @@ System.out.println();
 			e = rle.get(count - 2); //white
 			ep = rle.get(count - 1); //black
 			
-			sv = run(sp * 3, s * 2);
-			ev = run(sp * 3, s * 2);
+			if(s > 5 ) {
+				sv = run(sp * 3, s * 2);
+				ev = run(sp * 3, s * 2);
+			} else {
+				sv = ev = -1;
+			}
 //			double sc = Math.round(sw / (double)s);
 //			double ec = Math.round(ew / (double)e);
 			
@@ -719,8 +794,8 @@ System.out.println();
 			if(modules < 10) {
 				return false;
 			}
-			return sv < baseUncertainty && se < secondaryUncertainty && //su < baseUncertainty && 
-						ev < baseUncertainty && ee < secondaryUncertainty; //&& eu < baseUncertainty;
+			return sv <= baseUncertainty && se < secondaryUncertainty && //su < baseUncertainty && 
+						ev <= baseUncertainty && ee < secondaryUncertainty; //&& eu < baseUncertainty;
 		}
 		public String getUncertainties(){
 			return "B<" + sv + "," + ev + "> S<"+se+","+ee+">";
@@ -730,11 +805,6 @@ System.out.println();
 		}
 		final public MatchPoint matchStart;
 		final public MatchPoint matchEnd;
-		final public Point start;
-		final public Point end;
-		final public List<Integer> rle;
-		final public Point travel;
-		final public int steps;
 		int sp = 0;
 		int s = 0;
 		int sm = 0;
@@ -949,7 +1019,7 @@ System.out.println();
 				setARGB(prog, u.getEndPoint(width), END_COLOR);
 				setARGB(prog, u.getLinearCenter(width), CENTER_COLOR);
 			}
-			setARGB(prog, m.getCenter(), 0xFF0000FF);
+			setARGB(prog, m.getCenter(), PATTERN_CENTER_COLOR);
 		}
 		swp.publish(prog);
 		Collections.sort(good);

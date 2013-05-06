@@ -62,6 +62,9 @@ public final class Utilities {
         return (isCounterClockWise(aStart, bStart, bEnd) != isCounterClockWise(aEnd, bStart, bEnd)) && 
 			   (isCounterClockWise(aStart, aEnd, bStart) != isCounterClockWise(aStart, aEnd, bEnd));
 	}
+	public static void drawLine(Graphics g, Point start, Point end){
+		g.drawLine(start.x, start.y, end.x, end.y);
+	}
 	public static double getSegmentIntersectionStrength(Point aStart, Point aEnd, Point bStart, Point bEnd) {
 		Point aM = subtract(aEnd, aStart);
 		Point bM = subtract(bEnd, bStart);
