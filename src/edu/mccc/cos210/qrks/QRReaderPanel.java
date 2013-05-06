@@ -150,8 +150,12 @@ public class QRReaderPanel extends JPanel {
 									viewer.tabbedPane.setMnemonicAt(0, keyEvent);
 									number++;
 									mn++;*/
-								//	String url = "http://google.com?q=" + URLEncoder.encode(new String(code.data));
-									String url = "http://google.com";
+									String url = null;
+									try {
+										url = "http://google.com/?q=" + URLEncoder.encode(new String(code.data), "UTF-8");
+									} catch (UnsupportedEncodingException e) {
+										e.printStackTrace();
+									}
 									try {
 									  JEditorPane htmlPane = new JEditorPane(url);
 									  htmlPane.setEditable(false);
