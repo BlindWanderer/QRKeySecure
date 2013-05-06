@@ -201,11 +201,16 @@ public class Decoder {
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			totalNumberDataCodeWords = totalNumberDataCodeWords + ecc.errorCorrectionRows[1].ecBlocks * ecc.errorCorrectionRows[1].k;
 		}
-		while (index < totalNumberDataCodeWords){		//???double check this crap
+		while (index < totalNumberDataCodeWords) {		//???double check this crap
 			for (int j = 0; j < numberDataBlocks; j++) {
-				if (j >= shortDataBlockLength) {i++; continue;}
+				if (i < numberShortDataBlocks && j >= shortDataBlockLength) {
+					i++;
+					continue;
+				}
 				dataBlocks[i][j] = unsortedData[index];
-				if (j == numberDataBlocks - 1) {i++;}
+				if (j == numberDataBlocks - 1) {
+					i++;
+				}
 				index++;
 			}
 		}

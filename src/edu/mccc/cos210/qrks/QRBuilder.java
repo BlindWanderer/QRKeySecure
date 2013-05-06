@@ -66,14 +66,14 @@ public class QRBuilder implements Builder<BufferedImage> {
 	
 				int mask = getPreferredMask(version, field);
 				writeMetaData(field, version, ec, mask);
-			//	writeDataToField(field, dataBlocks, ecBlocks, version);
-			//	final boolean[][] finalField = applyMask(version, field, mask);
+				writeDataToField(field, dataBlocks, ecBlocks, version);
+				final boolean[][] finalField = applyMask(version, field, mask);
 				return new Item<BufferedImage>(){
 					private BufferedImage img = null;
 					public BufferedImage save() {
 						if (img == null) {
 							try{
-							img = makeImage(field, ppu, true); //FinalField
+							img = makeImage(finalField, ppu, true); //FinalField
 							} catch (Exception e){
 								e.printStackTrace();
 							}
@@ -82,7 +82,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 					}
 					public JPanel generateGUI() {
 						try{
-						final BufferedImage si = makeImage(field, ppu, false); //FinalField
+						final BufferedImage si = makeImage(finalField, ppu, false); //FinalField
 						JPanel gui = new JPanel();
 						gui.add(new ImagePanel(si));
 						//add some other elements with stats and text.
@@ -194,12 +194,13 @@ public class QRBuilder implements Builder<BufferedImage> {
 		}
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			int longBlock = ecc.errorCorrectionRows[1].k;
-			int ecBlocks = ecc.errorCorrectionRows[0].ecBlocks;
-			int w = ecBlocks * ecc.errorCorrectionRows[0].k;
+			int offset = ecc.errorCorrectionRows[0].ecBlocks;
+			int ecBlocks = ecc.errorCorrectionRows[1].ecBlocks;
+			int w = offset * ecc.errorCorrectionRows[0].k;
 			for (int i = 0; i < ecBlocks; i++) {
-				dataBlocks[i + ecBlocks] = new byte[longBlock];
+				dataBlocks[i + offset] = new byte[longBlock];
 				for (int j = 0; j < longBlock; j++) {
-					dataBlocks[i + ecBlocks][j] = dataCodeWords[w + (i * longBlock) + j]; 
+					dataBlocks[i + offset][j] = dataCodeWords[w + (i * longBlock) + j]; 
 				}
 			}
 		}
@@ -209,7 +210,10 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//Creates a ErrorCorrection Block for each Codeword Block
 		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
 		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
-		byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords]; //???doublecheck
+		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
+			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
+		}
+		byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords / numberECBlocks];
 		return ecBlocks;
 	}
 	private static boolean [][] getBasicQRCode(int version) {
@@ -235,8 +239,6 @@ public class QRBuilder implements Builder<BufferedImage> {
 			qr[p.x][p.y + 5] = true;
 			qr[p.x + 6][p.y + 1] = true;
 			qr[p.x + 6][p.y + 5] = true;
-			
-			
 		}
 		//draw alignment patterns
 		Point[] alignArray = Version.getAlignmentPatternLocations(version);
@@ -285,24 +287,25 @@ public class QRBuilder implements Builder<BufferedImage> {
 		format = format | bch;
 		int xorMask = 0b101010000010010;
 		final int fi = format ^ xorMask;
+		System.out.print(Integer.toBinaryString(fi));
 		//format info:
 		final int size = Version.getSize(version);
 		for (int x = 0; x < 8; x++) {	//least significant 0-7
-			field[size - x - 1][8] = (fi | (1 << x)) !=0; //???am i off by one?
+			field[size - x - 1][8] = (fi & (1 << x)) !=0; 
 		}
-		field[8][size - 7] = true;	//???am i off by one
-		for (int y = 6; y < 0; y--) {	//most significant 8-14
-			field[8][size - y - 1] = (fi | (1 << y)) !=0;	//???am i off by 1?
+		field[8][size - 8] = true;
+		for (int y = 6; y >= 0; y--) {	//most significant 8-14
+			field[8][size - y - 1] = (fi & ((1 << 14) >> y)) !=0;
 		}
 		//left side (angle)
-		for (int y = 0; y <= 6; y++) {
-			field [8][y] = ((fi >>> y) | 1) != 0;
+		for (int y = 0; y < 6; y++) {
+			field [8][y] = ((fi >>> y) & 1) != 0;
 		}
-		field [8][7] = (fi | (1 << 6)) != 0;
-		field [8][8] = (fi | (1 << 7)) != 0;
-		field [7][8] = (fi | (1 << 8)) != 0;
+		field [8][7] = (fi & (1 << 6)) != 0;
+		field [8][8] = (fi & (1 << 7)) != 0;
+		field [7][8] = (fi & (1 << 8)) != 0;
 		for (int x = 0; x < 6; x++) {
-			field[x][8] = (fi | ((1 << 14) >> x)) !=0;
+			field[x][8] = (fi & ((1 << 14) >> x)) !=0;
 		}
 		if (version >= 7) {
 			//write version info 
@@ -310,22 +313,23 @@ public class QRBuilder implements Builder<BufferedImage> {
 			//6 data bits
 			//12 error correction bits calculated using the (18, 6) Golay code. Table D.1 for all 18 bits.
 			int versionInfo = Version.getVersionInfoBitStream(version); 
-			//vert
 			BitBuffer bf = new BitBuffer(18);
 			bf.write(versionInfo, 18);
-			bf.seek(0);
-			for (int y = 8; y >= 0; y--) {
-				for (int x = size - 8; x >= size - 10; x--) { //start with most significant
-					field[x][y] = bf.getBitAndIncrementPosition();
-				}
-			}
 			//horiz
 			bf.seek(0);
-			for (int y = size - 8; y >= size - 10; y--) {
-				for (int x = 8; x >= 0; x--) {
-					field[x][y] = bf.getBitAndIncrementPosition();
+			for (int x = 5; x >= 0; x--) {
+				for (int y = 9; y <= 11; y ++) {
+					field[x][size - y] = bf.getBitAndIncrementPosition();
+				}	
+			}
+			//vert
+			bf.seek(0);
+			for (int y = 5; y >= 0; y--) {
+				for (int x = 9; x <= 11; x++) {
+					field[size - x][y] = bf.getBitAndIncrementPosition();
 				}
 			}
+			
 		}
 	}
 	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks, int version) {
@@ -335,17 +339,17 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int j = 0; j < second; j++) {
 			for (int i = 0; i < first; i++) {
 				if(j < dataBlocks[i].length) {
-					bf.write(dataBlocks[i][j]);
+					bf.write(dataBlocks[i][j], 8);
 				}
 			}
 		}
 		int firstEC = ecBlocks.length;
-		int secondEC = ecBlocks[first - 1].length;
+		int secondEC = ecBlocks[firstEC - 1].length;
 
 		for (int j = 0; j < secondEC; j++) {
 			for (int i = 0; i < firstEC; i++) {
 				if(j < ecBlocks[i].length) {
-					bf.write(ecBlocks[i][j]);  //???TODO: BUG sometimes has indexoutof bound issue.
+					bf.write(ecBlocks[i][j], 8);  //???TODO: BUG sometimes has indexoutof bound issue.
 				}
 			}
 		}

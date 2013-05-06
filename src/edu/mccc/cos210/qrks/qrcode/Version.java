@@ -261,8 +261,8 @@ public final class Version {
 		return alignmentLocations[version - 1];
 	}
 	public static int getDataCapacity(int version) {
-		int apc = alignmentLocations[version - 1].length;
 		int size = getSize(version);
+		int apc = alignmentLocations[version - 1].length;
 		int available = size * size;
 		available -= 3 * 8 * 8;//finding patterns
 		available -= 2 * (size - 16);//timing (16 offsets with the timing patterns)
