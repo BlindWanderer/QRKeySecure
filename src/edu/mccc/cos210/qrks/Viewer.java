@@ -14,13 +14,14 @@ public class Viewer extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
 	private Reader<BufferedImage, BufferedImage> [] readers = Utilities.newGenericArray(new QRReader());
+	public JTabbedPane tabbedPane;
 	private static final String DEFAULT_NAME = "QRKey";
 	public Viewer() {
 		super(DEFAULT_NAME);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel builderPanel = generateBuilderPanel();
 		JPanel readerPanel = new QRReaderPanel(this, readers);
-		JTabbedPane tabbedPane = new JTabbedPane();
+		tabbedPane = new JTabbedPane();
 		tabbedPane.addTab("READ", readerPanel);	//can add a custom icon later
 		tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
 		tabbedPane.addTab("CREATE", builderPanel);

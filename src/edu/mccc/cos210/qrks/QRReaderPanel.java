@@ -1,12 +1,19 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.util.*;
+
 import javax.swing.*;
+
 import java.awt.event.*;
 import java.awt.image.*;
+
 import javax.swing.filechooser.*;
+
 import java.io.*;
+
 import javax.imageio.*;
+
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.awt.dnd.*;
 import java.awt.datatransfer.*;
 //import java.awt.*;
@@ -21,6 +28,7 @@ public class QRReaderPanel extends JPanel {
 	private Image image;
 	private Reader<BufferedImage, BufferedImage> [] readers;
 	private volatile SwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage> swp;
+	final Viewer viewer;
 	public static final List<javax.swing.filechooser.FileFilter> IMAGE_FILE_NAME_FILTERS;
 	static {
 		FileNameExtensionFilter[] fnef = {
@@ -40,6 +48,7 @@ public class QRReaderPanel extends JPanel {
 		IMAGE_FILE_NAME_FILTERS = Collections.unmodifiableList(exts);
 	}
 	public QRReaderPanel(final Viewer viewer, final Reader<BufferedImage, BufferedImage> [] readers){
+		this.viewer = viewer;
 		this.readers = readers;
 		this.setPreferredSize(new Dimension(600, 800));
 		this.setLayout(new BorderLayout());
@@ -109,10 +118,11 @@ public class QRReaderPanel extends JPanel {
 						swp.cancel(true);
 					}
 					swp = new DelegatingSwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage>() {
+						volatile List<Item<BufferedImage>> out;
 						@Override
 						public java.util.List<Item<BufferedImage>> doInBackground() {
 							SwingWorkerProtected<?, BufferedImage> p = this.getProtected();
-							List<Item<BufferedImage>> out = new LinkedList<Item<BufferedImage>>();
+							out = new LinkedList<Item<BufferedImage>>();
 							for(Reader<BufferedImage, BufferedImage> reader : readers) {
 								List<Item<BufferedImage>> t = reader.process(Utilities.convertImageToBufferedImage(image), p);
 								if (t != null) {
@@ -126,6 +136,16 @@ public class QRReaderPanel extends JPanel {
 //							camera.setImage(image);//restore the image
 							//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
 							if(swp == this && !isCancelled()){
+								for (Item<BufferedImage> bi : out) {
+									int number = 1;
+									String qr = "QR" + number;
+									viewer.tabbedPane.add(qr, bi.generateGUI());
+								/*	int mn = 3;
+									String keyEvent = "KeyEvent.VK_" + mn;
+									viewer.tabbedPane.setMnemonicAt(0, keyEvent);
+									number++;
+									mn++;*/
+								}
 								cl.show(stack, "6");
 							}
 						}

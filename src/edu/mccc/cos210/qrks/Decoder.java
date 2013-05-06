@@ -13,16 +13,23 @@ public class Decoder {
 			return null;
 		}
 		int ec = getECFromFormatInfo(formatInfo);
+		System.out.println(ec);
 		int maskNum = getMaskFromFormatInfo(formatInfo);
+		System.out.println(maskNum);
 		//unmask
 		applyMask(version, cleanMatrix, maskNum);
+		System.out.println("unmasked");
 		byte[] unsortedData = getDataStream(cleanMatrix, version);
+		System.out.println(unsortedData);
 		byte[][] dataBlocks= sortDataStream(unsortedData, version, ec);
+		System.out.println("sorted data stream");
+		byte[][] ecBlocks = sortECStream(unsortedData, version, ec); 
 		message = dealWithData(dataBlocks, version);
+		System.out.println("dealt with data");
 		return message;
 	}
 	private static int versionInfo(boolean[][] cleanMatrix) {
-		int assumedVersion = (cleanMatrix.length - 21) / 4;
+		int assumedVersion = Version.getClosestVersion(cleanMatrix.length);
 		int version = 0;
 		if (assumedVersion < 7) {
 			return assumedVersion;
@@ -189,7 +196,7 @@ public class Decoder {
 		BitBuffer bf = new BitBuffer(size * size); //too large, but who cares.
 		int x = size - 1;
 		int y = size - 1;
-		for (int i = 0; i < bf.getSize(); i++) {
+		for (int i = 0; x >= 0; i++) {
 			if (shouldRead(x , y, mask)) {
 				boolean b = cleanMatrix[x][y];
 				bf.write(b);
@@ -213,7 +220,7 @@ public class Decoder {
 					x--;
 				} else
 				if (lastlocation) { //going left
-					if(y == size) {
+					if(y == size - 1) {	
 						x--;
 						direction = !direction;
 					} else {
@@ -237,10 +244,10 @@ public class Decoder {
 	private static byte[][] sortDataStream(byte[] unsortedData, int version, int ec) {
 		//need to determine number / length of DataBlocks & number of ECBlocks
 		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ErrorCorrectionLevel.parseIndex(ec));
-		int numberDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
+		int numberShortDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;
+		int numberDataBlocks = numberShortDataBlocks;//#ecBlocks = #dataBlocks
 		int longDataBlockLength = 0;
 		int shortDataBlockLength = ecc.errorCorrectionRows[0].k;
-		int numberShortDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;
 		byte[][] dataBlocks = new byte[numberDataBlocks][shortDataBlockLength];
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberDataBlocks = numberDataBlocks + ecc.errorCorrectionRows[1].ecBlocks;
@@ -252,24 +259,24 @@ public class Decoder {
 				dataBlocks = new byte[i][longDataBlockLength]; 
 			}
 		}
-		int index = 0;
-		int i = 0;
 		
 		int totalNumberDataCodeWords = ecc.errorCorrectionRows[0].ecBlocks * ecc.errorCorrectionRows[0].k;
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			totalNumberDataCodeWords = totalNumberDataCodeWords + ecc.errorCorrectionRows[1].ecBlocks * ecc.errorCorrectionRows[1].k;
-		}
-		while (index < totalNumberDataCodeWords) {		
-			for (int j = 0; j < numberDataBlocks; j++) {
-				if (i < numberShortDataBlocks && j >= shortDataBlockLength) {
-					i++;
-					continue;
+			for (int j = 0, k = 0; j < shortDataBlockLength; j++) {
+				for(int i = 0; i < numberDataBlocks; i++) {
+					dataBlocks[i][j] = unsortedData[k++];
+					if (i < numberShortDataBlocks && j >= shortDataBlockLength) {
+						i++;
+						continue;
+					}
 				}
-				dataBlocks[i][j] = unsortedData[index];
-				if (j == numberDataBlocks - 1) {
-					i++;
+			}
+		} else {
+			for (int j = 0, k = 0; j < shortDataBlockLength; j++) {
+				for(int i = 0; i < numberDataBlocks; i++) {
+					dataBlocks[i][j] = unsortedData[k++];
 				}
-				index++;
 			}
 		}
 		return dataBlocks;
@@ -284,20 +291,14 @@ public class Decoder {
 		int ecBlockLength = ecc.errorCorrectionRows[0].c - ecc.errorCorrectionRows[0].k; //always same, regardless of dataBlock length
 		//create block[][]
 		byte[][] ecBlocks = new byte[numberECBlocks][ecBlockLength];
-		int index = 0;
-		int i = 0;
 		int totalNumberDataCodeWords = ecc.errorCorrectionRows[0].ecBlocks * ecc.errorCorrectionRows[0].k;
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			totalNumberDataCodeWords = totalNumberDataCodeWords + ecc.errorCorrectionRows[1].ecBlocks * ecc.errorCorrectionRows[1].k;
 		}
 		int totalNumberECCodeWords = numberECBlocks * ecBlockLength;
-		while (index >= totalNumberDataCodeWords && index < totalNumberECCodeWords){		//???double check this crap
-			for (int j = 0; j < numberECBlocks; j++) {
-				ecBlocks[i][j] = unsortedData[index];
-				if (j == numberECBlocks - 1) {
-					i++;
-				}
-				index++;
+		for (int j = 0, k = totalNumberDataCodeWords; j < ecBlockLength; j++) {
+			for(int i = 0; i < numberECBlocks; i++) {
+				ecBlocks[i][j] = unsortedData[k++];
 			}
 		}
 		return ecBlocks;
