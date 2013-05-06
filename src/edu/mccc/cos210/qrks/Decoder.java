@@ -54,6 +54,8 @@ public class Decoder {
 					bf2.write(b);
 				}
 			}
+			bf.seek(0);
+			bf2.seek(0);
 			int ibf = bf.toInt();
 			int ibf2 = bf.toInt();
 			// see if all is well
@@ -94,7 +96,8 @@ public class Decoder {
 			boolean b = cleanMatrix [8][y];
 			bf2.write(b);
 		}
-		
+		bf.seek(0);
+		bf2.seek(0);
 		int ibf = bf.toInt();
 		int ibf2 = bf2.toInt();
 		//must release mask 101010000010010
@@ -245,6 +248,7 @@ public class Decoder {
 		//determine length of data from info
 		//Encoding Mode (4 bit), Data Size (version 0-9 8 bits, version 10-40 16 bits), Terminator (4 bits), and Padding (to fill DataCapacity) into a BitBuffer
 		int em = 0;
+		bf.seek(0);
 		for (int i = 4; i>=0; i++){
 			em = em | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
 		}

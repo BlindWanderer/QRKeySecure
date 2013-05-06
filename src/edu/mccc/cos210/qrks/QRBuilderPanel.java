@@ -59,13 +59,13 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		ecp.setBorder(BorderFactory.createTitledBorder("Error Correction Level:"));
 		ecp.add(ec);
 
-		pps = new JTextField(new JNumberFilter(), "1", 10);
+		pps = new JTextField(new JNumberFilter(), "8", 5);
 		pps.addFocusListener(new FocusAdapter() {
 				public void focusLost(final FocusEvent e) {
 					JTextComponent c = (JTextComponent) e.getComponent();
 					String text = c.getText();
 					if (text == null || text == "") {
-						c.setText("1");
+						c.setText("8");
 					} else {
 						long value;
 						try {
@@ -74,7 +74,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 							value = Long.MIN_VALUE;
 						}
 						if (value < 1) {
-							c.setText("1");
+							c.setText("8");
 						} else {
 							if (512 < value) {
 								c.setText("512");
@@ -110,7 +110,12 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 			public void update(final DocumentEvent e) {
 				Document doc = e.getDocument();
 				//TODO: calculate other values, this is trivial but implementation specific
-				info.setText("Version: \nDimensions: \nNumber of Characters: " + doc.getLength());
+				EncodingMode em = QRBuilder.getEncoding(getText());
+				byte[] ba= QRBuilder.encode(getText(), em);
+				int version = QRBuilder.getVersion(ba, getErrorCorrectionLevel(), em);
+				int ppu = Integer.parseInt(pps.getText(), 10);
+				int dimension = (version * 4 + 21) * ppu;
+				info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + doc.getLength());
 			}
 		});
 		

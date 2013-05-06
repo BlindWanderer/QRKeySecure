@@ -155,40 +155,41 @@ public final class Version {
 	}
 	public static boolean [][] getDataMask(int version) {
 		boolean [][] mask = generateMask(version, true);
+		int d = mask.length;
 		for (Point p: getFindingPatternLocations(version)) {
-			clearSquare(mask, Constants.FINDING_PATTERN_SIZE, p.x, p.y);
+			clearSquare(mask, Constants.FINDING_PATTERN_SIZE + 1, p.x, p.y);
 		}
 		for (Point p: getAlignmentPatternLocations(version)) {
 			clearSquare(mask, Constants.ALIGNMENT_PATTERN_SIZE, p.x + Constants.ALIGNMENT_PATTERN_OFFSET, p.y + Constants.ALIGNMENT_PATTERN_OFFSET);
 		}
 		//timing
-		for (int x = 0; x < version; x++) {
+		for (int x = 0; x < d; x++) {
 			mask[x][6] = false;
 		}
-		for (int y = 0; y < version; y++) {
+		for (int y = 0; y < d; y++) {
 			mask[6][y] = false;
 		}
 		//metaData
 			//format info
 		for (int y = 0; y < 8; y++) {
 			mask[8][y] = false;
-			mask[8][version - y] = false;
+			mask[8][d - y - 1] = false;
 		}
 		for (int x = 0; x < 8; x++) {
 			mask[x][8] = false;
-			mask[version - x][8] = false;
+			mask[d - x - 1][8] = false;
 		}
 			//version info (only for version 7 and up)
 		if (version >= 7) {
 			for (int y = 0; y < 8; y++) {
-				mask[version - 8][y] = false;
-				mask[version - 9][y] = false;
-				mask[version - 10][y] = false;
+				mask[d - 9][y] = false;
+				mask[d - 10][y] = false;
+				mask[d - 11][y] = false;
 			}
 			for (int x = 0; x < 8; x++) {
-				mask[x][version - 8] = false;
-				mask[x][version - 9] = false;
-				mask[x][version - 10] = false;
+				mask[x][d - 9] = false;
+				mask[x][d - 10] = false;
+				mask[x][d - 11] = false;
 			}
 		}
 		return mask;

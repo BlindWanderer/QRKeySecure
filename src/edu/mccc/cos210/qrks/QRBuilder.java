@@ -61,23 +61,23 @@ public class QRBuilder implements Builder<BufferedImage> {
 				final BitBuffer memory = getMemorySpace(version);
 				writeToMemory(memory, data, em, version, ec);
 				final boolean [][] field = getBasicQRCode(version);
-				final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
-				final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
+		//		final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
+		//		final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
 	
-				int mask = getPreferredMask(version, field);
-				writeMetaData(field, version, ec, mask);
-				writeDataToField(field, dataBlocks, ecBlocks);
-				final boolean[][] finalField = applyMask(version, field, mask);
+		//		int mask = getPreferredMask(version, field);
+		//		writeMetaData(field, version, ec, mask);
+		//		writeDataToField(field, dataBlocks, ecBlocks, version);
+		//		final boolean[][] finalField = applyMask(version, field, mask);
 				return new Item<BufferedImage>(){
 					private BufferedImage img = null;
 					public BufferedImage save() {
 						if (img == null) {
-							img = makeImage(finalField, ppu, true);
+							img = makeImage(field, ppu, true); //FinalField
 						}
 						return img;
 					}
 					public JPanel generateGUI() {
-						final BufferedImage si = makeImage(field, ppu, false);
+						final BufferedImage si = makeImage(field, ppu, false); //FinalField
 						JPanel gui = new JPanel();
 						gui.add(new ImagePanel(si));
 						//add some other elements with stats and text.
@@ -89,7 +89,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 			}
 		}
 	}
-	private static int getVersion(byte [] data, ErrorCorrectionLevel ec, EncodingMode em) {
+	public static int getVersion(byte [] data, ErrorCorrectionLevel ec, EncodingMode em) {
 		int dataCharCount= data.length;
 		Version.SymbolCharacterInfo [] scis = Version.nosc[ec.index];
 		for (int i = 1; i < 41; i++) {
@@ -104,11 +104,11 @@ public class QRBuilder implements Builder<BufferedImage> {
 		int size = Version.getDataCapacity(version);
 		return new BitBuffer(size);
 	}
-	private static EncodingMode getEncoding(String text){
+	public static EncodingMode getEncoding(String text){
 		//TODO: Write me LATER
 		return EncodingMode.BYTE;
 	}
-	private static byte [] encode(String text, EncodingMode es) {
+	public static byte [] encode(String text, EncodingMode es) {
 		switch(es) {
 			case BYTE:
 				try {
@@ -141,18 +141,22 @@ public class QRBuilder implements Builder<BufferedImage> {
 				int memSize = memory.getSize();
 				int dataSize = data.length;
 				if (0 < version && version < 10) {
-					while (memSize > dataSize + 16) {
-						memory.write(0b11101100);
-						if  (memSize > dataSize + 16) {
-							memory.write(0b00010001);
+					while (memSize > dataSize * 8 + 16) {
+						memory.write((byte)0b11101100);
+						dataSize++;
+						if  (memSize > dataSize * 8 + 16) {
+							memory.write((byte)0b00010001);
+							dataSize++;
 						}
 					}
 				}
 				if (9 < version && version < 41) {
-					while (memSize > dataSize + 24) {
-						memory.write(0b11101100);
-						if  (memSize > dataSize + 24) {
-							memory.write(0b00010001);
+					while (memSize > dataSize * 8 + 24) {
+						memory.write((byte)0b11101100);
+						dataSize++;
+						if  (memSize > dataSize * 8 + 24) {
+							memory.write((byte)0b00010001);
+							dataSize++;
 						}
 					}
 				}
@@ -193,7 +197,9 @@ public class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static byte[][] makeECBlocks (byte[][] dataBlocks, int version, ErrorCorrectionLevel ec) {
 		//Creates a ErrorCorrection Block for each Codeword Block
-		byte[][] ecBlocks = null;
+		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
+		byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords]; //???doublecheck
 		return ecBlocks;
 	}
 	private static boolean [][] getBasicQRCode(int version) {
@@ -203,23 +209,24 @@ public class QRBuilder implements Builder<BufferedImage> {
 		Point[] findingArray = Version.getFindingPatternLocations(version);
 		for (Point p : findingArray) {
 			//create a finding pattern at the location of the point;
-			for (int x = 0; x < 7; x ++) {
+		
+			for (int x = 0; x<=6; x++) {
 				qr[p.x + x][p.y] = true;
-			}
-			for (int x = 0; x < 7; x ++) {
 				qr[p.x + x][p.y + 6] = true;
 			}
-			qr[p.x][p.y + 1] = true;
-			qr[p.x + 6][p.y + 4] = true;
-			qr[p.x][p.y + 1] = true;
-			qr[p.x + 6][p.y + 4] = true;
-			for (int y = 2; y < 5; y++) {
-				qr[p.x][p.y] = true;
-				qr[p.x + 2][p.y] = true;
-				qr[p.x + 3][p.y] = true;
-				qr[p.x + 4][p.y] = true;
-				qr[p.x + 6][p.y] = true;
+			for (int y = 2; y <=4; y++) {
+				qr[p.x][p.y + y] = true;
+				qr[p.x + 2][p.y + y] = true;
+				qr[p.x + 3][p.y + y] = true;
+				qr[p.x + 4][p.y + y] = true;
+				qr[p.x + 6][p.y + y] = true;
 			}
+			qr[p.x][p.y + 1] = true;
+			qr[p.x][p.y + 5] = true;
+			qr[p.x + 6][p.y + 1] = true;
+			qr[p.x + 6][p.y + 5] = true;
+			
+			
 		}
 		//draw alignment patterns
 		Point[] alignArray = Version.getAlignmentPatternLocations(version);
@@ -243,7 +250,6 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int y = 8; y < size - 8; y = y + 2) {
 			qr[6][y] = true;
 		}
-		//TODO: draw metainfo
 		return qr;
 	}
 	
@@ -272,11 +278,11 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//format info:
 		final int size = Version.getSize(version);
 		for (int x = 0; x < 8; x++) {	//least significant 0-7
-			field[size - x][8] = (fi | (1 << x)) !=0; //???am i off by one?
+			field[size - x - 1][8] = (fi | (1 << x)) !=0; //???am i off by one?
 		}
 		field[8][size - 7] = true;	//???am i off by one
 		for (int y = 6; y < 0; y--) {	//most significant 8-14
-			field[8][size - y] = (fi | (1 << y)) !=0;	//???am i off by 1?
+			field[8][size - y - 1] = (fi | (1 << y)) !=0;	//???am i off by 1?
 		}
 		//left side (angle)
 		for (int y = 0; y <= 6; y++) {
@@ -297,12 +303,14 @@ public class QRBuilder implements Builder<BufferedImage> {
 			//vert
 			BitBuffer bf = new BitBuffer(18);
 			bf.write(versionInfo, 18);
+			bf.seek(0);
 			for (int y = 8; y >= 0; y--) {
 				for (int x = size - 8; x >= size - 10; x--) { //start with most significant
 					field[x][y] = bf.getBitAndIncrementPosition();
 				}
 			}
 			//horiz
+			bf.seek(0);
 			for (int y = size - 8; y >= size - 10; y--) {
 				for (int x = 8; x >= 0; x--) {
 					field[x][y] = bf.getBitAndIncrementPosition();
@@ -310,14 +318,18 @@ public class QRBuilder implements Builder<BufferedImage> {
 			}
 		}
 	}
-	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks) {
-		BitBuffer bf = new BitBuffer(dataBlocks.length + ecBlocks.length);
-		int first = dataBlocks.length;
+	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks, int version) {
+		BitBuffer bf = new BitBuffer(Version.getSize(version) * Version.getSize(version));
+		int first = dataBlocks.length; 
 		int second = dataBlocks[first - 1].length;
 		for (int j = 0; j < second; j++) {
 			for (int i = 0; i < first; i++) {
 				if(j < dataBlocks[i].length) {
+<<<<<<< HEAD
 					bf.write(dataBlocks[i][j]);
+=======
+					bf.write((byte)dataBlocks[i][j], 8);
+>>>>>>> ..
 				}
 			}
 		}
@@ -327,7 +339,11 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int j = 0; j < secondEC; j++) {
 			for (int i = 0; i < firstEC; i++) {
 				if(j < ecBlocks[i].length) {
+<<<<<<< HEAD
 					bf.write(ecBlocks[i][j]);
+=======
+					bf.write((byte)ecBlocks[i][j], 8);
+>>>>>>> ..
 				}
 			}
 		}
@@ -339,7 +355,8 @@ public class QRBuilder implements Builder<BufferedImage> {
 		int x = size - 1;
 		int y = size - 1;
 		int max = Math.min(bf.getSize(), size * size);
-		for (int i = 0; i < max; i++) {
+		bf.seek(0);
+		for (int i = 0; x >= 0; i++) {	
 			if (shouldWrite(x , y, dataMask)) {
 				field[x][y] = bf.getBitAndIncrementPosition();
 			}
@@ -362,7 +379,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 					x--;
 				} else
 				if (lastlocation) { //going left
-					if(y == size) {
+					if(y == size - 1) {
 						x--;
 						direction = !direction;
 					} else {
@@ -421,7 +438,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		return field;
 	}
 	private static BufferedImage makeImage (boolean [][] field, int ppu, boolean quietZone) {
-		BufferedImage bi = new BufferedImage(field.length * ppu, field.length * ppu, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage bi = new BufferedImage(field.length, field.length, BufferedImage.TYPE_INT_ARGB);
 		{
 			//color image white
 			Graphics2D g = bi.createGraphics();  
@@ -432,22 +449,25 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int i = 0; i < field.length; i++) {
 			for (int j = 0; j < field[i].length; j++) {
 				if (field[i][j]) {
-					for (int k = 0; k <= ppu; k++) {
-						for (int l = 0; l <= ppu; l++) {
-							bi.setRGB(k,0,0x000000);
-							bi.setRGB(0,l,0x000000);
-						}
-					}
+					bi.setRGB(i,j,0xFF000000);
 				}
 			}
 		}
+		{
+			BufferedImage bir = new BufferedImage(field.length * ppu, field.length * ppu, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = bir.createGraphics();
+			g.drawImage(bi, 0, 0, bir.getWidth(), bir.getHeight(), 0, 0, bi.getWidth(), bi.getHeight(), null);
+			g.dispose(); 
+			bi = bir;
+		}
+		//*
 		if (quietZone) { //4 units wide
 			BufferedImage biqz = new BufferedImage(bi.getWidth() + 8 * ppu, bi.getHeight() + 8 * ppu, BufferedImage.TYPE_INT_ARGB);
 			Graphics2D g = biqz.createGraphics();  
 			g.drawImage(bi, null, ppu * 4, ppu * 4);
 			g.dispose(); 
 			return biqz;
-		}
+		}//*/
 		return bi;
 	}
 }
