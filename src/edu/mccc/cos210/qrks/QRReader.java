@@ -1,5 +1,6 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.util.*;
+import edu.mccc.cos210.qrks.qrcode.*;
 import java.util.*;
 import javax.swing.*;
 import java.awt.Color;
@@ -13,6 +14,9 @@ import java.awt.Point;
 import java.awt.geom.*;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
+	private static final double hitPercent = 0.75;
+	private static final double baseUncertainty = 0.26;
+	private static final double secondaryUncertainty = 0.1;
 	private static class MatchPointDistanceComparator implements Comparator<MatchPoint>{
 		public Point center = null;
 		public int compare(MatchPoint o1, MatchPoint o2) {
@@ -463,12 +467,11 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	public List<Item<BufferedImage>> process(BufferedImage input, SwingWorkerProtected<?, BufferedImage> swp) {
 		final int width = input.getWidth();
 		final int height = input.getHeight();
-		final double hitPercent = 0.75;
-		final double baseUncertainty = 0.26;
-		final double secondaryUncertainty = 0.1;
 //		final double ignoreMultipler = 0.2;
 
+		final BufferedImage orig = Utilities.convertImageToBufferedImage(input);
 		BufferedImage prog = Utilities.convertImageToBufferedImage(input);
+		
 		swp.publish(prog);
 
 		int[] data = input.getRGB(0, 0, width, height, new int[(width) * (height)], 0, width);
@@ -488,9 +491,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		MatchPointDistanceComparator compares = new MatchPointDistanceComparator();
 		List<Item<BufferedImage>> carp = new LinkedList<>();
 		try{
-
+		
 		List<MatchPoint> mps = new ArrayList<>(matchheads.size());
 		List<MatchPoint> work = new ArrayList<>(matchheads.size());
+		List<SeaCreature> seaCreatures = new LinkedList<>();
 		//Graphics2D g = prog.createGraphics()
 		for (MatchHead mh : matchheads) {
 			mps.add(new MatchPoint(mh, width, height));
@@ -498,7 +502,15 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 
 		for (int j = 0; j < mps.size(); j++){
 			MatchPoint mh = mps.get(j);
-			work = new ArrayList<>(mps);
+			for(int jj = j + 1; jj < mps.size(); j ++){
+				for(int jjj = jj + 1; jjj < mps.size(); j ++){
+					Barnacle man = Barnacle.generate(mh, mps.get(jj), mps.get(jjj), width, bw);
+					if(man != null) {
+						seaCreatures.add(man);
+					}
+				}
+			}
+/*			work = new ArrayList<>(mps);
 			work.set(j, null);
 			for (int k = 0; k < work.size(); k++) {
 				MatchPoint mp = work.get(k);
@@ -573,10 +585,9 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 			g.dispose();
 			//matrix[compares.center.x][compares.center.y] = null;
-		}
-
-
-		List<MatchPoint> possibleCodes = new ArrayList<>(mps.size());
+*/		}
+		List<MatchPoint> possibleCodes = new ArrayList<>();//mps.size());
+/*
 		for (MatchPoint mh : mps) {
 			//A valid code is made up of three interlocking monkeys
 			//Find me the central Monkey, delete all others from the list.
@@ -598,12 +609,11 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				possibleCodes.add(mh);//The Doctor is in!
 			}
 		}
-		
+		*/
 		swp.publish(prog);
 		Graphics2D pg = prog.createGraphics();
 		pg.setColor(Color.GREEN);
 		Collections.sort(possibleCodes);
-		List<Octopus> octopodes = new ArrayList<>(possibleCodes.size());
 System.out.println();
 		for (MatchPoint code : possibleCodes) {
 			//Steps:
@@ -611,6 +621,7 @@ System.out.println();
 			//2) Read format information and verify it makes sense.
 			//keep in mind the horizontal and vertical tags have no bearing on it being horizontal or vertical.
 			List<Monkey> monkeys = new ArrayList<>(code.possibles);
+			boolean success = false;
 			for (int j = 0 /*i + 1*/; j < monkeys.size() - 1; j++) {
 				Freud vertical = new Freud(code, monkeys.get(j).matchpoint, width, bw);
 				if(vertical.checkUncertainty(baseUncertainty, secondaryUncertainty)){
@@ -626,7 +637,7 @@ System.out.println();
 								setARGB(prog, code.center, PATTERN_CENTER_COLOR);
 								setARGB(prog, vertical.end, PATTERN_CENTER_COLOR);
 								setARGB(prog, horizontal.end, PATTERN_CENTER_COLOR);
-								
+								//success = true;
 								Point p6n7 = diagonal.getStartEdgeCenter();
 								Point pn76 = diagonal.getEndEdgeCenter();
 								Point p63 = horizontal.getStartEdgeCenter();
@@ -634,25 +645,30 @@ System.out.println();
 								Point p36 = vertical.getStartEdgeCenter();
 								Point p3n7 = vertical.getEndEdgeCenter();
 								
+								Scanner vtimer = new Scanner(p63, p6n7, width, bw);
+								Scanner htimer = new Scanner(p36, pn76, width, bw);
+								
 								Point pn7n7 = Utilities.getLineLineIntersection(p3n7, p6n7, pn73, pn76);
 								Point p66 = Utilities.getLineLineIntersection(p36, pn76, p63, p6n7);
 								
+								
+								
 								setARGB(prog, p66, 0xFFFF0000);
 								
-								Utilities.drawLine(pg, p6n7, p66);
-								Utilities.drawLine(pg, pn76, p66);
-								Utilities.drawLine(pg, p6n7, pn7n7);
-								Utilities.drawLine(pg, pn76, pn7n7);
+								pg.setColor(Color.RED);
+								Utilities.drawLine(pg, p6n7, p63);
+								Utilities.drawLine(pg, pn76, p36);
+								Utilities.drawLine(pg, p3n7, pn7n7);
+								Utilities.drawLine(pg, pn73, pn7n7);
 								
-								Utilities.drawLine(pg, code.center, p66);
+								Utilities.drawLine(pg, code.center, pn7n7 );
 								
-								Scanner vtimer = new Scanner(p63, p6n7, width, bw);
-								Scanner htimer = new Scanner(p36, pn76, width, bw);
 								
 								System.out.println("Timing: v" + vtimer.rle.size() + "\th"+ vtimer.rle.size());
 								System.out.println("Found: p66" + p66 + "\tp-7-7"+ pn7n7);
 								
-								octopodes.add(o);
+								//seaCreatures.add(o);
+								
 								//Tasks 1
 								//1) Find black outline to read formatinfo
 								System.out.println(o);
@@ -678,10 +694,33 @@ System.out.println();
 				}
 			}
 		}
+		for (SeaCreature sc : seaCreatures) {
+			QRCode blah = new QRCode(){
+					private BufferedImage img = null;
+					public BufferedImage save() {
+						return orig;
+					}
+					public JPanel generateGUI() {
+						JPanel gui = new JPanel();
+						gui.add(new ImagePanel(orig));
+						JTextArea info = new JTextArea(5, 50);
+						info.setEditable(false);
+						//Font f = new Font(info.getFont());
+						info.setOpaque(false);
+						try{
+						info.setText(new String(data, "US-ASCII"));
+						}catch(Exception e){}
+						gui.add(info);
+						return gui;
+					}
+				}; 
+			blah.data = Decoder.decode(sc.getMatrix(bw));
+			carp.add(blah);
+		}
 //		System.out.println("possibleCodes<"+possibleCodes.size()+"> - "+ possibleCodes);
-		System.out.println();
+//		System.out.println();
 //		System.out.println("possibleQR<"+octopodes.size()+"> - "+ octopodes);
-		System.out.println(octopodes.size());
+//		System.out.println(octopodes.size());
 		
 		//g.dispose();
 		} catch (Exception e) {e.printStackTrace();}
@@ -691,6 +730,9 @@ System.out.println();
 //		System.out.println(matchheads);
 //		System.out.println(matchheads.size());
 		return carp;
+	}
+	public static abstract  class QRCode implements Item<BufferedImage> {
+		public byte [] data;
 	}
 	private static class Scanner {
 		public final int width;
@@ -722,7 +764,94 @@ System.out.println();
 			return new Point(this.start.x + (travel.x * p) / steps, this.start.y + (travel.y * p) / steps);
 		}
 	}
-	private static class Octopus {
+	private static abstract class SeaCreature {
+		public abstract boolean [][] getMatrix(boolean [] bw);
+	}
+	private static class Barnacle extends SeaCreature {
+		public static Barnacle generate(MatchPoint a, MatchPoint b, MatchPoint c, int width, boolean [] bw) {
+			Point ba = Utilities.subtract(b.center, a.center);
+			Point ca = Utilities.subtract(c.center, a.center);
+			double bar = Math.atan2(ca.y, ca.x);
+			double car = Math.atan2(ca.y, ca.x);
+			double bad = Utilities.distance(a.center, b.center);
+			double cad = Utilities.distance(a.center, c.center);
+			if(Math.abs(Math.abs(car - bar) - (Math.PI / 2.0)) < Math.PI / 36){
+				if((Math.abs(bad - cad) / (bad + cad)) < .2){
+					return new Barnacle(a,b,c, width, bw);
+				}
+			} else if(Math.abs(Math.abs(car - bar) - (Math.PI / 4.0)) < Math.PI / 36){
+				return generate(b, c, a, width, bw);
+			}
+			return null;
+		}
+		Point start;
+		Point end;
+		MatchPoint center;
+		MatchPoint bottom;
+		MatchPoint right;
+		double moduleSize = 0;
+		int version;
+		int size;
+		Point vt;
+		Point ht;
+		int width;
+		private Barnacle(MatchPoint center, MatchPoint bottom, MatchPoint right, int width, boolean [] bw){
+			this.center = center;
+			this.width = width;
+			this.bottom = bottom;
+			this.right = right;
+			vt = Utilities.subtract(bottom.center, center.center);
+			ht = Utilities.subtract(right.center, center.center);
+			Freud vertical = new Freud(center, bottom, width, bw);
+			Freud horizontal = new Freud(center, right, width, bw);
+			Freud diagonal = new Freud(right, bottom, width, bw);
+			double yd = Utilities.distance(vertical.start, vertical.end);
+			double xd = Utilities.distance(horizontal.start, horizontal.end);
+			double dd = Utilities.distance(diagonal.start, diagonal.end);
+			double [] multipliers = {1.0, 1.5, 2.0};
+			Freud t = null;
+			double scale = 0.0;
+			for (double multiplier : multipliers) {
+				double b = baseUncertainty * multiplier;
+				double s = secondaryUncertainty * multiplier;
+				if(vertical.checkUncertainty(b, s)) {
+					t = vertical;
+					scale = yd;
+					break;
+				}
+				if(horizontal.checkUncertainty(b, s)) {
+					t = horizontal;
+					scale = xd;
+					break;
+				}
+				if(diagonal.checkUncertainty(b, s)) {
+					t = diagonal;
+					scale = dd  * 0.70710678118654752440084436210485;
+					break;
+				}
+			}
+			if(t != null){
+				double ts = moduleSize;
+				double mod = (4.0 * t.steps) / (t.s + t.sm + t.e + t.em);
+				moduleSize = scale / mod;
+				version = Version.getClosestVersion((int)Math.round(mod + 6));
+				size = Version.getSize(version);
+				moduleSize = scale / size;
+			}
+		}
+		public boolean [][] getMatrix(boolean [] bw) {
+			boolean [][] r = new boolean[size][size];
+			double ms = 1.0 / (size - 1);
+			for(int x = 0; x < size; x++){
+				for(int y = 0; y < size; y++){
+					Point p = Utilities.add(Utilities.scale(ht, x * ms), Utilities.scale(vt, y * ms));
+					r[x][y] = bw[p.x + p.y * width];
+				}	
+			}
+			return r;
+		}
+	}
+	private static class Octopus extends SeaCreature {
 		public final Freud left;
 		public final Freud right;
 		public final Freud across;
@@ -733,6 +862,9 @@ System.out.println();
 		}
 		public String toString() {
 			return "left: " + left + "\nright: " + right + "\nacross: " + across;
+		}
+		public boolean [][] getMatrix(boolean [] bw) {
+			return null;
 		}
 	}
 	private static class Freud extends Scanner {

@@ -143,6 +143,9 @@ public final class Version {
 		}
 		return version * 4 + 17;
 	}
+	public static int getClosestVersion(int size){
+		return (size - 15) / 4;
+	}
 	public static boolean [][] generateMask(int version, boolean fill) {
 		int d = getSize(version);
 		boolean [][] mask = new boolean[d][d];
