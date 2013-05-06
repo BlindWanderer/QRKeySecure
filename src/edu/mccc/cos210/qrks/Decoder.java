@@ -27,7 +27,7 @@ public class Decoder {
 	private static int versionInfo(boolean[][] cleanMatrix) {
 		int assumedVersion = (cleanMatrix.length - 21) / 4;
 		int version = 0;
-		if (assumedVersion >= 7) {
+		if (assumedVersion < 7) {
 			return assumedVersion;
 		}
 		if (assumedVersion >= 7) { // assuming version based on size 
@@ -39,18 +39,33 @@ public class Decoder {
 			int size = cleanMatrix.length;
 			BitBuffer bf = new BitBuffer(18);
 			BitBuffer bf2 = new BitBuffer(18);
-			
-			for (int y = 8; y >= 0; y--) {
-				for (int x = size - 8; x >= size - 10; x--) {
+			/*
+			for (int y = 6; y >= 0; y--) {
+				for (int x = size - 9; x >= size - 11; x--) {
 					boolean b = cleanMatrix[x][y];
 					bf.write(b);		
 				}
 			}
 			
 			//horiz
-			for (int y = size - 8; y >= size - 10; y--) {
-				for (int x = 8; x >= 0; x--) {
+			 	for (int x = 5; x >= 0; x--) {
+					for (int y = size - 9; y >= size - 11; y--) {
 					boolean b = cleanMatrix[x][y];
+					bf2.write(b);
+				}
+			}*/
+			//horiz
+			for (int x = 5; x >= 0; x--) {
+				for (int y = 9; y <= 11; y ++) {
+					boolean b = cleanMatrix[x][size - y];
+					bf.write(b);
+				}	
+			}
+			//vert
+			bf.seek(0);
+			for (int y = 5; y >= 0; y--) {
+				for (int x = 9; x <= 11; x++) {
+					boolean b = cleanMatrix[size - x][y];
 					bf2.write(b);
 				}
 			}
@@ -61,38 +76,42 @@ public class Decoder {
 			// see if all is well
 			ibf = Version.getCorrectedVersionInfo(ibf).corrected;
 			ibf2 = Version.getCorrectedVersionInfo(ibf).corrected;
+			int ibfVersion = 0 | (ibf >>> 12);
+			int ibf2Version = 0 | (ibf2 >>> 12);
 			if (ibf == ibf2) {
-				version = version | (ibf >>> 12);
+				version = ibfVersion;
 			} 
-			if (ibf != ibf2 && ibf != assumedVersion && ibf2 != assumedVersion) {
-				return 0; //
+			if (ibf != ibf2 && (ibfVersion == assumedVersion || ibf2Version == assumedVersion)) {
+				version = assumedVersion;
+			}
+			if (ibf != ibf2 && ibfVersion != assumedVersion && ibf2Version != assumedVersion) {
+				return 0; 
 			}
 		}
 		return version;
-	
 	}
 	private static int formatInfo(boolean[][] cleanMatrix, int version) {
 		BitBuffer bf = new BitBuffer(15);
 		final int size = Version.getSize(version);
-		for (int y = 0; y <= 6; y++) {	//most significant 14-8
+		for (int y = 1; y <= 7; y++) {	//most significant 14-8
 			boolean b = cleanMatrix[8][size - y];
 			bf.write(b);
 		}
-		for (int x = 7; x <= 0; x--) {	//least significant 7-0
+		for (int x = 8; x >= 1; x--) {	//least significant 7-0
 			boolean b = cleanMatrix[size - x][8]; 
 			bf.write(b);
 		}
 		
 		BitBuffer bf2 = new BitBuffer(15);
 		//left side (angle)
-		for (int x = 0; x < 6; x++) {	//14-9
+		for (int x = 0; x <= 5; x++) {	//14-9
 			boolean b = cleanMatrix[x][8];
 			bf2.write(b);
 		}
 		bf2.write(cleanMatrix [7][8]);//8
 		bf2.write(cleanMatrix [8][8]);//7
 		bf2.write(cleanMatrix [8][7]);//6
-		for (int y = 5; y <= 0; y--) {
+		for (int y = 5; y >= 0; y--) {
 			boolean b = cleanMatrix [8][y];
 			bf2.write(b);
 		}
@@ -113,10 +132,13 @@ public class Decoder {
 	}
 	private static int getECFromFormatInfo(int formatInfo) {
 		int ec = 0;
+		ec = ec | (formatInfo >>> 13);	//doublecheck
 		return ec;
 	}
 	private static int getMaskFromFormatInfo(int formatInfo) {
 		int mask = 0;
+		formatInfo = formatInfo & (0b001110000000000);
+		mask = mask | (formatInfo >>> 10);	//doublecheck
 		return mask;
 	}
 	private static boolean[][] applyMask(int version, boolean [][] cleanMatrix, int maskNum) {
@@ -187,21 +209,28 @@ public class Decoder {
 		//need to determine number / length of DataBlocks & number of ECBlocks
 		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ErrorCorrectionLevel.parseIndex(ec));
 		int numberDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
+		int longDataBlockLength = 0;
+		int shortDataBlockLength = ecc.errorCorrectionRows[0].k;
+		int numberShortDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;
+		byte[][] dataBlocks = new byte[numberDataBlocks][shortDataBlockLength];
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberDataBlocks = numberDataBlocks + ecc.errorCorrectionRows[1].ecBlocks;
+			longDataBlockLength = ecc.errorCorrectionRows[1].k; // might not exist
+			for (int i = 0; i < numberShortDataBlocks; i++) {		//???doubelcheck
+				dataBlocks = new byte[i][shortDataBlockLength]; 
+			}
+			for (int i = numberShortDataBlocks; i < numberDataBlocks; i++) {
+				dataBlocks = new byte[i][longDataBlockLength]; 
+			}
 		}
-		int shortDataBlockLength = ecc.errorCorrectionRows[0].k;
-		int longDataBlockLength = ecc.errorCorrectionRows[1].k; // might not exist
-		//create block[][]
-		byte[][] dataBlocks = new byte[numberDataBlocks][longDataBlockLength];
 		int index = 0;
 		int i = 0;
-		int numberShortDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;
+		
 		int totalNumberDataCodeWords = ecc.errorCorrectionRows[0].ecBlocks * ecc.errorCorrectionRows[0].k;
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			totalNumberDataCodeWords = totalNumberDataCodeWords + ecc.errorCorrectionRows[1].ecBlocks * ecc.errorCorrectionRows[1].k;
 		}
-		while (index < totalNumberDataCodeWords) {		//???double check this crap
+		while (index < totalNumberDataCodeWords) {		
 			for (int j = 0; j < numberDataBlocks; j++) {
 				if (i < numberShortDataBlocks && j >= shortDataBlockLength) {
 					i++;
@@ -220,6 +249,9 @@ public class Decoder {
 		//create ecBlocks
 		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ErrorCorrectionLevel.parseIndex(ec));
 		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
+		if (ecc.errorCorrectionRows.length > 1) {
+			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
+		}
 		int ecBlockLength = ecc.errorCorrectionRows[0].c - ecc.errorCorrectionRows[0].k; //always same, regardless of dataBlock length
 		//create block[][]
 		byte[][] ecBlocks = new byte[numberECBlocks][ecBlockLength];
@@ -233,7 +265,9 @@ public class Decoder {
 		while (index >= totalNumberDataCodeWords && index < totalNumberECCodeWords){		//???double check this crap
 			for (int j = 0; j < numberECBlocks; j++) {
 				ecBlocks[i][j] = unsortedData[index];
-				if (j == numberECBlocks - 1) {i++;}
+				if (j == numberECBlocks - 1) {
+					i++;
+				}
 				index++;
 			}
 		}
@@ -247,14 +281,14 @@ public class Decoder {
 		//put data in buffer
 		for (int i = 0; i < dataBlocks.length; i++) {
 			for (int j = 0; j < dataBlocks[i].length; j++) {
-				bf.write(dataBlocks[i][j], 8);
+					bf.write(dataBlocks[i][j], 8);
 			}
 		}
 		//determine length of data from info
 		//Encoding Mode (4 bit), Data Size (version 0-9 8 bits, version 10-40 16 bits), Terminator (4 bits), and Padding (to fill DataCapacity) into a BitBuffer
 		int em = 0;
 		bf.seek(0);
-		for (int i = 4; i>=0; i++){
+		/*for (int i = 0; i <= 4; i++){
 			em = em | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
 		}
 		int dataSize = 0;	
@@ -263,18 +297,32 @@ public class Decoder {
 			for (int i = 8; i>=0; i++){
 				dataSize = dataSize | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
 			}
-			dataStartPosition = 12; //???am i off by 1 
+			dataStartPosition = 12; 
 		}
 		if (9 < version && version < 41) {
 			for (int i = 16; i>=0; i++){
 				dataSize = dataSize | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
 			}
-			dataStartPosition = 16; //???am i off by 1 
+			dataStartPosition = 16;
 		}
 		//create another data stream - only  message (ignore prefixes, ignore padding)
 		BitBuffer messageBuffer = new BitBuffer(dataSize);
 		for (int i = dataStartPosition; i <= dataStartPosition + dataSize; i++) {
 			messageBuffer.write(bf.getBitAndIncrementPosition());
+		}
+		*/
+		em = bf.getIntAndIncrementPosition(4);
+		int dataSize = 0;	
+		if (0 < version && version < 10) {
+			dataSize = bf.getIntAndIncrementPosition(8);
+		}
+		if (9 < version && version < 41) {
+			dataSize = bf.getIntAndIncrementPosition(16);
+		}
+		//create another data stream - only  message (ignore prefixes, ignore padding)
+		BitBuffer messageBuffer = new BitBuffer(dataSize);
+		for (int i = 0; i <= dataSize; i++) {
+			messageBuffer.write((boolean)bf.getBitAndIncrementPosition());
 		}
 		message = messageBuffer.getData();
 		return message;
