@@ -9,6 +9,7 @@ import java.awt.image.*;
 import javax.swing.filechooser.*;
 
 import java.io.*;
+import java.net.URLEncoder;
 
 import javax.imageio.*;
 
@@ -136,7 +137,11 @@ public class QRReaderPanel extends JPanel {
 //							camera.setImage(image);//restore the image
 							//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
 							if(swp == this && !isCancelled()){
+								for (int i = 2; i < viewer.tabbedPane.getTabCount(); i++) {
+									viewer.tabbedPane.remove(i);
+								}
 								for (Item<BufferedImage> bi : out) {
+									QRReader.QRCode code = (QRReader.QRCode)bi;
 									int number = 1;
 									String qr = "QR" + number;
 									viewer.tabbedPane.add(qr, bi.generateGUI());
@@ -145,6 +150,15 @@ public class QRReaderPanel extends JPanel {
 									viewer.tabbedPane.setMnemonicAt(0, keyEvent);
 									number++;
 									mn++;*/
+								//	String url = "http://google.com?q=" + URLEncoder.encode(new String(code.data));
+									String url = "http://google.com";
+									try {
+									  JEditorPane htmlPane = new JEditorPane(url);
+									  htmlPane.setEditable(false);
+									  viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
+									} catch(IOException ioe) {
+									  System.err.println("Error displaying " + url);
+									}
 								}
 								cl.show(stack, "6");
 							}
