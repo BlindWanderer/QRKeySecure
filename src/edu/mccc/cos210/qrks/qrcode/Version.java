@@ -157,7 +157,7 @@ public final class Version {
 		boolean [][] mask = generateMask(version, true);
 		int d = mask.length;
 		for (Point p: getFindingPatternLocations(version)) {
-			clearSquare(mask, Constants.FINDING_PATTERN_SIZE + 1, p.x, p.y);
+			clearSquare(mask, Constants.FINDING_PATTERN_SIZE, p.x, p.y);
 		}
 		for (Point p: getAlignmentPatternLocations(version)) {
 			clearSquare(mask, Constants.ALIGNMENT_PATTERN_SIZE, p.x + Constants.ALIGNMENT_PATTERN_OFFSET, p.y + Constants.ALIGNMENT_PATTERN_OFFSET);

@@ -61,13 +61,13 @@ public class QRBuilder implements Builder<BufferedImage> {
 				final BitBuffer memory = getMemorySpace(version);
 				writeToMemory(memory, data, em, version, ec);
 				final boolean [][] field = getBasicQRCode(version);
-		//		final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
-		//		final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
+				final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
+				final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
 	
-		//		int mask = getPreferredMask(version, field);
-		//		writeMetaData(field, version, ec, mask);
-		//		writeDataToField(field, dataBlocks, ecBlocks, version);
-		//		final boolean[][] finalField = applyMask(version, field, mask);
+				int mask = getPreferredMask(version, field);
+				writeMetaData(field, version, ec, mask);
+				writeDataToField(field, dataBlocks, ecBlocks, version);
+				final boolean[][] finalField = applyMask(version, field, mask);
 				return new Item<BufferedImage>(){
 					private BufferedImage img = null;
 					public BufferedImage save() {
@@ -325,11 +325,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int j = 0; j < second; j++) {
 			for (int i = 0; i < first; i++) {
 				if(j < dataBlocks[i].length) {
-<<<<<<< HEAD
 					bf.write(dataBlocks[i][j]);
-=======
-					bf.write((byte)dataBlocks[i][j], 8);
->>>>>>> ..
 				}
 			}
 		}
@@ -339,11 +335,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int j = 0; j < secondEC; j++) {
 			for (int i = 0; i < firstEC; i++) {
 				if(j < ecBlocks[i].length) {
-<<<<<<< HEAD
 					bf.write(ecBlocks[i][j]);
-=======
-					bf.write((byte)ecBlocks[i][j], 8);
->>>>>>> ..
 				}
 			}
 		}

@@ -56,8 +56,8 @@ public class Decoder {
 			}
 			bf.seek(0);
 			bf2.seek(0);
-			int ibf = bf.toInt();
-			int ibf2 = bf.toInt();
+			int ibf = bf.getIntAndIncrementPosition(18);
+			int ibf2 = bf.getIntAndIncrementPosition(18);
 			// see if all is well
 			ibf = Version.getCorrectedVersionInfo(ibf).corrected;
 			ibf2 = Version.getCorrectedVersionInfo(ibf).corrected;
@@ -98,8 +98,8 @@ public class Decoder {
 		}
 		bf.seek(0);
 		bf2.seek(0);
-		int ibf = bf.toInt();
-		int ibf2 = bf2.toInt();
+		int ibf = bf.getIntAndIncrementPosition(15);
+		int ibf2 = bf2.getIntAndIncrementPosition(15);
 		//must release mask 101010000010010
 		ibf = ibf ^ (0b101010000010010);
 		ibf2 = ibf2 ^ (0b101010000010010);
@@ -242,7 +242,7 @@ public class Decoder {
 		//put data in buffer
 		for (int i = 0; i < dataBlocks.length; i++) {
 			for (int j = 0; j < dataBlocks[i].length; j++) {
-				bf.write((byte)dataBlocks[i][j], 8);
+				bf.write(dataBlocks[i][j], 8);
 			}
 		}
 		//determine length of data from info
