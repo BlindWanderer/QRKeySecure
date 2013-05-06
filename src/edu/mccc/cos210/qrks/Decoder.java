@@ -1,10 +1,7 @@
 package edu.mccc.cos210.qrks;
 
-import edu.mccc.cos210.qrks.qrcode.ErrorCorrectionLevel;
-import edu.mccc.cos210.qrks.qrcode.FormatInfo;
-import edu.mccc.cos210.qrks.qrcode.Mask;
-import edu.mccc.cos210.qrks.qrcode.Version;
-import edu.mccc.cos210.qrks.util.BitBuffer;
+import edu.mccc.cos210.qrks.qrcode.*;
+import edu.mccc.cos210.qrks.util.*;
 
 public class Decoder {
 
@@ -12,7 +9,7 @@ public class Decoder {
 		byte[] message = null;
 		int version = versionInfo(cleanMatrix);
 		int formatInfo = formatInfo(cleanMatrix, version); 
-		if (version == 0 || formatInfo == 0) {
+		if (version == -1 || formatInfo == -1) {
 			return null;
 		}
 		int ec = getECFromFormatInfo(formatInfo);
@@ -74,18 +71,38 @@ public class Decoder {
 			int ibf = bf.getIntAndIncrementPosition(18);
 			int ibf2 = bf.getIntAndIncrementPosition(18);
 			// see if all is well
-			ibf = Version.getCorrectedVersionInfo(ibf).corrected;
-			ibf2 = Version.getCorrectedVersionInfo(ibf).corrected;
+			CorrectedInfo ci1 = Version.getCorrectedVersionInfo(ibf);
+			CorrectedInfo ci2 = Version.getCorrectedVersionInfo(ibf2);
+
+			if (ci1 == null) {
+				if (ci2 == null) {
+					return -1;
+				} else {
+					ibf = ibf2 = ci2.corrected;
+				}
+			} else { 
+				if (ci2 == null) {
+					ibf = ibf2 = ci1.corrected;
+				} else {
+					ibf = ci1.corrected;
+					ibf2 = ci2.corrected;
+				}
+			}
 			int ibfVersion = 0 | (ibf >>> 12);
 			int ibf2Version = 0 | (ibf2 >>> 12);
 			if (ibf == ibf2) {
 				version = ibfVersion;
 			} 
-			if (ibf != ibf2 && (ibfVersion == assumedVersion || ibf2Version == assumedVersion)) {
-				version = assumedVersion;
+			if (ibfVersion != assumedVersion) {
+				return -1;
 			}
-			if (ibf != ibf2 && ibfVersion != assumedVersion && ibf2Version != assumedVersion) {
-				return 0; 
+			if (ibf != ibf2) {
+				if (ibfVersion == assumedVersion || ibf2Version == assumedVersion) {
+					version = assumedVersion;
+				}
+				if (ibfVersion != assumedVersion && ibf2Version != assumedVersion) {
+					return -1; 
+				}
 			}
 		}
 		return version;
@@ -123,12 +140,24 @@ public class Decoder {
 		ibf = ibf ^ (0b101010000010010);
 		ibf2 = ibf2 ^ (0b101010000010010);
 		// see if all is well
-		ibf = FormatInfo.getCorrectedFormatInfo(ibf).corrected;
-		ibf2 = FormatInfo.getCorrectedFormatInfo(ibf2).corrected;
-		if (ibf == ibf2) {
-			return ibf;
-		} else
-		return 0;	
+		CorrectedInfo ci1= FormatInfo.getCorrectedFormatInfo(ibf);
+		CorrectedInfo ci2 = FormatInfo.getCorrectedFormatInfo(ibf2);
+		if (ci1 == null) {
+			if (ci2 == null) {
+				return -1;
+			} else {
+				return ci2.corrected;
+			}
+		} else { 
+			if (ci2 == null) {
+				return ci1.corrected;
+			} else {
+				if (ci1.corrected == ci2.corrected) {
+					return ci1.corrected;
+				}
+			}
+		}
+		return -1;	
 	}
 	private static int getECFromFormatInfo(int formatInfo) {
 		int ec = 0;
@@ -322,7 +351,7 @@ public class Decoder {
 		//create another data stream - only  message (ignore prefixes, ignore padding)
 		BitBuffer messageBuffer = new BitBuffer(dataSize);
 		for (int i = 0; i <= dataSize; i++) {
-			messageBuffer.write((boolean)bf.getBitAndIncrementPosition());
+			messageBuffer.write(bf.getBitAndIncrementPosition());
 		}
 		message = messageBuffer.getData();
 		return message;

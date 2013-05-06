@@ -502,8 +502,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 
 		for (int j = 0; j < mps.size(); j++){
 			MatchPoint mh = mps.get(j);
-			for(int jj = j + 1; jj < mps.size(); j ++){
-				for(int jjj = jj + 1; jjj < mps.size(); j ++){
+			for(int jj = j + 1; jj < mps.size(); jj ++){
+				for(int jjj = jj + 1; jjj < mps.size(); jjj ++){
 					Barnacle man = Barnacle.generate(mh, mps.get(jj), mps.get(jjj), width, bw);
 					if(man != null) {
 						seaCreatures.add(man);
@@ -613,8 +613,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		swp.publish(prog);
 		Graphics2D pg = prog.createGraphics();
 		pg.setColor(Color.GREEN);
-		Collections.sort(possibleCodes);
-System.out.println();
+		Collections.sort(possibleCodes);;
 		for (MatchPoint code : possibleCodes) {
 			//Steps:
 			//1) Figure out size of finding patter.
@@ -722,6 +721,8 @@ System.out.println();
 //		System.out.println("possibleQR<"+octopodes.size()+"> - "+ octopodes);
 //		System.out.println(octopodes.size());
 		
+		System.out.println(seaCreatures);
+		System.out.println(seaCreatures.size());
 		//g.dispose();
 		} catch (Exception e) {e.printStackTrace();}
 		swp.publish(prog);
@@ -771,10 +772,11 @@ System.out.println();
 		public static Barnacle generate(MatchPoint a, MatchPoint b, MatchPoint c, int width, boolean [] bw) {
 			Point ba = Utilities.subtract(b.center, a.center);
 			Point ca = Utilities.subtract(c.center, a.center);
-			double bar = Math.atan2(ca.y, ca.x);
+			double bar = Math.atan2(ba.y, ba.x);
 			double car = Math.atan2(ca.y, ca.x);
 			double bad = Utilities.distance(a.center, b.center);
 			double cad = Utilities.distance(a.center, c.center);
+			System.out.println(bar + " ~ " + car + " ~ " + Math.abs(bar - car));
 			if(Math.abs(Math.abs(car - bar) - (Math.PI / 2.0)) < Math.PI / 36){
 				if((Math.abs(bad - cad) / (bad + cad)) < .2){
 					return new Barnacle(a,b,c, width, bw);
