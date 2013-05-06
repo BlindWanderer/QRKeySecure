@@ -66,22 +66,31 @@ public class QRBuilder implements Builder<BufferedImage> {
 	
 				int mask = getPreferredMask(version, field);
 				writeMetaData(field, version, ec, mask);
-				writeDataToField(field, dataBlocks, ecBlocks, version);
-				final boolean[][] finalField = applyMask(version, field, mask);
+			//	writeDataToField(field, dataBlocks, ecBlocks, version);
+			//	final boolean[][] finalField = applyMask(version, field, mask);
 				return new Item<BufferedImage>(){
 					private BufferedImage img = null;
 					public BufferedImage save() {
 						if (img == null) {
+							try{
 							img = makeImage(field, ppu, true); //FinalField
+							} catch (Exception e){
+								e.printStackTrace();
+							}
 						}
 						return img;
 					}
 					public JPanel generateGUI() {
+						try{
 						final BufferedImage si = makeImage(field, ppu, false); //FinalField
 						JPanel gui = new JPanel();
 						gui.add(new ImagePanel(si));
 						//add some other elements with stats and text.
 						return gui;
+						} catch (Exception e){
+							e.printStackTrace();
+						}
+						return null;
 					}
 				};
 			} catch (Exception e) {
@@ -185,11 +194,12 @@ public class QRBuilder implements Builder<BufferedImage> {
 		}
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			int longBlock = ecc.errorCorrectionRows[1].k;
-			int w = ecc.errorCorrectionRows[0].ecBlocks * ecc.errorCorrectionRows[0].k;
-			for (int i = 0; i < longBlock; i++) {
-				dataBlocks[i] = new byte[ecc.errorCorrectionRows[0].k];
-				for (int j = 0; j < ecc.errorCorrectionRows[1].k; j++) {
-					dataBlocks[i + ecc.errorCorrectionRows[0].ecBlocks][j] = dataCodeWords[w + (i * longBlock) + j];
+			int ecBlocks = ecc.errorCorrectionRows[0].ecBlocks;
+			int w = ecBlocks * ecc.errorCorrectionRows[0].k;
+			for (int i = 0; i < ecBlocks; i++) {
+				dataBlocks[i + ecBlocks] = new byte[longBlock];
+				for (int j = 0; j < longBlock; j++) {
+					dataBlocks[i + ecBlocks][j] = dataCodeWords[w + (i * longBlock) + j]; 
 				}
 			}
 		}
@@ -335,7 +345,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int j = 0; j < secondEC; j++) {
 			for (int i = 0; i < firstEC; i++) {
 				if(j < ecBlocks[i].length) {
-					bf.write(ecBlocks[i][j]);
+					bf.write(ecBlocks[i][j]);  //???TODO: BUG sometimes has indexoutof bound issue.
 				}
 			}
 		}
@@ -343,7 +353,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		boolean direction = false; //0 = up; 1 = down;
 		boolean lastlocation = false; //0 = going right; 1 = going left
 		int size = field.length;
-		boolean[][] dataMask = Version.getDataMask(size);
+		boolean[][] dataMask = Version.getDataMask(version);
 		int x = size - 1;
 		int y = size - 1;
 		int max = Math.min(bf.getSize(), size * size);
@@ -456,6 +466,8 @@ public class QRBuilder implements Builder<BufferedImage> {
 		if (quietZone) { //4 units wide
 			BufferedImage biqz = new BufferedImage(bi.getWidth() + 8 * ppu, bi.getHeight() + 8 * ppu, BufferedImage.TYPE_INT_ARGB);
 			Graphics2D g = biqz.createGraphics();  
+			g.setColor(Color.WHITE);  
+			g.fillRect(0, 0, biqz.getWidth(), biqz.getHeight());   
 			g.drawImage(bi, null, ppu * 4, ppu * 4);
 			g.dispose(); 
 			return biqz;

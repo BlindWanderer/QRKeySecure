@@ -146,21 +146,35 @@ public final class Version {
 	public static boolean [][] generateMask(int version, boolean fill) {
 		int d = getSize(version);
 		boolean [][] mask = new boolean[d][d];
-		if (fill) {//by default java fills boolean arrays with false
-			for (boolean[] roc : mask) {
-				Arrays.fill(roc, fill);
-			}
+		for (boolean[] roc : mask) {
+			Arrays.fill(roc, fill);
 		}
 		return mask;
 	}
 	public static boolean [][] getDataMask(int version) {
 		boolean [][] mask = generateMask(version, true);
 		int d = mask.length;
-		for (Point p: getFindingPatternLocations(version)) {
-			clearSquare(mask, Constants.FINDING_PATTERN_SIZE, p.x, p.y);
-		}
+//		for (Point p: getFindingPatternLocations(version)) {
+//			clearSquare(mask, Constants.FINDING_PATTERN_SIZE, p.x, p.y);
+//		}
 		for (Point p: getAlignmentPatternLocations(version)) {
 			clearSquare(mask, Constants.ALIGNMENT_PATTERN_SIZE, p.x + Constants.ALIGNMENT_PATTERN_OFFSET, p.y + Constants.ALIGNMENT_PATTERN_OFFSET);
+		}
+		// add white border around finding patterns
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 8; j++) {
+				mask[i][j] = false;
+			}
+		}
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 8; j++) {
+				mask[d - i - 1][j] = false;
+			}
+		}
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 8; j++) {
+				mask[i][d - j - 1] = false;
+			}
 		}
 		//timing
 		for (int x = 0; x < d; x++) {
