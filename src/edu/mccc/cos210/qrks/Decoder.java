@@ -2,10 +2,30 @@ package edu.mccc.cos210.qrks;
 
 import edu.mccc.cos210.qrks.qrcode.*;
 import edu.mccc.cos210.qrks.util.*;
+import java.awt.*;
+import java.awt.image.*;
 
 public class Decoder {
+	public static BufferedImage visualizeMatrix(boolean [][] matrix){
+		int size = matrix.length;
+		BufferedImage bi = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = bi.createGraphics();
+		g.setColor(Color.WHITE);
+		g.fillRect(0,0,size,size);
+		g.dispose();
+		for(int i = 0; i < size; i++){
+			for(int j = 0; j < size; j++){
+				if(matrix[i][j]){
+					bi.setRGB(i, j, 0xFF000000);
+				}
+			}
+		}
+		return bi;
+	}
+	public static byte[] decode(boolean[][] cleanMatrix, SwingWorkerProtected<?, BufferedImage> swp) {
 
-	public static byte[] decode(boolean[][] cleanMatrix) {
+		swp.publish(visualizeMatrix(cleanMatrix));
+		
 		byte[] message = null;
 		int version = versionInfo(cleanMatrix);
 		int formatInfo = formatInfo(cleanMatrix, version); 

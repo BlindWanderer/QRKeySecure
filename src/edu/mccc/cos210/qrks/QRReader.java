@@ -485,6 +485,9 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 		}
 
+		BufferedImage bwRLE = prog;
+		prog = Utilities.convertImageToBufferedImage(prog);
+
 		Collection<MatchHead> matchheads = dumbFinder(height, width, bw, prog, swp);
 		//Graphics2D g = prog.createGraphics();
 
@@ -500,13 +503,25 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			mps.add(new MatchPoint(mh, width, height));
 		}
 
-		for (int j = 0; j < mps.size(); j++){
+		for (int j = 0; j < mps.size(); j++){//match grouping
 			MatchPoint mh = mps.get(j);
+			boolean mhc = bw[mh.center.x + mh.center.y * width];
 			for(int jj = j + 1; jj < mps.size(); jj ++){
-				for(int jjj = jj + 1; jjj < mps.size(); jjj ++){
-					Barnacle man = Barnacle.generate(mh, mps.get(jj), mps.get(jjj), width, bw);
-					if(man != null) {
-						seaCreatures.add(man);
+				MatchPoint mhh = mps.get(jj);
+				boolean mhhc = bw[mhh.center.x + mhh.center.y * width];
+				if(mhc == mhhc){//colors have to match
+					for(int jjj = jj + 1; jjj < mps.size(); jjj ++){
+						MatchPoint mhhh = mps.get(jjj);
+						if(mhc == bw[mhhh.center.x + mhhh.center.y * width]){//colors have to match
+							Barnacle man = Barnacle.generate(mh, mhh, mhhh, width, bw);
+							if(man != null) {
+								seaCreatures.add(man);
+							}
+							man = Barnacle.generate(mhhh, mhh, mh, width, bw);
+							if(man != null) {
+								seaCreatures.add(man);
+							}
+						}
 					}
 				}
 			}
@@ -693,28 +708,35 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 			}
 		}
+		swp.publish(prog = Utilities.convertImageToBufferedImage(bwRLE));
+
 		for (SeaCreature sc : seaCreatures) {
-			QRCode blah = new QRCode(){
-					private BufferedImage img = null;
-					public BufferedImage save() {
-						return orig;
-					}
-					public JPanel generateGUI() {
-						JPanel gui = new JPanel();
-						gui.add(new ImagePanel(orig));
-						JTextArea info = new JTextArea(5, 50);
-						info.setEditable(false);
-						//Font f = new Font(info.getFont());
-						info.setOpaque(false);
-						try{
-						info.setText(new String(data, "US-ASCII"));
-						}catch(Exception e){}
-						gui.add(info);
-						return gui;
-					}
-				}; 
-			blah.data = Decoder.decode(sc.getMatrix(bw));
-			carp.add(blah);
+			final byte [] raw = Decoder.decode(sc.getMatrix(bw, prog), swp);
+			if (raw != null) {
+				QRCode code = new QRCode(){
+						private BufferedImage img = null;
+						public BufferedImage save() {
+							return orig;
+						}
+						public JPanel generateGUI() {
+							JPanel gui = new JPanel();
+							gui.add(new ImagePanel(orig));
+							JTextArea info = new JTextArea(5, 50);
+							info.setEditable(false);
+							//Font f = new Font(info.getFont());
+							info.setOpaque(false);
+							try{
+								info.setText(new String(raw, "US-ASCII"));
+							} catch(UnsupportedEncodingException e) {
+							}
+							gui.add(info);
+							return gui;
+						}
+					};
+				code.data = raw;
+				carp.add(code);
+			}
+//break;//TODO: REMOVE THIS DEBUGGING CODE IT IS CRITICAL THAT IT BE REMOVED
 		}
 //		System.out.println("possibleCodes<"+possibleCodes.size()+"> - "+ possibleCodes);
 //		System.out.println();
@@ -725,7 +747,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		System.out.println(seaCreatures.size());
 		//g.dispose();
 		} catch (Exception e) {e.printStackTrace();}
-		swp.publish(prog);
+//		swp.publish(prog);
 		//swp.publish(Utilities.convertImageToBufferedImage(prog));
 
 //		System.out.println(matchheads);
@@ -742,15 +764,18 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		public final Point travel;
 		public final List<Integer> rle;
 		public final int steps;
+		public final int divisor;
 		public Scanner(Point start, Point end, int width, boolean [] bw) {
 			this.width = width;
 			this.start = start;
 			this.end = end;
 			travel = Utilities.subtract(end, start);
 			steps = Math.max(Math.abs(travel.x), Math.abs(travel.y)) + 1;
+			divisor = Math.max(1, steps - 1);
 			boolean [] scan = new boolean[steps];
 			for(int p = 0; p < scan.length; p++) {
-				scan[p] = bw[(this.start.x + (travel.x * p) / steps) + (this.start.y + (travel.y * p) / steps) * width];
+				//The addition is done before deviding so that we don't have to worry about the truncation going in different directions depending upon the sign.
+				scan[p] = bw[((this.start.x * divisor + travel.x * p) / divisor) + ((this.start.y * divisor + travel.y * p) / divisor) * width];
 			}
 			rle = runLengthEncode(scan, 0, scan.length, 1);
 		}
@@ -762,11 +787,15 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return indexToPoint(p + rle.get(index) / 2);
 		}
 		public Point indexToPoint(int p){
-			return new Point(this.start.x + (travel.x * p) / steps, this.start.y + (travel.y * p) / steps);
+			Point r = new Point((this.start.x * divisor + travel.x * p) / divisor, (this.start.y * divisor + travel.y * p) / divisor);
+			return r;
+		}
+		public String toString() {
+			return "["+start + ","+end+"] in "+steps;
 		}
 	}
 	private static abstract class SeaCreature {
-		public abstract boolean [][] getMatrix(boolean [] bw);
+		public abstract boolean [][] getMatrix(boolean [] bw, BufferedImage prog);
 	}
 	private static class Barnacle extends SeaCreature {
 		public static Barnacle generate(MatchPoint a, MatchPoint b, MatchPoint c, int width, boolean [] bw) {
@@ -796,60 +825,103 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		int size;
 		Point vt;
 		Point ht;
+		Point vo;
+		Point ho;
+		Point vk;
+		Point hk;
 		int width;
-		private Barnacle(MatchPoint center, MatchPoint bottom, MatchPoint right, int width, boolean [] bw){
+		int hs;
+		int vs;
+		Freud vertical;
+		Freud horizontal;
+		Freud diagonal;
+		public String toString(){
+			return "<"+center + ","+bottom+","+right+"> v"+version + " ~  s="+size; 
+		}
+		private Barnacle(MatchPoint center, MatchPoint bottom, MatchPoint right, int width, boolean [] bw) {
+			//{
 			this.center = center;
 			this.width = width;
 			this.bottom = bottom;
 			this.right = right;
 			vt = Utilities.subtract(bottom.center, center.center);
 			ht = Utilities.subtract(right.center, center.center);
-			Freud vertical = new Freud(center, bottom, width, bw);
-			Freud horizontal = new Freud(center, right, width, bw);
-			Freud diagonal = new Freud(right, bottom, width, bw);
+			System.out.println("poke 1");
+			vertical = new Freud(center, bottom, width, bw);
+			horizontal = new Freud(center, right, width, bw);
+			diagonal = new Freud(right, bottom, width, bw);
 			double yd = Utilities.distance(vertical.start, vertical.end);
 			double xd = Utilities.distance(horizontal.start, horizontal.end);
 			double dd = Utilities.distance(diagonal.start, diagonal.end);
 			double [] multipliers = {1.0, 1.5, 2.0};
 			Freud t = null;
 			double scale = 0.0;
+			//}
+			diagonal.polulateValues();
+			vertical.polulateValues();
+			horizontal.polulateValues();
+			loop:
 			for (double multiplier : multipliers) {
 				double b = baseUncertainty * multiplier;
 				double s = secondaryUncertainty * multiplier;
 				if(vertical.checkUncertainty(b, s)) {
 					t = vertical;
 					scale = yd;
-					break;
+					break loop;
 				}
 				if(horizontal.checkUncertainty(b, s)) {
 					t = horizontal;
 					scale = xd;
-					break;
-				}
-				if(diagonal.checkUncertainty(b, s)) {
-					t = diagonal;
-					scale = dd  * 0.70710678118654752440084436210485;
-					break;
+					break loop;
 				}
 			}
 			if(t != null){
 				double ts = moduleSize;
 				double mod = (4.0 * t.steps) / (t.s + t.sm + t.e + t.em);
 				moduleSize = scale / mod;
-				version = Version.getClosestVersion((int)Math.round(mod + 6));
+				version = Version.getClosestVersion((int)Math.round(mod + 6));//this could be 6 or 7 depending upon the ppm
 				size = Version.getSize(version);
 				moduleSize = scale / size;
+				Point hgs = horizontal.indexToPoint(-(horizontal.sm + horizontal.s + horizontal.sm));
+				Point hge = horizontal.indexToPoint(horizontal.em + horizontal.e + horizontal.em + horizontal.steps - 1);
+				Point vgs = vertical.indexToPoint(-(vertical.sm + vertical.s + vertical.sm));
+				Point vge = vertical.indexToPoint(vertical.em + vertical.e + vertical.em + vertical.steps - 1);
+				ho = Utilities.subtract(hgs, center.center);
+				vo = Utilities.subtract(vgs, center.center);
+//				System.out.println(Arrays.toString(Utilities.newGenericArray(center.center, hgs, ho)));
+//				System.out.println(Arrays.toString(Utilities.newGenericArray(center.center, vgs, vo)));
+				hk = Utilities.subtract(hge, hgs);
+				vk = Utilities.subtract(vge, vgs);
+				System.out.println(Arrays.toString(Utilities.newGenericArray(hgs, horizontal.start, horizontal.end, hge)));
+				System.out.println(Arrays.toString(Utilities.newGenericArray(vgs, vertical.start, vertical.end, vge)));
+				hs = Math.max(Math.abs(hk.x),Math.abs(hk.y)) + 1;
+				vs = Math.max(Math.abs(vk.x),Math.abs(vk.y)) + 1;
+			} else {
+				throw new IllegalArgumentException();
 			}
 		}
-		public boolean [][] getMatrix(boolean [] bw) {
+		public boolean [][] getMatrix(boolean [] bw, BufferedImage prog) {
+			{
+				Graphics2D pg = prog.createGraphics();
+				pg.setColor(Color.GREEN);
+				Utilities.drawLine(pg, center.center, vertical.end);
+				Utilities.drawLine(pg, center.center, horizontal.end);
+				Utilities.drawLine(pg, vertical.end, horizontal.end);
+				pg.dispose();
+			}
 			boolean [][] r = new boolean[size][size];
 			double ms = 1.0 / (size - 1);
-			for(int x = 0; x < size; x++){
-				for(int y = 0; y < size; y++){
-					Point p = Utilities.add(Utilities.scale(ht, x * ms), Utilities.scale(vt, y * ms));
-					r[x][y] = bw[p.x + p.y * width];
-				}	
+			Point begin = Utilities.add(center.center, Utilities.add(ho, vo));
+			System.out.println();
+			System.out.println("hk: "+hk +"\tvk: "+vk + "\nho: "+ho +"\tvo: "+vo + "\nht: "+ horizontal.travel +"\tvt: "+vertical.travel);
+			for(int x = 0; x < size; x++) {
+				for(int y = 0; y < size; y++) {
+					Point p = Utilities.add(begin, Utilities.add(Utilities.scale(hk, x * ms), Utilities.scale(vk, y * ms)));
+					setARGB(prog, p, START_COLOR);
+					r[x][y] = !bw[p.x + p.y * width];
+				}
 			}
+			System.out.println();
 			return r;
 		}
 	}
@@ -865,7 +937,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		public String toString() {
 			return "left: " + left + "\nright: " + right + "\nacross: " + across;
 		}
-		public boolean [][] getMatrix(boolean [] bw) {
+		public boolean [][] getMatrix(boolean [] bw, BufferedImage prog) {
 			return null;
 		}
 	}
@@ -892,22 +964,27 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		public Point getEndEdgeCenter(int offset) {
 			return indexToPoint(steps - (ep + e + (em / 2)+ offset));
 		}
+		public void polulateValues(){
+			int count = rle.size();
+			if(count >= 4){
+				sp = rle.get(0); //black - 1 to 1.5 in width
+				s = rle.get(1);//white
+				sm = rle.get(2);//black
+				sw = rle.get(3);//white - could be 1 - 5 wide
+				
+				ew = rle.get(count - 4);//white - could be 1 - 5 wide
+				em = rle.get(count - 3); //black
+				e = rle.get(count - 2); //white
+				ep = rle.get(count - 1); //black - 1 to 1.5 in width
+			}
+		}
 		public boolean checkUncertainty(double baseUncertainty, double secondaryUncertainty) {
 //			scan[steps] = bw[end.x + end.y * width];
 			int count = rle.size();
 			if((count < 7) || ((count & 1) == 0)){
 				return false;
 			}
-			sp = rle.get(0); //black
-			s = rle.get(1);//white
-			sm = rle.get(2);//black
-			sw = rle.get(3);//white - could be 1 - 5 wide
-			
-			ew = rle.get(count - 4);//white - could be 1 - 5 wide
-			em = rle.get(count - 3); //black
-			e = rle.get(count - 2); //white
-			ep = rle.get(count - 1); //black
-			
+			polulateValues();
 			if(s > 5 ) {
 				sv = run(sp * 3, s * 2);
 				ev = run(sp * 3, s * 2);
@@ -934,9 +1011,9 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		public String getUncertainties(){
 			return "B<" + sv + "," + ev + "> S<"+se+","+ee+">";
 		}
-		public String toString() {
-			return matchEnd.toString();
-		}
+//		public String toString() {
+//			return matchEnd.toString();
+//		}
 		final public MatchPoint matchStart;
 		final public MatchPoint matchEnd;
 		int sp = 0;
