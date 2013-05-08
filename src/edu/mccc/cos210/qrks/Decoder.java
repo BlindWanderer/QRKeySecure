@@ -59,8 +59,11 @@ public class Decoder {
 
 		byte[][] dataBlocks= sortDataStream(unsortedData, version, ec);
 		System.out.println("sorted data stream");
+		System.out.println(Arrays.toString(unsortedData));
 
 		byte[][] ecBlocks = sortECStream(unsortedData, version, ec); 
+		System.out.println(Arrays.toString(unsortedData));
+
 		Object message = dealWithData(dataBlocks, version, ec);
 
 		System.out.println("dealt with data");
@@ -284,6 +287,8 @@ public class Decoder {
 		for (int group = 0; group < ecc.errorCorrectionRows.length; group++) {
 			numberDataBlocks += ecc.errorCorrectionRows[group].ecBlocks;
 		}
+		int offset = 0;
+		int [] offsets = new int[numberDataBlocks];
 		byte[][] dataBlocks = new byte[numberDataBlocks][];
 		//now set each to the proper length as described in ecc.
 		for (int r = 0, row = 0; r < ecc.errorCorrectionRows.length; r++) {
@@ -291,19 +296,25 @@ public class Decoder {
 			maxLength = Math.max(maxLength, ecr.k);
 			minLength = Math.min(minLength, ecr.k);
 			for (int block = 0; block < ecr.ecBlocks; block++) {
+				offsets[row] = offset;
+				offset += ecr.k;
 				dataBlocks[row++] = new byte[ecr.k];
 			}
 		}
 		int used = 0;
 		for (int k = 0; k < minLength; k++) {
 			for (int block = 0; block < numberDataBlocks; block++) {
-				dataBlocks[block][k] = unsortedData[used++];
+				dataBlocks[block][k] = unsortedData[used];
+				unsortedData[used] = (byte)((offsets[block] + k) & 0xff);
+				used++;
 			}
 		}
 		for (int k = minLength; k < maxLength; k++) {
 			for (int block = 0; block < numberDataBlocks; block++) {
 				if (k < dataBlocks[block].length) {
-					dataBlocks[block][k] = unsortedData[used++];
+					dataBlocks[block][k] = unsortedData[used];
+					unsortedData[used] = (byte)((offsets[block] + k) & 0xff);
+					used++;
 				}
 			}
 		}
@@ -378,9 +389,9 @@ public class Decoder {
 				case BYTE: {
 					int dataSize = 0;	
 					if (version < 10) {
-						dataSize = bf.getIntAndIncrementPosition(8);
+						dataSize = bf.getIntAndIncrementPosition(8) * 8;
 					} else if (version < 41) {
-						dataSize = bf.getIntAndIncrementPosition(16);
+						dataSize = bf.getIntAndIncrementPosition(16) * 8;
 					}
 					System.out.println("capacity:" + dataCapacity + "  desired: " + dataSize + "  buffer: " + size + "  position: " + bf.getPosition());
 					if (dataCapacity < dataSize) {
@@ -388,7 +399,7 @@ public class Decoder {
 					}
 					//create another data stream - only  message (ignore prefixes, ignore padding)
 					BitBuffer messageBuffer = new BitBuffer(dataSize);
-					for (int i = 0; i < dataSize; i++) {
+					for (int i = 0; i < dataSize; i+=8) {
 						messageBuffer.write(bf.getBitAndIncrementPosition());
 					}
 					return messageBuffer.getData();
