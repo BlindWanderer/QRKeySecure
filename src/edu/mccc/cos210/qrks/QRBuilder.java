@@ -333,7 +333,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		}
 	}
 	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks, int version) {
-		BitBuffer bf = new BitBuffer(Version.getSize(version) * Version.getSize(version));
+		BitBuffer bf = new BitBuffer(Version.getDataCapacity(version));
 		int first = dataBlocks.length; 
 		int second = dataBlocks[first - 1].length;
 		for (int j = 0; j < second; j++) {
@@ -362,32 +362,35 @@ public class QRBuilder implements Builder<BufferedImage> {
 		int y = size - 1;
 		int max = Math.min(bf.getSize(), size * size);
 		bf.seek(0);
-		for (int i = 0; x >= 0; i++) {	
+		for (int i = 0; x >= 0; i++) {
 			if (shouldWrite(x , y, dataMask)) {
 				field[x][y] = bf.getBitAndIncrementPosition();
 			}
 			if (!direction) {//up
 				if (!lastlocation) {//going right
 					x--;
-				} else
-				if (lastlocation) {//going left
+				} else {//going left
 					if(y == 0) {
 						x--;
 						direction = !direction;
+						if (x == 6) {//skip column 6 as if it does not exist
+							x--;
+						}
 					} else {
 						x++;
 						y--;
 					}
 				}
-			} else 
-			if (direction) { //down
+			} else { //down
 				if (!lastlocation) { //going right
 					x--;
-				} else
-				if (lastlocation) { //going left
+				} else { //going left
 					if(y == size - 1) {
 						x--;
 						direction = !direction;
+						if (x == 6) {//skip column 6 as if it does not exist
+							x--;
+						}
 					} else {
 						x++;
 						y++;

@@ -3,16 +3,17 @@ import edu.mccc.cos210.qrks.qrcode.*;
 import edu.mccc.cos210.qrks.util.*;
 import java.awt.Image;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.*;
 import java.util.*;
 
 public class Decoder {
+	public static final int VISUALIZE_MATRIX_PADDING = 3;
 	public static BufferedImage visualizeMatrix(boolean [][] matrix){
-		final int buffer = 3;
 		final int size = matrix.length;
-		final int larger = size + (buffer * 2);
+		final int larger = size + (VISUALIZE_MATRIX_PADDING * 2);
 		BufferedImage bi = new BufferedImage(larger, larger, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = bi.createGraphics();
 		g.setColor(Color.WHITE);
@@ -21,7 +22,7 @@ public class Decoder {
 		for(int i = 0; i < size; i++){
 			for(int j = 0; j < size; j++){
 				if(matrix[i][j]){
-					bi.setRGB(i+buffer, j+buffer, 0xFF000000);
+					bi.setRGB(i+VISUALIZE_MATRIX_PADDING, j+VISUALIZE_MATRIX_PADDING, 0xFF000000);
 				}
 			}
 		}
@@ -53,7 +54,7 @@ public class Decoder {
 		boolean [][] maskedMatrix = applyMask(version, cleanMatrix, maskNum);
 		System.out.println("unmasked");
 
-		byte[] unsortedData = getDataStream(maskedMatrix, version);
+		byte[] unsortedData = getDataStream(maskedMatrix, version, swp);
 		System.out.println(Arrays.toString(unsortedData));
 
 		byte[][] dataBlocks= sortDataStream(unsortedData, version, ec);
@@ -207,41 +208,53 @@ public class Decoder {
 		return maskMatrix;
 	}
 	
-	private static byte[] getDataStream(boolean[][] maskedMatrix, int version) {
+	private static byte[] getDataStream(boolean[][] maskedMatrix, int version, SwingWorkerProtected<?, BufferedImage> swp) {
+		final int SCALE = 24;
+//		BufferedImage img = Utilities.rescaleImage(visualizeMatrix(maskedMatrix), SCALE);
+//		Graphics2D g = img.createGraphics();
+//		g.setColor(Color.RED);
+//		g.setFont(new Font("Dialog", Font.PLAIN, 12));
 		boolean[][] mask = Version.getDataMask(version);
 		boolean direction = false; //0 = up; 1 = down;
 		boolean lastlocation = false; //0 = going right; 1 = going left
 		int size = mask.length;
-		BitBuffer bf = new BitBuffer(size * size); //too large, but who cares.
+		BitBuffer bf = new BitBuffer(Version.getDataCapacity(version));
 		int x = size - 1;
 		int y = size - 1;
 		for (int i = 0; x >= 0; i++) {
 			if (shouldRead(x , y, mask)) {
 				boolean b = maskedMatrix[x][y];
 				bf.write(b);
+//				g.setColor(Color.RED);
+//				g.drawString(""+(bf.getPosition() % 8), (x + VISUALIZE_MATRIX_PADDING) * SCALE, (y + VISUALIZE_MATRIX_PADDING + 1) * SCALE);
+//				g.setColor(Color.GREEN);
+//				g.drawString(""+(bf.getPosition() / 8), (x + VISUALIZE_MATRIX_PADDING) * SCALE, (int)((y + VISUALIZE_MATRIX_PADDING + 0.5) * SCALE));
 			}
 			if (!direction) {//up
 				if (!lastlocation) {//going right
 					x--;
-				} else
-				if (lastlocation) {//going left
-					if(y == 0) {
+				} else {//going left
+					if(y == 0) {//next columns
 						x--;
 						direction = !direction;
+						if (x == 6) {//skip column 6 as if it does not exist
+							x--;
+						}
 					} else {
 						x++;
 						y--;
 					}
 				}
-			} else 
-			if (direction) { //down
+			} else { //down
 				if (!lastlocation) { //going right
 					x--;
-				} else
-				if (lastlocation) { //going left
-					if(y == size - 1) {	
+				} else { //going left
+					if(y == size - 1) { //next columns
 						x--;
 						direction = !direction;
+						if (x == 6) {//skip column 6 as if it does not exist
+							x--;
+						}
 					} else {
 						x++;
 						y++;
@@ -251,6 +264,7 @@ public class Decoder {
 			lastlocation = !lastlocation;
 		}
 		byte[] unsortedData = bf.getData();
+//		swp.publish(img);
 		return unsortedData;
 	}
 	private static boolean shouldRead(int x, int y, boolean[][] dataMask) {
