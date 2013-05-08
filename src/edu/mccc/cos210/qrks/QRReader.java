@@ -11,6 +11,7 @@ import javax.swing.filechooser.*;
 import java.io.*;
 import javax.imageio.*;
 import java.awt.Point;
+import java.awt.Image;
 import java.awt.geom.*;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
@@ -492,7 +493,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		//Graphics2D g = prog.createGraphics();
 
 		MatchPointDistanceComparator compares = new MatchPointDistanceComparator();
-		List<Item<BufferedImage>> carp = new LinkedList<>();
+		List<Item<BufferedImage>> carp = new ArrayList<>(32);
 		try{
 		
 		List<MatchPoint> mps = new ArrayList<>(matchheads.size());
@@ -711,7 +712,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		swp.publish(prog = Utilities.convertImageToBufferedImage(bwRLE));
 
 		for (SeaCreature sc : seaCreatures) {
-			final byte [] raw = Decoder.decode(sc.getMatrix(bw, prog), swp);
+			boolean [][] matrix = sc.getMatrix(bw, prog);
+			final byte [] raw = Decoder.decode(matrix, swp);
 			if (raw != null) {
 				QRCode code = new QRCode(){
 						private BufferedImage img = null;
@@ -720,7 +722,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						}
 						public JPanel generateGUI() {
 							JPanel gui = new JPanel();
-							gui.add(new ImagePanel(orig));
+							gui.add(new ImagePanel(Utilities.rescaleImage(Decoder.visualizeMatrix(matrix), 10.0)));
 							JTextArea info = new JTextArea(5, 50);
 							info.setEditable(false);
 							//Font f = new Font(info.getFont());
@@ -733,6 +735,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 							return gui;
 						}
 					};
+				code.matrix = matrix;
 				code.data = raw;
 				carp.add(code);
 			}
@@ -756,6 +759,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	}
 	public static abstract  class QRCode implements Item<BufferedImage> {
 		public byte [] data;
+		public boolean[][] matrix;
 	}
 	private static class Scanner {
 		public final int width;
@@ -1037,7 +1041,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {
 //		try {
-		LinkedList<MatchHead> matchheads = new LinkedList<MatchHead>();
+		List<MatchHead> matchheads = new LinkedList<MatchHead>();
 		final double strength = 0.25;
 		final double certainty = 0.75;
 		LinkedList<MatchHead> newmatchheads = new LinkedList<MatchHead>();

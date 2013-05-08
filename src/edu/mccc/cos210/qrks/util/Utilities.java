@@ -101,6 +101,17 @@ public final class Utilities {
 		g.dispose();
 		return bi;
 	}
+	public static BufferedImage rescaleImage(Image image, double scale) {
+		int ow = image.getWidth(null);
+		int oh = image.getHeight(null);
+		int tw = (int)(ow * scale);
+		int th = (int)(oh * scale);
+		BufferedImage bi = new BufferedImage(tw, th, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = bi.createGraphics();
+		g.drawImage(image, 0, 0, tw, th, 0, 0, ow, oh, null);
+		g.dispose();
+		return bi;
+	}
 	public static Dimension addDimensions(Dimension left, Dimension ... right) {
 		return addDimensions(left.getWidth(), left.getHeight(), right);
 	}

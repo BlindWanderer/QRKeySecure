@@ -7,16 +7,18 @@ import java.awt.image.*;
 
 public class Decoder {
 	public static BufferedImage visualizeMatrix(boolean [][] matrix){
-		int size = matrix.length;
-		BufferedImage bi = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+		final int buffer = 3;
+		final int size = matrix.length;
+		final int larger = size + (buffer * 2);
+		BufferedImage bi = new BufferedImage(larger, larger, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = bi.createGraphics();
 		g.setColor(Color.WHITE);
-		g.fillRect(0,0,size,size);
+		g.fillRect(0, 0, larger, larger);
 		g.dispose();
 		for(int i = 0; i < size; i++){
 			for(int j = 0; j < size; j++){
 				if(matrix[i][j]){
-					bi.setRGB(i, j, 0xFF000000);
+					bi.setRGB(i+buffer, j+buffer, 0xFF000000);
 				}
 			}
 		}
