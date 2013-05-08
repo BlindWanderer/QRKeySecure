@@ -100,7 +100,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 	}
 	public static int getVersion(byte [] data, ErrorCorrectionLevel ec, EncodingMode em) {
 		int dataCharCount= data.length;
-		Version.SymbolCharacterInfo [] scis = Version.nosc[ec.index];
+		Version.SymbolCharacterInfo [] scis = Version.getSymbolCharacterInfos(ec);
 		for (int i = 1; i < 41; i++) {
 			int maxChar = scis[i - 1].getDataCapacity(em);
 			if (dataCharCount <= maxChar) {

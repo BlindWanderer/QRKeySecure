@@ -4,7 +4,7 @@ import java.awt.Point;
 
 public final class Version {
 	public static class SymbolCharacterInfo {
-		private SymbolCharacterInfo(final int dataCodeWordBits, 
+		private SymbolCharacterInfo(final int dataCodeWordBits, //{
 									final int dataCapacityNumeric,
 									final int dataCapacityAlphanumeric,
 									final int dataCapacityByte,
@@ -14,7 +14,7 @@ public final class Version {
 			this.dataCapacityAlphanumeric = dataCapacityAlphanumeric;
 			this.dataCapacityByte = dataCapacityByte;
 			this.dataCapacityKanji = dataCapacityKanji;
-		}
+		}//}
 		public final int dataCodeWordBits;
 		public final int dataCapacityNumeric;
 		public final int dataCapacityAlphanumeric;
@@ -40,7 +40,13 @@ public final class Version {
 			}
 		}
 	}
-	public final static SymbolCharacterInfo[][] nosc;
+	public static SymbolCharacterInfo getSymbolCharacterInfo(ErrorCorrectionLevel level, int version) {
+		return getSymbolCharacterInfos(level)[version - 1];
+	}
+	public static SymbolCharacterInfo[] getSymbolCharacterInfos(ErrorCorrectionLevel level) {
+		return nosc[level.index];
+	}
+	private final static SymbolCharacterInfo[][] nosc;
 	private static void NOSC4(int version, //{
                          int Ld, int Md, int Qd, int Hd,
 	                     int Ln, int Mn, int Qn, int Hn,

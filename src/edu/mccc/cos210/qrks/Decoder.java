@@ -1,9 +1,12 @@
 package edu.mccc.cos210.qrks;
-
 import edu.mccc.cos210.qrks.qrcode.*;
 import edu.mccc.cos210.qrks.util.*;
-import java.awt.*;
+import java.awt.Image;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.image.*;
+import java.util.*;
 
 public class Decoder {
 	public static BufferedImage visualizeMatrix(boolean [][] matrix){
@@ -24,52 +27,66 @@ public class Decoder {
 		}
 		return bi;
 	}
-	public static byte[] decode(boolean[][] cleanMatrix, SwingWorkerProtected<?, BufferedImage> swp) {
-
-		swp.publish(visualizeMatrix(cleanMatrix));
+	public static Object decode(boolean[][] cleanMatrix, SwingWorkerProtected<?, BufferedImage> swp) {
+//		swp.publish(visualizeMatrix(cleanMatrix));
 		
-		byte[] message = null;
 		int version = versionInfo(cleanMatrix);
 		int formatInfo = formatInfo(cleanMatrix, version); 
-		if (version == -1 || formatInfo == -1) {
+		if (version < 1 || version > 40 || formatInfo == -1) {
+			System.out.println("<no good>");
 			return null;
 		}
-		int ec = getECFromFormatInfo(formatInfo);
+		ErrorCorrectionLevel ec = getECFromFormatInfo(formatInfo);
 		System.out.println(ec);
+		if (ec == null) {
+			System.out.println("<no good>");
+			return null;
+		}
+
 		int maskNum = getMaskFromFormatInfo(formatInfo);
 		System.out.println(maskNum);
+
 		//unmask
-		applyMask(version, cleanMatrix, maskNum);
+		boolean [][] maskedMatrix = applyMask(version, cleanMatrix, maskNum);
 		System.out.println("unmasked");
-		byte[] unsortedData = getDataStream(cleanMatrix, version);
-		System.out.println(unsortedData);
+
+		byte[] unsortedData = getDataStream(maskedMatrix, version);
+		System.out.println(Arrays.toString(unsortedData));
+
 		byte[][] dataBlocks= sortDataStream(unsortedData, version, ec);
 		System.out.println("sorted data stream");
+
 		byte[][] ecBlocks = sortECStream(unsortedData, version, ec); 
-		message = dealWithData(dataBlocks, version);
+		Object message = dealWithData(dataBlocks, version, ec);
+
 		System.out.println("dealt with data");
 		return message;
 	}
 	private static int versionInfo(boolean[][] cleanMatrix) {
 		int assumedVersion = Version.getClosestVersion(cleanMatrix.length);
-		int version = 0;
+		try {
+			if(Version.getSize(assumedVersion) > cleanMatrix.length){
+				return -1;
+			}
+		} catch (IllegalArgumentException e) {
+			return -1;
+		}
 		if (assumedVersion < 7) {
 			return assumedVersion;
-		}
-		if (assumedVersion >= 7) { // assuming version based on size 
+		} else { // assuming version based on size 
 			//18-bit
 			//6 data bits
 			//12 error correction bits calculated using the (18, 6) Golay code. Table D.1 for all 18 bits.
 			 
 			//vert
 			int size = cleanMatrix.length;
-			BitBuffer bf = new BitBuffer(18);
-			BitBuffer bf2 = new BitBuffer(18);
+			BitBuffer bfh = new BitBuffer(18);
+			BitBuffer bfv = new BitBuffer(18);
 			/*
 			for (int y = 6; y >= 0; y--) {
 				for (int x = size - 9; x >= size - 11; x--) {
 					boolean b = cleanMatrix[x][y];
-					bf.write(b);		
+					bfh.write(b);		
 				}
 			}
 			
@@ -77,68 +94,47 @@ public class Decoder {
 			 	for (int x = 5; x >= 0; x--) {
 					for (int y = size - 9; y >= size - 11; y--) {
 					boolean b = cleanMatrix[x][y];
-					bf2.write(b);
+					bfv.write(b);
 				}
 			}*/
 			//horiz
 			for (int x = 5; x >= 0; x--) {
 				for (int y = 9; y <= 11; y ++) {
 					boolean b = cleanMatrix[x][size - y];
-					bf.write(b);
+					bfh.write(b);
 				}	
 			}
 			//vert
-			bf.seek(0);
 			for (int y = 5; y >= 0; y--) {
 				for (int x = 9; x <= 11; x++) {
 					boolean b = cleanMatrix[size - x][y];
-					bf2.write(b);
+					bfv.write(b);
 				}
 			}
-			bf.seek(0);
-			bf2.seek(0);
-			int ibf = bf.getIntAndIncrementPosition(18);
-			int ibf2 = bf.getIntAndIncrementPosition(18);
+			bfh.seek(0);
+			bfv.seek(0);
+			int ibfh = bfh.getIntAndIncrementPosition(18);
+			int ibfv = bfv.getIntAndIncrementPosition(18);
 			// see if all is well
-			CorrectedInfo ci1 = Version.getCorrectedVersionInfo(ibf);
-			CorrectedInfo ci2 = Version.getCorrectedVersionInfo(ibf2);
+			CorrectedInfo ci1 = Version.getCorrectedVersionInfo(ibfh);
+			CorrectedInfo ci2 = Version.getCorrectedVersionInfo(ibfv);
 
-			if (ci1 == null) {
-				if (ci2 == null) {
-					return -1;
-				} else {
-					ibf = ibf2 = ci2.corrected;
-				}
-			} else { 
-				if (ci2 == null) {
-					ibf = ibf2 = ci1.corrected;
-				} else {
-					ibf = ci1.corrected;
-					ibf2 = ci2.corrected;
-				}
-			}
-			int ibfVersion = 0 | (ibf >>> 12);
-			int ibf2Version = 0 | (ibf2 >>> 12);
-			if (ibf == ibf2) {
-				version = ibfVersion;
-			} 
-			if (ibfVersion != assumedVersion) {
+			if (ci1 == null || ci2 == null) {
 				return -1;
 			}
-			if (ibf != ibf2) {
-				if (ibfVersion == assumedVersion || ibf2Version == assumedVersion) {
-					version = assumedVersion;
-				}
-				if (ibfVersion != assumedVersion && ibf2Version != assumedVersion) {
-					return -1; 
-				}
+			ibfh = ci1.corrected;
+			ibfv = ci2.corrected;
+			int ibfhVersion = (ibfh >>> 12);
+			int ibfvVersion = (ibfv >>> 12);
+			if (ibfhVersion == assumedVersion || ibfvVersion == assumedVersion) {
+				return assumedVersion;
 			}
 		}
-		return version;
+		return -1;
 	}
 	private static int formatInfo(boolean[][] cleanMatrix, int version) {
 		BitBuffer bf = new BitBuffer(15);
-		final int size = Version.getSize(version);
+		final int size = cleanMatrix.length;
 		for (int y = 1; y <= 7; y++) {	//most significant 14-8
 			boolean b = cleanMatrix[8][size - y];
 			bf.write(b);
@@ -188,10 +184,8 @@ public class Decoder {
 		}
 		return -1;	
 	}
-	private static int getECFromFormatInfo(int formatInfo) {
-		int ec = 0;
-		ec = ec | (formatInfo >>> 13);	//doublecheck
-		return ec;
+	private static ErrorCorrectionLevel getECFromFormatInfo(int formatInfo) {
+		return ErrorCorrectionLevel.parseIndex(formatInfo >>> 13);
 	}
 	private static int getMaskFromFormatInfo(int formatInfo) {
 		int mask = 0;
@@ -204,23 +198,23 @@ public class Decoder {
 		boolean[][] maskMatrix = Mask.generateFinalMask(maskNum, version);
 		for (int i = 0; i < cleanMatrix.length; i++) {
 			for (int j = 0; j < cleanMatrix[i].length; j++) {
-				cleanMatrix[i][j] = cleanMatrix[i][j] ^ maskMatrix[i][j];
+				maskMatrix[i][j] = cleanMatrix[i][j] ^ maskMatrix[i][j];
 			}
 		}
-		return cleanMatrix;
+		return maskMatrix;
 	}
 	
-	private static byte[] getDataStream(boolean[][] cleanMatrix, int version) {
+	private static byte[] getDataStream(boolean[][] maskedMatrix, int version) {
 		boolean[][] mask = Version.getDataMask(version);
 		boolean direction = false; //0 = up; 1 = down;
 		boolean lastlocation = false; //0 = going right; 1 = going left
-		int size = cleanMatrix.length;
+		int size = mask.length;
 		BitBuffer bf = new BitBuffer(size * size); //too large, but who cares.
 		int x = size - 1;
 		int y = size - 1;
 		for (int i = 0; x >= 0; i++) {
 			if (shouldRead(x , y, mask)) {
-				boolean b = cleanMatrix[x][y];
+				boolean b = maskedMatrix[x][y];
 				bf.write(b);
 			}
 			if (!direction) {//up
@@ -263,49 +257,44 @@ public class Decoder {
 		return false;
 	}
 	
-	private static byte[][] sortDataStream(byte[] unsortedData, int version, int ec) {
+	private static byte[][] sortDataStream(byte[] unsortedData, int version, ErrorCorrectionLevel ec) {
 		//need to determine number / length of DataBlocks & number of ECBlocks
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ErrorCorrectionLevel.parseIndex(ec));
-		int numberShortDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;
-		int numberDataBlocks = numberShortDataBlocks;//#ecBlocks = #dataBlocks
-		int longDataBlockLength = 0;
-		int shortDataBlockLength = ecc.errorCorrectionRows[0].k;
-		byte[][] dataBlocks = new byte[numberDataBlocks][shortDataBlockLength];
-		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
-			numberDataBlocks = numberDataBlocks + ecc.errorCorrectionRows[1].ecBlocks;
-			longDataBlockLength = ecc.errorCorrectionRows[1].k; // might not exist
-			for (int i = 0; i < numberShortDataBlocks; i++) {		//???doubelcheck
-				dataBlocks = new byte[i][shortDataBlockLength]; 
-			}
-			for (int i = numberShortDataBlocks; i < numberDataBlocks; i++) {
-				dataBlocks = new byte[i][longDataBlockLength]; 
+		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		int numberDataBlocks = 0;
+		int maxLength = 0;
+		int minLength = Integer.MAX_VALUE;
+		//get the total number of blocks
+		for (int group = 0; group < ecc.errorCorrectionRows.length; group++) {
+			numberDataBlocks += ecc.errorCorrectionRows[group].ecBlocks;
+		}
+		byte[][] dataBlocks = new byte[numberDataBlocks][];
+		//now set each to the proper length as described in ecc.
+		for (int r = 0, row = 0; r < ecc.errorCorrectionRows.length; r++) {
+			Version.ErrorCorrectionRow ecr = ecc.errorCorrectionRows[r];
+			maxLength = Math.max(maxLength, ecr.k);
+			minLength = Math.min(minLength, ecr.k);
+			for (int block = 0; block < ecr.ecBlocks; block++) {
+				dataBlocks[row++] = new byte[ecr.k];
 			}
 		}
-		
-		int totalNumberDataCodeWords = ecc.errorCorrectionRows[0].ecBlocks * ecc.errorCorrectionRows[0].k;
-		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
-			totalNumberDataCodeWords = totalNumberDataCodeWords + ecc.errorCorrectionRows[1].ecBlocks * ecc.errorCorrectionRows[1].k;
-			for (int j = 0, k = 0; j < shortDataBlockLength; j++) {
-				for(int i = 0; i < numberDataBlocks; i++) {
-					dataBlocks[i][j] = unsortedData[k++];
-					if (i < numberShortDataBlocks && j >= shortDataBlockLength) {
-						i++;
-						continue;
-					}
-				}
+		int used = 0;
+		for (int k = 0; k < minLength; k++) {
+			for (int block = 0; block < numberDataBlocks; block++) {
+				dataBlocks[block][k] = unsortedData[used++];
 			}
-		} else {
-			for (int j = 0, k = 0; j < shortDataBlockLength; j++) {
-				for(int i = 0; i < numberDataBlocks; i++) {
-					dataBlocks[i][j] = unsortedData[k++];
+		}
+		for (int k = minLength; k < maxLength; k++) {
+			for (int block = 0; block < numberDataBlocks; block++) {
+				if (k < dataBlocks[block].length) {
+					dataBlocks[block][k] = unsortedData[used++];
 				}
 			}
 		}
 		return dataBlocks;
 	}
-	private static byte[][] sortECStream(byte[] unsortedData, int version, int ec) {
+	private static byte[][] sortECStream(byte[] unsortedData, int version, ErrorCorrectionLevel ec) {
 		//create ecBlocks
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ErrorCorrectionLevel.parseIndex(ec));
+		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
 		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
 		if (ecc.errorCorrectionRows.length > 1) {
 			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
@@ -325,8 +314,7 @@ public class Decoder {
 		}
 		return ecBlocks;
 	}
-	private static byte[] dealWithData(byte[][] dataBlocks, int version) {
-		byte[] message = null;
+	private static Object dealWithData(byte[][] dataBlocks, int version, ErrorCorrectionLevel ec) {
 		// create ordered data stream (bitBuffer)
 		int size = Version.getDataCapacity(version);
 		BitBuffer bf = new BitBuffer(size);
@@ -338,7 +326,6 @@ public class Decoder {
 		}
 		//determine length of data from info
 		//Encoding Mode (4 bit), Data Size (version 0-9 8 bits, version 10-40 16 bits), Terminator (4 bits), and Padding (to fill DataCapacity) into a BitBuffer
-		int em = 0;
 		bf.seek(0);
 		/*for (int i = 0; i <= 4; i++){
 			em = em | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
@@ -363,22 +350,96 @@ public class Decoder {
 			messageBuffer.write(bf.getBitAndIncrementPosition());
 		}
 		*/
-		em = bf.getIntAndIncrementPosition(4);
-		int dataSize = 0;	
-		if (0 < version && version < 10) {
-			dataSize = bf.getIntAndIncrementPosition(8);
+		int emi = bf.getIntAndIncrementPosition(4);
+		EncodingMode em = EncodingMode.parseValue(emi);
+		if (em == null) {
+			return null;
 		}
-		if (9 < version && version < 41) {
-			dataSize = bf.getIntAndIncrementPosition(16);
+		int dataCapacity = Version.getSymbolCharacterInfo(ec, version).getDataCapacity(em);
+		switch(em) {
+				case BYTE: {
+					int dataSize = 0;	
+					if (version < 10) {
+						dataSize = bf.getIntAndIncrementPosition(8);
+					} else if (version < 41) {
+						dataSize = bf.getIntAndIncrementPosition(16);
+					}
+					if (dataCapacity <= dataSize) {
+						return -1;
+					}
+					//create another data stream - only  message (ignore prefixes, ignore padding)
+					BitBuffer messageBuffer = new BitBuffer(dataSize);
+					for (int i = 0; i < dataSize; i++) {
+						messageBuffer.write(bf.getBitAndIncrementPosition());
+					}
+					return messageBuffer.getData();
+				}
+				case ALPHANUMERIC: {
+					int dataSize = 0;	
+					if (version < 10) {
+						dataSize = bf.getIntAndIncrementPosition(9);
+					} else if (version < 27) {
+						dataSize = bf.getIntAndIncrementPosition(11);
+					} else if (version < 41) {
+						dataSize = bf.getIntAndIncrementPosition(13);
+					}
+					if (dataCapacity <= dataSize) {
+						return -1;
+					}
+					int p = 0;
+					char [] chars = new char[dataSize];
+					for (int i = 1; i < dataSize; i+=2) {
+						int e = bf.getIntAndIncrementPosition(11);
+						chars[p++] = AlphanumericMode.getChar(e / 45);
+						chars[p++] = AlphanumericMode.getChar(e % 45);
+					}
+					if(dataSize % 2 == 1){
+						chars[p++] = AlphanumericMode.getChar(bf.getIntAndIncrementPosition(6));
+					}
+					return new String(chars);
+				}
+				case NUMERIC:
+					int dataSize = 0;	
+					if (version < 10) {
+						dataSize = bf.getIntAndIncrementPosition(10);
+					} else if (version < 27) {
+						dataSize = bf.getIntAndIncrementPosition(12);
+					} else if (version < 41) {
+						dataSize = bf.getIntAndIncrementPosition(14);
+					}
+					if (dataCapacity <= dataSize) {
+						return -1;
+					}
+					int p = 0;
+					char [] chars = new char[dataSize];
+					for (int i = 2; i < dataSize; i+=3) {
+						int e = bf.getIntAndIncrementPosition(10);
+						chars[p++] = (char)(((e / 100) % 10) + '0');
+						chars[p++] = (char)(((e / 10) % 10) + '0');
+						chars[p++] = (char)((e % 10) + '0');
+					}
+					switch(dataSize % 3) {
+						case 2: {
+							int e = bf.getIntAndIncrementPosition(7);
+							chars[p++] = (char)(((e / 10) % 10) + '0');
+							chars[p++] = (char)((e % 10) + '0');
+							break;
+						}
+						case 1:
+							chars[p++] = (char)((bf.getIntAndIncrementPosition(4) % 10) + '0');
+							break;
+					}
+					return new String(chars);
+				case ECI:
+				case KANJI:
+				case STRUCTURED_APPEND:
+				case FNC1_FIRST:
+				case FNC1_SECOND:
+				case TERMINATOR:
+//					throw new UnsupportedOperationException(em + " mode is not supported.");
+				default:
+//					throw new UnsupportedOperationException("Unrecognizable mode: "+emi);
 		}
-		//create another data stream - only  message (ignore prefixes, ignore padding)
-		BitBuffer messageBuffer = new BitBuffer(dataSize);
-		for (int i = 0; i <= dataSize; i++) {
-			messageBuffer.write(bf.getBitAndIncrementPosition());
-		}
-		message = messageBuffer.getData();
-		return message;
+		return null;
 	}
-	
-	
 }

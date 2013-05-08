@@ -12,6 +12,7 @@ import java.io.*;
 import javax.imageio.*;
 import java.awt.Point;
 import java.awt.Image;
+import java.awt.BorderLayout;
 import java.awt.geom.*;
 
 public class QRReader implements Reader<BufferedImage, BufferedImage> {
@@ -713,24 +714,28 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 
 		for (SeaCreature sc : seaCreatures) {
 			boolean [][] matrix = sc.getMatrix(bw, prog);
-			final byte [] raw = Decoder.decode(matrix, swp);
+			Object raw = Decoder.decode(matrix, swp);
 			if (raw != null) {
-				QRCode code = new QRCode(){
+				QRCode code = new QRCode(matrix, raw){
 						private BufferedImage img = null;
+						private BufferedImage getImage() {
+							if(img == null){
+								img = Utilities.rescaleImage(Decoder.visualizeMatrix(matrix), 10.0);
+							}
+							return img;
+						}
 						public BufferedImage save() {
-							return orig;
+							return getImage();
 						}
 						public JPanel generateGUI() {
 							JPanel gui = new JPanel();
-							gui.add(new ImagePanel(Utilities.rescaleImage(Decoder.visualizeMatrix(matrix), 10.0)));
+							gui.setLayout(new BorderLayout());
+							gui.add(new ImagePanel(getImage()));
 							JTextArea info = new JTextArea(5, 50);
 							info.setEditable(false);
 							//Font f = new Font(info.getFont());
 							info.setOpaque(false);
-							try{
-								info.setText(new String(raw, "US-ASCII"));
-							} catch(UnsupportedEncodingException e) {
-							}
+							info.setText(text);
 							gui.add(info);
 							return gui;
 						}
@@ -757,8 +762,22 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 //		System.out.println(matchheads.size());
 		return carp;
 	}
-	public static abstract  class QRCode implements Item<BufferedImage> {
-		public byte [] data;
+	public static abstract class QRCode implements Item<BufferedImage> {
+		public QRCode(boolean[][] matrix, Object data) {
+			this.matrix = matrix;
+			this.data = data;
+			if (data instanceof byte[]) {
+				try{
+					text = new String((byte[])data, "US-ASCII");
+				} catch(UnsupportedEncodingException e) {
+					text = "I'm a little tea pot, short and stout.";
+				}
+			} else if (data instanceof String) {
+				text = (String)data;
+			}
+		}
+		public String text;
+		public Object data;
 		public boolean[][] matrix;
 	}
 	private static class Scanner {
@@ -812,7 +831,11 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			System.out.println(bar + " ~ " + car + " ~ " + Math.abs(bar - car));
 			if(Math.abs(Math.abs(car - bar) - (Math.PI / 2.0)) < Math.PI / 36){
 				if((Math.abs(bad - cad) / (bad + cad)) < .2){
-					return new Barnacle(a,b,c, width, bw);
+					try {
+						return new Barnacle(a,b,c, width, bw);
+					} catch (IllegalArgumentException e) {
+						return null;
+					}
 				}
 			} else if(Math.abs(Math.abs(car - bar) - (Math.PI / 4.0)) < Math.PI / 36){
 				return generate(b, c, a, width, bw);
@@ -820,7 +843,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return null;
 		}
 		Point start;
-		Point end;
 		MatchPoint center;
 		MatchPoint bottom;
 		MatchPoint right;
@@ -834,16 +856,17 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		Point vk;
 		Point hk;
 		int width;
+		int height;
 		int hs;
 		int vs;
 		Freud vertical;
 		Freud horizontal;
 		Freud diagonal;
+		double ms;
 		public String toString(){
 			return "<"+center + ","+bottom+","+right+"> v"+version + " ~  s="+size; 
 		}
 		private Barnacle(MatchPoint center, MatchPoint bottom, MatchPoint right, int width, boolean [] bw) {
-			//{
 			this.center = center;
 			this.width = width;
 			this.bottom = bottom;
@@ -860,7 +883,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			double [] multipliers = {1.0, 1.5, 2.0};
 			Freud t = null;
 			double scale = 0.0;
-			//}
 			diagonal.polulateValues();
 			vertical.polulateValues();
 			horizontal.polulateValues();
@@ -900,9 +922,25 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				System.out.println(Arrays.toString(Utilities.newGenericArray(vgs, vertical.start, vertical.end, vge)));
 				hs = Math.max(Math.abs(hk.x),Math.abs(hk.y)) + 1;
 				vs = Math.max(Math.abs(vk.x),Math.abs(vk.y)) + 1;
+				start = Utilities.add(center.center, Utilities.add(ho, vo));
+				height = bw.length / width;
+				ms = 1.0 / (size - 1);
+/*				Point [] corners = {new Point(0,0), new Point(0,size-1), new Point(size-1,0), new Point(size-1,size-1)};
+				for (Point corner : corners) {
+					Point p = quickPoint(corner);
+					if (p.x < 0 || p.x >= width || p.y < 0 || p.y >= height) {
+						throw new IllegalArgumentException();
+					}
+				}*/
 			} else {
 				throw new IllegalArgumentException();
 			}
+		}
+		private Point quickPoint(Point p) {
+			return quickPoint(p.x, p.y);
+		}
+		private Point quickPoint(int x, int y) {
+			return Utilities.add(start, Utilities.add(Utilities.scale(hk, x * ms), Utilities.scale(vk, y * ms)));
 		}
 		public boolean [][] getMatrix(boolean [] bw, BufferedImage prog) {
 			{
@@ -913,16 +951,19 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				Utilities.drawLine(pg, vertical.end, horizontal.end);
 				pg.dispose();
 			}
+			boolean color = !bw[center.center.x + center.center.y * width];
 			boolean [][] r = new boolean[size][size];
-			double ms = 1.0 / (size - 1);
-			Point begin = Utilities.add(center.center, Utilities.add(ho, vo));
 			System.out.println();
 			System.out.println("hk: "+hk +"\tvk: "+vk + "\nho: "+ho +"\tvo: "+vo + "\nht: "+ horizontal.travel +"\tvt: "+vertical.travel);
 			for(int x = 0; x < size; x++) {
 				for(int y = 0; y < size; y++) {
-					Point p = Utilities.add(begin, Utilities.add(Utilities.scale(hk, x * ms), Utilities.scale(vk, y * ms)));
-					setARGB(prog, p, START_COLOR);
-					r[x][y] = !bw[p.x + p.y * width];
+					Point p = quickPoint(x, y);
+					if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
+						setARGB(prog, p, START_COLOR);
+						r[x][y] = color ^ bw[p.x + p.y * width];
+					} else {
+						r[x][y] = false;
+					}
 				}
 			}
 			System.out.println();

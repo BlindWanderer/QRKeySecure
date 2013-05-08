@@ -140,9 +140,10 @@ public class QRReaderPanel extends JPanel {
 								for (int i = 2; i < viewer.tabbedPane.getTabCount(); i++) {
 									viewer.tabbedPane.remove(i);
 								}
+								int number = 0;
 								for (Item<BufferedImage> bi : out) {
+									number++;
 									QRReader.QRCode code = (QRReader.QRCode)bi;
-									int number = 1;
 									String qr = "QR" + number;
 									viewer.tabbedPane.add(qr, bi.generateGUI());
 								/*	int mn = 3;
@@ -151,17 +152,19 @@ public class QRReaderPanel extends JPanel {
 									number++;
 									mn++;*/
 									String url = null;
-									try {
-										url = "http://google.com/?q=" + URLEncoder.encode(new String(code.data), "UTF-8");
-									} catch (UnsupportedEncodingException e) {
-										e.printStackTrace();
-									}
-									try {
-									  JEditorPane htmlPane = new JEditorPane(url);
-									  htmlPane.setEditable(false);
-									  viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
-									} catch(IOException ioe) {
-									  System.err.println("Error displaying " + url);
+									if (code.text != null) {
+										try {
+											url = "http://google.com/search?q=" + URLEncoder.encode(code.text, "UTF-8");
+										} catch (UnsupportedEncodingException e) {
+											url = "http://google.com/search?q=UnsupportedEncodingException";
+										}
+										try {
+										  JEditorPane htmlPane = new JEditorPane(url);
+										  htmlPane.setEditable(false);
+										  viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
+										} catch(IOException ioe) {
+										  System.err.println("Error displaying " + url);
+										}
 									}
 								}
 								cl.show(stack, "6");
