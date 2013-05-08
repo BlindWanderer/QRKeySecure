@@ -121,7 +121,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		switch(es) {
 			case BYTE:
 				try {
-					return text.getBytes("US-ASCII");//TODO: Make this better!
+					return text.getBytes("ISO-8859-1");//TODO: Make this better!
 				} catch (Exception e) {
 					return null;
 				}

@@ -768,7 +768,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			this.data = data;
 			if (data instanceof byte[]) {
 				try{
-					text = new String((byte[])data, "US-ASCII");
+					text = new String((byte[])data, "ISO-8859-1");
 				} catch(UnsupportedEncodingException e) {
 					text = "I'm a little tea pot, short and stout.";
 				}
