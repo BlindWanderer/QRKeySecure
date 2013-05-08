@@ -193,7 +193,7 @@ public final class Version {
 			mask[6][y] = false;
 		}
 		//metaData
-			//format info
+		//format info
 		for (int y = 0; y < 8; y++) {
 			mask[8][y] = false;
 			mask[8][d - y - 1] = false;
@@ -202,7 +202,8 @@ public final class Version {
 			mask[x][8] = false;
 			mask[d - x - 1][8] = false;
 		}
-			//version info (only for version 7 and up)
+		mask[8][8] = false;//top left has an extra bit in format.
+		//version info (only for version 7 and up)
 		if (version >= 7) {
 			for (int y = 0; y < 8; y++) {
 				mask[d - 9][y] = false;

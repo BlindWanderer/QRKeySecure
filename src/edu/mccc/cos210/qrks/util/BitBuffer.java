@@ -56,6 +56,9 @@ public class BitBuffer {
 	public int getSize() {
 		return size;
 	}
+	public int getPosition() {
+		return pos;
+	}
 	public void write(boolean x) {
 		write(x ? 1 : 0, (byte)1);
 	}

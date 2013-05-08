@@ -730,13 +730,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						public JPanel generateGUI() {
 							JPanel gui = new JPanel();
 							gui.setLayout(new BorderLayout());
-							gui.add(new ImagePanel(getImage()));
+							gui.add(new ImagePanel(getImage()), BorderLayout.CENTER);
 							JTextArea info = new JTextArea(5, 50);
 							info.setEditable(false);
 							//Font f = new Font(info.getFont());
 							info.setOpaque(false);
 							info.setText(text);
-							gui.add(info);
+							gui.add(info, BorderLayout.SOUTH);
 							return gui;
 						}
 					};
@@ -774,6 +774,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				}
 			} else if (data instanceof String) {
 				text = (String)data;
+			} else if (data == null){
+				text = "<null>";
+			} else {
+				text = data.toString();
 			}
 		}
 		public String text;

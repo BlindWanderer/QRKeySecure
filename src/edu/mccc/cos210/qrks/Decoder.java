@@ -36,15 +36,18 @@ public class Decoder {
 			System.out.println("<no good>");
 			return null;
 		}
+		System.out.println("version: "+version);
 		ErrorCorrectionLevel ec = getECFromFormatInfo(formatInfo);
-		System.out.println(ec);
+		System.out.println("error correction: "+ec);
 		if (ec == null) {
 			System.out.println("<no good>");
 			return null;
 		}
 
 		int maskNum = getMaskFromFormatInfo(formatInfo);
-		System.out.println(maskNum);
+		System.out.println("mask: "+maskNum);
+
+		swp.publish(visualizeMatrix(Version.getDataMask(version)));
 
 		//unmask
 		boolean [][] maskedMatrix = applyMask(version, cleanMatrix, maskNum);
@@ -352,10 +355,11 @@ public class Decoder {
 		*/
 		int emi = bf.getIntAndIncrementPosition(4);
 		EncodingMode em = EncodingMode.parseValue(emi);
+		System.out.println("raw encoding mode:" + emi + "  parsed: " + em);
 		if (em == null) {
 			return null;
 		}
-		int dataCapacity = Version.getSymbolCharacterInfo(ec, version).getDataCapacity(em);
+		int dataCapacity = Version.getSymbolCharacterInfo(ec, version).getDataCapacity(em) * 8;
 		switch(em) {
 				case BYTE: {
 					int dataSize = 0;	
@@ -364,8 +368,9 @@ public class Decoder {
 					} else if (version < 41) {
 						dataSize = bf.getIntAndIncrementPosition(16);
 					}
-					if (dataCapacity <= dataSize) {
-						return -1;
+					System.out.println("capacity:" + dataCapacity + "  desired: " + dataSize + "  buffer: " + size + "  position: " + bf.getPosition());
+					if (dataCapacity < dataSize) {
+						return null;
 					}
 					//create another data stream - only  message (ignore prefixes, ignore padding)
 					BitBuffer messageBuffer = new BitBuffer(dataSize);
@@ -383,17 +388,19 @@ public class Decoder {
 					} else if (version < 41) {
 						dataSize = bf.getIntAndIncrementPosition(13);
 					}
-					if (dataCapacity <= dataSize) {
-						return -1;
+					System.out.println("capacity:" + dataCapacity + "  desired: " + dataSize + "  buffer: " + size + "  position: " + bf.getPosition());
+					if (dataCapacity < dataSize) {
+						return null;
 					}
 					int p = 0;
+					int i = 0;
 					char [] chars = new char[dataSize];
-					for (int i = 1; i < dataSize; i+=2) {
+					for (i = 0; i < dataSize; i+=11) {
 						int e = bf.getIntAndIncrementPosition(11);
 						chars[p++] = AlphanumericMode.getChar(e / 45);
 						chars[p++] = AlphanumericMode.getChar(e % 45);
 					}
-					if(dataSize % 2 == 1){
+					if(dataSize - i > 5) {
 						chars[p++] = AlphanumericMode.getChar(bf.getIntAndIncrementPosition(6));
 					}
 					return new String(chars);
@@ -407,25 +414,30 @@ public class Decoder {
 					} else if (version < 41) {
 						dataSize = bf.getIntAndIncrementPosition(14);
 					}
-					if (dataCapacity <= dataSize) {
-						return -1;
+					System.out.println("capacity:" + dataCapacity + "  desired: " + dataSize + "  buffer: " + size + "  position: " + bf.getPosition());
+					if (dataCapacity < dataSize) {
+						return null;
 					}
 					int p = 0;
 					char [] chars = new char[dataSize];
-					for (int i = 2; i < dataSize; i+=3) {
+					for (int i = 0; i < dataSize; i+=10) {
 						int e = bf.getIntAndIncrementPosition(10);
 						chars[p++] = (char)(((e / 100) % 10) + '0');
 						chars[p++] = (char)(((e / 10) % 10) + '0');
 						chars[p++] = (char)((e % 10) + '0');
 					}
-					switch(dataSize % 3) {
-						case 2: {
+					switch(dataSize % 10) {
+						case 9:
+						case 8:
+						case 7: {
 							int e = bf.getIntAndIncrementPosition(7);
 							chars[p++] = (char)(((e / 10) % 10) + '0');
 							chars[p++] = (char)((e % 10) + '0');
 							break;
 						}
-						case 1:
+						case 6:
+						case 5:
+						case 4:
 							chars[p++] = (char)((bf.getIntAndIncrementPosition(4) % 10) + '0');
 							break;
 					}
