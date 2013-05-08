@@ -10,7 +10,7 @@ import java.awt.image.*;
 import java.util.*;
 
 public class Decoder {
-	public static final int VISUALIZE_MATRIX_PADDING = 3;
+	public static final int VISUALIZE_MATRIX_PADDING = 1;
 	public static BufferedImage visualizeMatrix(boolean [][] matrix){
 		final int size = matrix.length;
 		final int larger = size + (VISUALIZE_MATRIX_PADDING * 2);
@@ -48,7 +48,15 @@ public class Decoder {
 		int maskNum = getMaskFromFormatInfo(formatInfo);
 		System.out.println("mask: "+maskNum);
 
-		swp.publish(visualizeMatrix(Version.getDataMask(version)));
+		if(maskNum == 1){
+		BufferedImage img = Utilities.rescaleImage(visualizeMatrix(Mask.generateFinalMask(maskNum, version)), 5);
+		Graphics2D g = img.createGraphics();
+		g.setColor(Color.GREEN);
+		g.setFont(new Font("Dialog", Font.PLAIN, 12));
+		g.drawString("Mask "+maskNum, 5, 20);
+		g.dispose();
+		swp.publish(img);
+		}
 
 		//unmask
 		boolean [][] maskedMatrix = applyMask(version, cleanMatrix, maskNum);
@@ -421,14 +429,18 @@ public class Decoder {
 					int p = 0;
 					int i = 0;
 					char [] chars = new char[dataSize];
-					for (i = 0; i < dataSize; i+=11) {
+					int [] raw = new int[dataSize];
+					for (i = 0; i < dataSize; i+=11, p+=2) {
 						int e = bf.getIntAndIncrementPosition(11);
-						chars[p++] = AlphanumericMode.getChar(e / 45);
-						chars[p++] = AlphanumericMode.getChar(e % 45);
+						chars[p] = AlphanumericMode.getChar(raw[p] = (e / 45));
+						chars[p+1] = AlphanumericMode.getChar(raw[p+1] = (e % 45));
 					}
 					if(dataSize - i > 5) {
-						chars[p++] = AlphanumericMode.getChar(bf.getIntAndIncrementPosition(6));
+						chars[p] = AlphanumericMode.getChar(raw[p] = bf.getIntAndIncrementPosition(6));
+						p++;
 					}
+					System.out.println(Arrays.toString(raw));
+					System.out.println(Arrays.toString(chars));
 					return new String(chars);
 				}
 				case NUMERIC:
