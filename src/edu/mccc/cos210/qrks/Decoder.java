@@ -288,7 +288,7 @@ public class Decoder {
 			numberDataBlocks += ecc.errorCorrectionRows[group].ecBlocks;
 		}
 		int offset = 0;
-		int [] offsets = new int[numberDataBlocks];
+		int [] offsets = new int[numberDataBlocks];//for debugging
 		byte[][] dataBlocks = new byte[numberDataBlocks][];
 		//now set each to the proper length as described in ecc.
 		for (int r = 0, row = 0; r < ecc.errorCorrectionRows.length; r++) {
@@ -296,16 +296,17 @@ public class Decoder {
 			maxLength = Math.max(maxLength, ecr.k);
 			minLength = Math.min(minLength, ecr.k);
 			for (int block = 0; block < ecr.ecBlocks; block++) {
-				offsets[row] = offset;
-				offset += ecr.k;
-				dataBlocks[row++] = new byte[ecr.k];
+				dataBlocks[row] = new byte[ecr.k];
+				offsets[row] = offset;//for debugging
+				offset += ecr.k;//for debugging
+				row++;
 			}
 		}
 		int used = 0;
 		for (int k = 0; k < minLength; k++) {
 			for (int block = 0; block < numberDataBlocks; block++) {
 				dataBlocks[block][k] = unsortedData[used];
-				unsortedData[used] = (byte)((offsets[block] + k) & 0xff);
+				unsortedData[used] = (byte)((offsets[block] + k) & 0xff);//for debugging
 				used++;
 			}
 		}
@@ -313,7 +314,7 @@ public class Decoder {
 			for (int block = 0; block < numberDataBlocks; block++) {
 				if (k < dataBlocks[block].length) {
 					dataBlocks[block][k] = unsortedData[used];
-					unsortedData[used] = (byte)((offsets[block] + k) & 0xff);
+					unsortedData[used] = (byte)((offsets[block] + k) & 0xff);//for debugging
 					used++;
 				}
 			}
