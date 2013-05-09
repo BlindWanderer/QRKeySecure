@@ -715,7 +715,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		for (SeaCreature sc : seaCreatures) {
 			boolean [][] matrix = sc.getMatrix(bw, prog);
 			Object raw = Decoder.decode(matrix, swp);
-			if (raw != null) {
+			if (raw != null) {//TODO this needs to be refactored.
 				QRCode code = new QRCode(matrix, raw){
 						private BufferedImage img = null;
 						private BufferedImage getImage() {

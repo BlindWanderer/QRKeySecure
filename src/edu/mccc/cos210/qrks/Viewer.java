@@ -13,7 +13,7 @@ import javax.imageio.*;
 public class Viewer extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
-	private Reader<BufferedImage, BufferedImage> [] readers = Utilities.newGenericArray(new QRReader());
+	private Reader<BufferedImage, BufferedImage> [] readers = Utilities.newGenericArray(new QRSecureReader());
 	public JTabbedPane tabbedPane;
 	private static final String DEFAULT_NAME = "QRKeySecure";
 	public Viewer() {

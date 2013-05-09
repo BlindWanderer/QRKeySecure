@@ -159,11 +159,11 @@ public class QRReaderPanel extends JPanel {
 											url = "http://google.com/search?q=UnsupportedEncodingException";
 										}
 										try {
-										  JEditorPane htmlPane = new JEditorPane(url);
-										  htmlPane.setEditable(false);
-										  viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
+											JEditorPane htmlPane = new JEditorPane(url);
+											htmlPane.setEditable(false);
+											viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
 										} catch(IOException ioe) {
-										  System.err.println("Error displaying " + url);
+											System.err.println("Error displaying " + url + ": " + ioe);
 										}
 									}
 								}
