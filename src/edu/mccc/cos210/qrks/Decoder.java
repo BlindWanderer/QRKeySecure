@@ -49,13 +49,13 @@ public class Decoder {
 		System.out.println("mask: "+maskNum);
 
 		if(maskNum == 1){
-		BufferedImage img = Utilities.rescaleImage(visualizeMatrix(Mask.generateFinalMask(maskNum, version)), 5);
-		Graphics2D g = img.createGraphics();
-		g.setColor(Color.GREEN);
-		g.setFont(new Font("Dialog", Font.PLAIN, 12));
-		g.drawString("Mask "+maskNum, 5, 20);
-		g.dispose();
-		swp.publish(img);
+			BufferedImage img = Utilities.rescaleImage(visualizeMatrix(Mask.generateFinalMask(maskNum, version)), 5);
+			Graphics2D g = img.createGraphics();
+			g.setColor(Color.GREEN);
+			g.setFont(new Font("Dialog", Font.PLAIN, 12));
+			g.drawString("Mask "+maskNum, 5, 20);
+			g.dispose();
+//			swp.publish(img);
 		}
 
 		//unmask
@@ -63,7 +63,12 @@ public class Decoder {
 		System.out.println("unmasked");
 
 		byte[] unsortedData = getDataStream(maskedMatrix, version, swp);
-		System.out.println(Arrays.toString(unsortedData));
+//		System.out.println(Arrays.toString(unsortedData));
+		int [] ia = new int[unsortedData.length];
+		for(int i = 0; i < ia.length; i++){
+			ia[i] = 0xff & unsortedData[i];
+		}
+		System.out.println(Arrays.toString(ia));
 
 		byte[][] dataBlocks= sortDataStream(unsortedData, version, ec);
 		System.out.println("sorted data stream");
@@ -432,11 +437,18 @@ public class Decoder {
 					int [] raw = new int[dataSize];
 					for (i = 0; i < dataSize; i+=11, p+=2) {
 						int e = bf.getIntAndIncrementPosition(11);
-						chars[p] = AlphanumericMode.getChar(raw[p] = (e / 45));
+						if (e >= 45 * 45) {
+							return -1;
+						}
+						chars[p] = AlphanumericMode.getChar(raw[p] = ((e / 45) % 45));
 						chars[p+1] = AlphanumericMode.getChar(raw[p+1] = (e % 45));
 					}
 					if(dataSize - i > 5) {
-						chars[p] = AlphanumericMode.getChar(raw[p] = bf.getIntAndIncrementPosition(6));
+						int e = bf.getIntAndIncrementPosition(6);
+						if (e >= 45) {
+							return -1;
+						}
+						chars[p] = AlphanumericMode.getChar(raw[p] = e);
 						p++;
 					}
 					System.out.println(Arrays.toString(raw));
