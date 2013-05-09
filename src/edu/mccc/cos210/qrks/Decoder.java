@@ -79,7 +79,11 @@ public class Decoder {
 
 		Object message = dealWithData(dataBlocks, version, ec);
 
-		System.out.println("dealt with data");
+		if(message instanceof byte[]) {
+			System.out.println("dealt with data: byte[] " + Arrays.toString((byte[])message));
+		} else {
+			System.out.println("dealt with data: " + message);
+		}
 		return message;
 	}
 	private static int versionInfo(boolean[][] cleanMatrix) {
@@ -398,100 +402,117 @@ public class Decoder {
 		if (em == null) {
 			return null;
 		}
-		int dataCapacity = Version.getSymbolCharacterInfo(ec, version).getDataCapacity(em) * 8;
+		int maxSymbolCount = Version.getSymbolCharacterInfo(ec, version).getDataCapacity(em);
 		switch(em) {
 				case BYTE: {
-					int dataSize = 0;	
+					int byteCount;
+					int symbolCount;
 					if (version < 10) {
-						dataSize = bf.getIntAndIncrementPosition(8) * 8;
-					} else if (version < 41) {
-						dataSize = bf.getIntAndIncrementPosition(16) * 8;
+						byteCount = bf.getIntAndIncrementPosition(8);
+						symbolCount = byteCount - 16;
+					} else {
+						byteCount = bf.getIntAndIncrementPosition(16);
+						symbolCount = byteCount - 24;
 					}
-					System.out.println("capacity:" + dataCapacity + "  desired: " + dataSize + "  buffer: " + size + "  position: " + bf.getPosition());
-					if (dataCapacity < dataSize) {
+//					System.out.println("max:" + maxSymbolCount + "  desired: " + symbolCount + "  buffer: " + size + "  position: " + bf.getPosition());
+					if (maxSymbolCount < symbolCount) {
 						return null;
 					}
 					//create another data stream - only  message (ignore prefixes, ignore padding)
-					BitBuffer messageBuffer = new BitBuffer(dataSize);
-					for (int i = 0; i < dataSize; i+=8) {
-						messageBuffer.write(bf.getBitAndIncrementPosition());
+					BitBuffer messageBuffer = new BitBuffer(symbolCount * 8);
+					for (int i = 0; i < symbolCount; i++) {
+						messageBuffer.write((byte)bf.getIntAndIncrementPosition(8), 8);
 					}
 					return messageBuffer.getData();
 				}
 				case ALPHANUMERIC: {
-					int dataSize = 0;	
+					int symbolCount;
 					if (version < 10) {
-						dataSize = bf.getIntAndIncrementPosition(9);
+						symbolCount = bf.getIntAndIncrementPosition(9);
 					} else if (version < 27) {
-						dataSize = bf.getIntAndIncrementPosition(11);
-					} else if (version < 41) {
-						dataSize = bf.getIntAndIncrementPosition(13);
+						symbolCount = bf.getIntAndIncrementPosition(11);
+					} else {
+						symbolCount = bf.getIntAndIncrementPosition(13);
 					}
-					System.out.println("capacity:" + dataCapacity + "  desired: " + dataSize + "  buffer: " + size + "  position: " + bf.getPosition());
-					if (dataCapacity < dataSize) {
+//					int dataSize = (symbolCount / 2) * 11 + (symbolCount % 2) * 6;
+					System.out.println("max:" + maxSymbolCount + "  desired: " + symbolCount + "  buffer: " + size + "  position: " + bf.getPosition());
+					if (maxSymbolCount < symbolCount) {
 						return null;
 					}
 					int p = 0;
-					int i = 0;
-					char [] chars = new char[dataSize];
-					int [] raw = new int[dataSize];
-					for (i = 0; i < dataSize; i+=11, p+=2) {
+					char [] chars = new char[symbolCount];
+					int [] raw = new int[symbolCount];
+					for (int i = 1; i < symbolCount; i+=2, p+=2) {
 						int e = bf.getIntAndIncrementPosition(11);
 						if (e >= 45 * 45) {
-							return -1;
+							System.out.println("bad data");
+							return null;
 						}
 						chars[p] = AlphanumericMode.getChar(raw[p] = ((e / 45) % 45));
 						chars[p+1] = AlphanumericMode.getChar(raw[p+1] = (e % 45));
 					}
-					if(dataSize - i > 5) {
+					if(symbolCount % 2 != 0) {
 						int e = bf.getIntAndIncrementPosition(6);
 						if (e >= 45) {
-							return -1;
+							System.out.println("bad data");
+							return null;
 						}
 						chars[p] = AlphanumericMode.getChar(raw[p] = e);
 						p++;
 					}
-					System.out.println(Arrays.toString(raw));
-					System.out.println(Arrays.toString(chars));
+					System.out.println("raw :" + Arrays.toString(raw));
+					System.out.println("chars :" + Arrays.toString(chars));
 					return new String(chars);
 				}
-				case NUMERIC:
-					int dataSize = 0;	
+				case NUMERIC: {
+					int symbolCount;
 					if (version < 10) {
-						dataSize = bf.getIntAndIncrementPosition(10);
+						symbolCount = bf.getIntAndIncrementPosition(10);
 					} else if (version < 27) {
-						dataSize = bf.getIntAndIncrementPosition(12);
-					} else if (version < 41) {
-						dataSize = bf.getIntAndIncrementPosition(14);
+						symbolCount = bf.getIntAndIncrementPosition(12);
+					} else {
+						symbolCount = bf.getIntAndIncrementPosition(14);
 					}
-					System.out.println("capacity:" + dataCapacity + "  desired: " + dataSize + "  buffer: " + size + "  position: " + bf.getPosition());
-					if (dataCapacity < dataSize) {
+//					int dataSize = (((symbolCount + 2) / 3) * 10) - (3 * (symbolCount % 3));
+					System.out.println("max:" + maxSymbolCount + "  desired: " + symbolCount + "  buffer: " + size + "  position: " + bf.getPosition());
+					if (maxSymbolCount < symbolCount) {
 						return null;
 					}
 					int p = 0;
-					char [] chars = new char[dataSize];
-					for (int i = 0; i < dataSize; i+=10) {
+					char [] chars = new char[symbolCount];
+					for (int i = 2; i < symbolCount; i+=3) {
 						int e = bf.getIntAndIncrementPosition(10);
-						chars[p++] = (char)(((e / 100) % 10) + '0');
+						if (e > 999) {
+							System.out.println("bad data");
+							return null;
+						}
+						chars[p++] = (char)((e / 100) + '0');
 						chars[p++] = (char)(((e / 10) % 10) + '0');
 						chars[p++] = (char)((e % 10) + '0');
 					}
-					switch(dataSize % 10) {
-						case 9:
-						case 8:
-						case 7: {
+					switch(symbolCount % 3) {
+						case 2: {
 							int e = bf.getIntAndIncrementPosition(7);
-							chars[p++] = (char)(((e / 10) % 10) + '0');
+							if (e > 99) {
+								System.out.println("bad data");
+								return null;
+							}
+							chars[p++] = (char)((e / 10) + '0');
 							chars[p++] = (char)((e % 10) + '0');
 							break;
 						}
-						case 6:
-						case 5:
-						case 4:
-							chars[p++] = (char)((bf.getIntAndIncrementPosition(4) % 10) + '0');
+						case 1: {
+							int e = bf.getIntAndIncrementPosition(4);
+							if (e > 9) {
+								System.out.println("bad data");
+								return null;
+							}
+							chars[p++] = (char)(e + '0');
 							break;
+						}
 					}
 					return new String(chars);
+				}
 				case ECI:
 				case KANJI:
 				case STRUCTURED_APPEND:

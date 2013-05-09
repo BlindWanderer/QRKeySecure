@@ -15,7 +15,7 @@ public class Viewer extends JFrame {
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
 	private Reader<BufferedImage, BufferedImage> [] readers = Utilities.newGenericArray(new QRReader());
 	public JTabbedPane tabbedPane;
-	private static final String DEFAULT_NAME = "QRKey";
+	private static final String DEFAULT_NAME = "QRKeySecure";
 	public Viewer() {
 		super(DEFAULT_NAME);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
