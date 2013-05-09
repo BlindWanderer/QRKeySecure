@@ -100,7 +100,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 	}
 	public static int getVersion(byte [] data, ErrorCorrectionLevel ec, EncodingMode em) {
 		int dataCharCount= data.length;
-		Version.SymbolCharacterInfo [] scis = Version.getSymbolCharacterInfos(ec);
+		SymbolCharacterInfo [] scis = ec.getSymbolCharacterInfos();
 		for (int i = 1; i < 41; i++) {
 			int maxChar = scis[i - 1].getDataCapacity(em);
 			if (dataCharCount <= maxChar) {
@@ -178,7 +178,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		//Subdivide Data Codewords into Blocks, according to each block. 
 		byte[] dataCodeWords = memory.getData();
 		//determine from table how many data blocks and how many code words in each.
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		ErrorCorrectionLevel.Characteristic ecc = ec.getCharacteristic(version);
 		int numberDataBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberDataBlocks = numberDataBlocks + ecc.errorCorrectionRows[1].ecBlocks;
@@ -208,7 +208,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 	}
 	private static byte[][] makeECBlocks (byte[][] dataBlocks, int version, ErrorCorrectionLevel ec) {
 		//Creates a ErrorCorrection Block for each Codeword Block
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		ErrorCorrectionLevel.Characteristic ecc = ec.getCharacteristic(version);
 		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
@@ -274,7 +274,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		Mask pattern for XOR operation: 101010000010010
 		*/
 		int format = 0b000000000000000; // 15 bits
-		int error = ec.index;
+		int error = ec.getValue();
 		format = format | (error << 13); 
 		int dataBits = 0b00000;
 		dataBits = dataBits | (error << 3);

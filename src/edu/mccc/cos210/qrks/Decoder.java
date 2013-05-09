@@ -47,17 +47,16 @@ public class Decoder {
 
 		int maskNum = getMaskFromFormatInfo(formatInfo);
 		System.out.println("mask: "+maskNum);
-
+/*
 		if(maskNum == 1){
-			BufferedImage img = Utilities.rescaleImage(visualizeMatrix(Mask.generateFinalMask(maskNum, version)), 5);
+			BufferedImage img = Utilities.rescaleImage(visualizeMatrix(Version.getDataMask(version)), 5);
 			Graphics2D g = img.createGraphics();
 			g.setColor(Color.GREEN);
 			g.setFont(new Font("Dialog", Font.PLAIN, 12));
 			g.drawString("Mask "+maskNum, 5, 20);
 			g.dispose();
 //			swp.publish(img);
-		}
-
+		}*/
 		//unmask
 		boolean [][] maskedMatrix = applyMask(version, cleanMatrix, maskNum);
 		System.out.println("unmasked");
@@ -209,7 +208,7 @@ public class Decoder {
 		return -1;	
 	}
 	private static ErrorCorrectionLevel getECFromFormatInfo(int formatInfo) {
-		return ErrorCorrectionLevel.parseIndex(formatInfo >>> 13);
+		return ErrorCorrectionLevel.parseValue(formatInfo >>> 13);
 	}
 	private static int getMaskFromFormatInfo(int formatInfo) {
 		int mask = 0;
@@ -229,7 +228,7 @@ public class Decoder {
 	}
 	
 	private static byte[] getDataStream(boolean[][] maskedMatrix, int version, SwingWorkerProtected<?, BufferedImage> swp) {
-		final int SCALE = 24;
+//		final int SCALE = 24;
 //		BufferedImage img = Utilities.rescaleImage(visualizeMatrix(maskedMatrix), SCALE);
 //		Graphics2D g = img.createGraphics();
 //		g.setColor(Color.RED);
@@ -243,12 +242,12 @@ public class Decoder {
 		int y = size - 1;
 		for (int i = 0; x >= 0; i++) {
 			if (shouldRead(x , y, mask)) {
-				boolean b = maskedMatrix[x][y];
-				bf.write(b);
 //				g.setColor(Color.RED);
 //				g.drawString(""+(bf.getPosition() % 8), (x + VISUALIZE_MATRIX_PADDING) * SCALE, (y + VISUALIZE_MATRIX_PADDING + 1) * SCALE);
 //				g.setColor(Color.GREEN);
 //				g.drawString(""+(bf.getPosition() / 8), (x + VISUALIZE_MATRIX_PADDING) * SCALE, (int)((y + VISUALIZE_MATRIX_PADDING + 0.5) * SCALE));
+				boolean b = maskedMatrix[x][y];
+				bf.write(b);
 			}
 			if (!direction) {//up
 				if (!lastlocation) {//going right
@@ -296,7 +295,7 @@ public class Decoder {
 	
 	private static byte[][] sortDataStream(byte[] unsortedData, int version, ErrorCorrectionLevel ec) {
 		//need to determine number / length of DataBlocks & number of ECBlocks
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		ErrorCorrectionLevel.Characteristic ecc = ec.getCharacteristic(version);
 		int numberDataBlocks = 0;
 		int maxLength = 0;
 		int minLength = Integer.MAX_VALUE;
@@ -309,7 +308,7 @@ public class Decoder {
 		byte[][] dataBlocks = new byte[numberDataBlocks][];
 		//now set each to the proper length as described in ecc.
 		for (int r = 0, row = 0; r < ecc.errorCorrectionRows.length; r++) {
-			Version.ErrorCorrectionRow ecr = ecc.errorCorrectionRows[r];
+			ErrorCorrectionLevel.Characteristic.Row ecr = ecc.errorCorrectionRows[r];
 			maxLength = Math.max(maxLength, ecr.k);
 			minLength = Math.min(minLength, ecr.k);
 			for (int block = 0; block < ecr.ecBlocks; block++) {
@@ -340,7 +339,7 @@ public class Decoder {
 	}
 	private static byte[][] sortECStream(byte[] unsortedData, int version, ErrorCorrectionLevel ec) {
 		//create ecBlocks
-		Version.ErrorCorrectionCharacteristic ecc = Version.getErrorCorrectionCharacteristic(version, ec);
+		ErrorCorrectionLevel.Characteristic ecc = ec.getCharacteristic(version);
 		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
 		if (ecc.errorCorrectionRows.length > 1) {
 			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
@@ -366,63 +365,39 @@ public class Decoder {
 		BitBuffer bf = new BitBuffer(size);
 		//put data in buffer
 		for (int i = 0; i < dataBlocks.length; i++) {
-			for (int j = 0; j < dataBlocks[i].length; j++) {
-					bf.write(dataBlocks[i][j], 8);
-			}
+			bf.write(dataBlocks[i]);
 		}
-		//determine length of data from info
-		//Encoding Mode (4 bit), Data Size (version 0-9 8 bits, version 10-40 16 bits), Terminator (4 bits), and Padding (to fill DataCapacity) into a BitBuffer
 		bf.seek(0);
-		/*for (int i = 0; i <= 4; i++){
-			em = em | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
-		}
-		int dataSize = 0;	
-		int dataStartPosition = 0; //where actual dataStarts after prefixes
-		if (0 < version && version < 10) {
-			for (int i = 8; i>=0; i++){
-				dataSize = dataSize | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
-			}
-			dataStartPosition = 12; 
-		}
-		if (9 < version && version < 41) {
-			for (int i = 16; i>=0; i++){
-				dataSize = dataSize | ((bf.getBitAndIncrementPosition()? 1 : 0) << i);
-			}
-			dataStartPosition = 16;
-		}
-		//create another data stream - only  message (ignore prefixes, ignore padding)
-		BitBuffer messageBuffer = new BitBuffer(dataSize);
-		for (int i = dataStartPosition; i <= dataStartPosition + dataSize; i++) {
-			messageBuffer.write(bf.getBitAndIncrementPosition());
-		}
-		*/
 		int emi = bf.getIntAndIncrementPosition(4);
 		EncodingMode em = EncodingMode.parseValue(emi);
 		System.out.println("raw encoding mode:" + emi + "  parsed: " + em);
 		if (em == null) {
 			return null;
 		}
-		int maxSymbolCount = Version.getSymbolCharacterInfo(ec, version).getDataCapacity(em);
+		int maxSymbolCount = ec.getSymbolCharacterInfo(version).getDataCapacity(em);
 		switch(em) {
 				case BYTE: {
-					int byteCount;
+//					int byteCount;
 					int symbolCount;
 					if (version < 10) {
-						byteCount = bf.getIntAndIncrementPosition(8);
-						symbolCount = byteCount - 2;
+						symbolCount = bf.getIntAndIncrementPosition(8);
+//						symbolCount = byteCount - 2;
 					} else {
-						byteCount = bf.getIntAndIncrementPosition(16);
-						symbolCount = byteCount - 3;
+						symbolCount = bf.getIntAndIncrementPosition(16);
+//						symbolCount = byteCount - 3;
 					}
-//					System.out.println("max:" + maxSymbolCount + "  desired: " + symbolCount + "  buffer: " + size + "  position: " + bf.getPosition());
+					System.out.println("max:" + maxSymbolCount + "  desired: " + symbolCount + "  buffer: " + size + "  position: " + bf.getPosition());
 					if (maxSymbolCount < symbolCount) {
 						return null;
 					}
 					//create another data stream - only  message (ignore prefixes, ignore padding)
 					BitBuffer messageBuffer = new BitBuffer(symbolCount * 8);
 					for (int i = 0; i < symbolCount; i++) {
-						messageBuffer.write((byte)bf.getIntAndIncrementPosition(8), 8);
+						int e = bf.getIntAndIncrementPosition(8);
+						System.out.print(e+",");
+						messageBuffer.write(e, 8);
 					}
+					System.out.println();
 					return messageBuffer.getData();
 				}
 				case ALPHANUMERIC: {
