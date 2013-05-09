@@ -409,10 +409,10 @@ public class Decoder {
 					int symbolCount;
 					if (version < 10) {
 						byteCount = bf.getIntAndIncrementPosition(8);
-						symbolCount = byteCount - 16;
+						symbolCount = byteCount - 2;
 					} else {
 						byteCount = bf.getIntAndIncrementPosition(16);
-						symbolCount = byteCount - 24;
+						symbolCount = byteCount - 3;
 					}
 //					System.out.println("max:" + maxSymbolCount + "  desired: " + symbolCount + "  buffer: " + size + "  position: " + bf.getPosition());
 					if (maxSymbolCount < symbolCount) {
