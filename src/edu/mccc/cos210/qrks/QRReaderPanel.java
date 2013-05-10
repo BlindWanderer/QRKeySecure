@@ -6,6 +6,8 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.awt.image.*;
 
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.filechooser.*;
 
 import java.io.*;
@@ -151,16 +153,30 @@ public class QRReaderPanel extends JPanel {
 									viewer.tabbedPane.setMnemonicAt(0, keyEvent);
 									number++;
 									mn++;*/
-									String url = null;
+									final String url;
+									String blah = null;
 									if (code.text != null) {
 										try {
-											url = "http://google.com/search?q=" + URLEncoder.encode(code.text, "UTF-8");
+											blah = URLEncoder.encode(code.text, "UTF-8");
 										} catch (UnsupportedEncodingException e) {
-											url = "http://google.com/search?q=UnsupportedEncodingException";
+											blah = "http://google.com/search?q=UnsupportedEncodingException";
 										}
+										url = "http://google.com/search?q=" + blah;
 										try {
-											JEditorPane htmlPane = new JEditorPane(url);
+											final JEditorPane htmlPane = new JEditorPane(url);
 											htmlPane.setEditable(false);
+											htmlPane.addHyperlinkListener(new HyperlinkListener(){
+												 public void hyperlinkUpdate(HyperlinkEvent event) {
+													    if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+													      try {
+													        htmlPane.setPage(event.getURL());
+													       // urlField.setText(event.getURL().toExternalForm());
+													      } catch(IOException ioe) {
+													    	  System.err.println("Error displaying " + url);
+													      }
+													    }
+													 }
+											});
 											viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
 										} catch(IOException ioe) {
 											System.err.println("Error displaying " + url + ": " + ioe);
@@ -168,8 +184,27 @@ public class QRReaderPanel extends JPanel {
 									}
 								}
 								cl.show(stack, "6");
-							}
+							}	
 						}
+						
+						
+						
+						/*@Override
+						 //NOTE: need to implement HyperlinkListener
+						 public void hyperlinkUpdate(HyperlinkEvent event) {
+						    if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+						      try {
+						        htmlPane.setPage(event.getURL());
+						 //       urlField.setText(event.getURL().toExternalForm());
+						      } catch(IOException ioe) {
+						    	  System.err.println("Error displaying " + url);
+						      }
+						    }
+						 }*/
+						
+						
+						
+						
 						@Override
 						public void process(java.util.List<BufferedImage> imgs) {
 							if(swp == this){

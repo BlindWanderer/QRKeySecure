@@ -48,10 +48,13 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 	public QRBuilderPanel(final QRBuilder builder) {
 		super(builder);
 
-		input = new JTextArea(5, 50);
-		JPanel tp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
+		input = new JTextArea(5, 20);
+		input.setLineWrap(true);
+	//	JPanel tp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
+		JScrollPane tp = new JScrollPane(input);
 		tp.setBorder(BorderFactory.createTitledBorder("QRCode Text:"));
-		tp.add(input);
+		tp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+	//	tp.add(input);
 
 		ec = new JComboBox<ErrorCorrectionLevel>(ErrorCorrectionLevel.values());
 		JPanel ecp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
@@ -88,11 +91,12 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		ppsp.setBorder(BorderFactory.createTitledBorder("Pixels Per Unit:"));
 		ppsp.add(pps);
 		
-		final JTextArea info = new JTextArea("Version: \nDimensions: \nNumber of Characters: 0");
+		final JTextArea info = new JTextArea("Version: \nDimensions: \nNumber of Characters: 0" );
 		info.setEditable(false);
 		//Font f = new Font(info.getFont());
 		info.setOpaque(false);
 		JPanel ip = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
+		ip.setPreferredSize(new Dimension(200, 120));
 		ip.setToolTipText("Information:");
 		ip.setBorder(BorderFactory.createTitledBorder("Information:"));
 		ip.add(info);
@@ -109,7 +113,6 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 			}
 			public void update(final DocumentEvent e) {
 				Document doc = e.getDocument();
-				//TODO: calculate other values, this is trivial but implementation specific
 				EncodingMode em = QRBuilder.getEncoding(getText());
 				byte[] ba= QRBuilder.encode(getText(), em);
 				int version = QRBuilder.getVersion(ba, getErrorCorrectionLevel(), em);
@@ -119,9 +122,46 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 			}
 		});
 		
+		
+		ec.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				EncodingMode em = QRBuilder.getEncoding(getText());
+				byte[] ba= QRBuilder.encode(getText(), em);
+				int version = QRBuilder.getVersion(ba, getErrorCorrectionLevel(), em);
+				int ppu = Integer.parseInt(pps.getText(), 10);
+				String in = input.getText();
+				int dimension = (version * 4 + 21) * ppu;
+				info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + in.length());
+			}
+		});
+		
+		pps.getDocument().addDocumentListener(new DocumentListener() {
+			public void insertUpdate(final DocumentEvent e) {
+				update(e);
+			}
+			public void removeUpdate(final DocumentEvent e) {
+				update(e);
+			}
+			public void changedUpdate(final DocumentEvent e) {
+				update(e); //Plain text components do not fire these events
+			}
+			public void update(final DocumentEvent e) {
+				Document doc = e.getDocument();
+				EncodingMode em = QRBuilder.getEncoding(getText());
+				byte[] ba= QRBuilder.encode(getText(), em);
+				int version = QRBuilder.getVersion(ba, getErrorCorrectionLevel(), em);
+				int ppu = Integer.parseInt(pps.getText(), 10);
+				int dimension = (version * 4 + 21) * ppu;
+				info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + doc.getLength());
+			}
+		});
 		add(tp);
-		add(ecp);
-		add(ppsp);
+		JPanel userChoice = new JPanel(new BorderLayout());
+		userChoice.setPreferredSize(new Dimension(150, 120));
+		userChoice.add(ecp, BorderLayout.NORTH);
+		userChoice.add(ppsp, BorderLayout.SOUTH);
+		add(userChoice);
 		add(ip);
 			}
 }

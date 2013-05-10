@@ -44,7 +44,6 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 		keyName.setEditable(false);
 		final JButton selectKey = new JButton("Select Key");
 		selectKey.setMnemonic(KeyEvent.VK_K);
-		//TODO: Don't forget to update keyName with the new info.
 		
 		
 		ActionListener sal = new ActionListener() {
@@ -155,8 +154,9 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 		JPanel skp = new JPanel();
 		skp.setToolTipText("Secure Key:");
 		skp.setBorder(BorderFactory.createTitledBorder("Secure Key:"));
-		skp.add(selectKey);
-		skp.add(keyName);		
+		skp.setLayout(new BorderLayout());
+		skp.add(selectKey, BorderLayout.SOUTH);;
+		skp.add(keyName, BorderLayout.NORTH);		
 		
 		add(skp);
 	}
