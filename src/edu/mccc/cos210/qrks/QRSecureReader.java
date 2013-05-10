@@ -85,5 +85,9 @@ public class QRSecureReader extends QRReader {
 			gui.add(info, BorderLayout.SOUTH);
 			return gui;
 		}
+		@Override
+		public boolean getSecure(){
+			return secure;
+		}
 	}
 }

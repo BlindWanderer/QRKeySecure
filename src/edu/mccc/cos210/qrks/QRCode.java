@@ -68,4 +68,7 @@ public abstract class QRCode implements Item<BufferedImage> {
 	public final boolean[][] getMatrix() {
 		return this.matrix;
 	}
+	public boolean getSecure(){
+		return false;
+	}
 }
