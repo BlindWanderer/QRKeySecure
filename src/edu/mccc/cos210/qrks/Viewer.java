@@ -12,6 +12,17 @@ import java.security.*;
  * Viewer: A JFrame that handles the construction of entire program.
  */
 public class Viewer extends JFrame {
+	static final byte[] SEED;
+	static final String ALGORITHM = "MD5withRSA";
+	static {
+		byte [] seed = null;
+		try {
+			seed = "Musicians love baubles but not sacks of cod.".getBytes("UTF-8");
+		} catch (Exception e) {
+			seed = null;
+		}
+		SEED = seed;
+	}
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
 	private Reader<BufferedImage, BufferedImage> [] readers;

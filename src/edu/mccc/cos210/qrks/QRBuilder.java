@@ -34,20 +34,37 @@ public class QRBuilder implements Builder<BufferedImage> {
 	/**
 	 * Generates a QRCode based on user-input.
 	 */
-	public class QRFactory implements Factory<Item<BufferedImage>> {
+	public class QREncodingFactory implements Factory<Item<BufferedImage>> {
 		private final String text;
 		private final ErrorCorrectionLevel ec;
 		private final int ppu;
+		public QREncodingFactory(final String text, final ErrorCorrectionLevel ec, final int ppu) {
+			this.text = text;
+			this.ec = ec;
+			this.ppu = ppu;
+		}
+		public Item<BufferedImage> runFactory() {
+			final EncodingMode em = getEncoding(text);			
+			final byte [] data = encode(text, em);
+			return new QRFactory(data, em, ec, ppu).runFactory();
+		}
+	}
+	public class QRFactory implements Factory<Item<BufferedImage>> {
+		private final byte[] data;
+		private final ErrorCorrectionLevel ec;
+		private final int ppu;
+		private final EncodingMode em;
 		/**
 		 * Cashes the user-input values from the Viewer. 
 		 * @param text User-input message to be encoded in the QR code.
 		 * @param ec Limited-choice error correction level selected by the user.
 		 * @param ppu Pixels per unit (module) selected by the user.
 		 */
-		public QRFactory(final String text, final ErrorCorrectionLevel ec, final int ppu) {
-			this.text = text;
+		public QRFactory(final byte [] encodedData, final EncodingMode em, final ErrorCorrectionLevel ec, final int ppu) {
 			this.ec = ec;
 			this.ppu = ppu;
+			this.data = encodedData;
+			this.em = em;
 		}
 		/**
 		 * QRBuilder: A Builder<BufferedImage> that knows how to make QRCodes.
@@ -55,8 +72,6 @@ public class QRBuilder implements Builder<BufferedImage> {
 		 */
 		public Item<BufferedImage> runFactory() {
 			try {
-				final EncodingMode em = getEncoding(text);			
-				final byte [] data = encode(text, em);
 				final int version = getVersion(data, ec, em);
 				final BitBuffer memory = getMemorySpace(version);
 				writeToMemory(memory, data, em, version, ec);

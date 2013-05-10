@@ -16,11 +16,7 @@ import java.security.UnrecoverableEntryException;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.IOException;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
+import java.io.*;
 
 import edu.mccc.cos210.qrks.qrcode.*;
 
@@ -33,8 +29,29 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 	@Override
 	public Factory<Item<BufferedImage>> getFactory() {
 		String text = getText();
-		//TODO: text = privateKey.sign(text);
-		return ((QRBuilder) getBuilder()).new QRFactory(text, getErrorCorrectionLevel(), getPixelsPerUnit());
+		if (privateKey != null) {
+			Signature sig;
+			byte [] data;
+			byte[] signature;
+			try {
+				data = text.getBytes("ISO-8859-1");
+				sig = Signature.getInstance(Viewer.ALGORITHM);
+				sig.initSign(privateKey);
+				sig.update(Viewer.SEED);
+				sig.update(data);
+				signature = sig.sign();
+			} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | UnsupportedEncodingException  e) {
+				signature = data = null;
+			}
+			if (data != null) {
+				byte [] packed = Arrays.copyOf(data, data.length + 1 + signature.length);
+				for (int i = 0, j = data.length + 1; i < signature.length; i++) {
+					packed[i + j] = signature[i];
+				}
+				return ((QRBuilder) getBuilder()).new QRFactory(packed, EncodingMode.BYTE, getErrorCorrectionLevel(), getPixelsPerUnit());
+			}
+		}
+		return ((QRBuilder) getBuilder()).new QREncodingFactory(text, getErrorCorrectionLevel(), getPixelsPerUnit());
 	}
 
 	public QRSecureBuilderPanel(final QRSecureBuilder builder) {

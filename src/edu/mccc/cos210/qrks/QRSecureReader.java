@@ -65,9 +65,19 @@ public class QRSecureReader extends QRReader {
 				if (j >= 0) {
 					byte [] message = Arrays.copyOfRange(ba, 0, j);
 					byte [] signature = Arrays.copyOfRange(ba, j+1, ba.length);
-					secure = false;
-					if (secure) {
-						data = message;
+					if (publicKey != null) {
+						try {
+							Signature sig = Signature.getInstance(Viewer.ALGORITHM);
+							sig.initVerify(publicKey);
+							sig.update(Viewer.SEED);
+							sig.update(message);
+							secure = sig.verify(signature);
+							if (secure) {
+								data = message;
+							}
+						} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}

@@ -27,7 +27,9 @@ public final class QRKeySecure {
 		}
 	}
 	public static void main(final String[] sa) {
-		final PublicKey pk = sa.length > 0 ? getPublicKey(sa[0]) : null;
+		Provider bcProv = new org.bouncycastle.jce.provider.BouncyCastleProvider();
+		Security.insertProviderAt(bcProv, Security.getProviders().length + 1);
+		final PublicKey pk = getPublicKey((sa.length > 0) ? sa[0] : "publickey");
 		EventQueue.invokeLater(
 			new Runnable() {
 				@Override

@@ -42,7 +42,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		return Integer.valueOf(pps.getText());
 	}
 	public Factory<Item<BufferedImage>> getFactory() {
-		return ((QRBuilder) getBuilder()).new QRFactory(getText(), getErrorCorrectionLevel(), getPixelsPerUnit());
+		return ((QRBuilder) getBuilder()).new QREncodingFactory(getText(), getErrorCorrectionLevel(), getPixelsPerUnit());
 	}
 	
 	public QRBuilderPanel(final QRBuilder builder) {

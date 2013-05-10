@@ -1,6 +1,7 @@
 Todo List
 
 HIGH PRIORITY
+* ? - Default File Extension for saving files.
 * B - QRSecureBuilderPanel: Message Signing
 * C - QRBuilderPanel: Fix Layout
 * ? - Evaluate TODO items to see what needs to be done
