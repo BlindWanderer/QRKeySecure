@@ -630,6 +630,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		swp.publish(prog);
 		Graphics2D pg = prog.createGraphics();
 		pg.setColor(Color.GREEN);
+		/*
 		Collections.sort(possibleCodes);;
 		for (MatchPoint code : possibleCodes) {
 			//Steps:
@@ -638,7 +639,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			//keep in mind the horizontal and vertical tags have no bearing on it being horizontal or vertical.
 			List<Monkey> monkeys = new ArrayList<>(code.possibles);
 			boolean success = false;
-			for (int j = 0 /*i + 1*/; j < monkeys.size() - 1; j++) {
+			for (int j = 0; j < monkeys.size() - 1; j++) {
 				Freud vertical = new Freud(code, monkeys.get(j).matchpoint, width, bw);
 				if(vertical.checkUncertainty(baseUncertainty, secondaryUncertainty)){
 					for (int k = j + 1; k < monkeys.size(); k++) {
@@ -709,40 +710,19 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					System.out.println("V: " + vertical + " ~ " + vertical.getUncertainties());
 				}
 			}
-		}
+		}*/
 		swp.publish(prog = Utilities.convertImageToBufferedImage(bwRLE));
 
 		for (SeaCreature sc : seaCreatures) {
 			boolean [][] matrix = sc.getMatrix(bw, prog);
-			Object raw = Decoder.decode(matrix, swp);
-			if (raw != null) {//TODO this needs to be refactored.
-				QRCode code = new QRCode(matrix, raw){
-						private BufferedImage img = null;
-						private BufferedImage getImage() {
-							if(img == null){
-								img = Utilities.rescaleImage(Decoder.visualizeMatrix(matrix), 10.0);
-							}
-							return img;
-						}
-						public BufferedImage save() {
-							return getImage();
-						}
-						public JPanel generateGUI() {
-							JPanel gui = new JPanel();
-							gui.setLayout(new BorderLayout());
-							gui.add(new ImagePanel(getImage()), BorderLayout.CENTER);
-							JTextArea info = new JTextArea(5, 50);
-							info.setEditable(false);
-							//Font f = new Font(info.getFont());
-							info.setOpaque(false);
-							info.setText(text);
-							gui.add(info, BorderLayout.SOUTH);
-							return gui;
-						}
-					};
-				code.matrix = matrix;
-				code.data = raw;
-				carp.add(code);
+			if (matrix != null) {
+				Object raw = Decoder.decode(matrix, swp);
+				if (raw != null) {//TODO this needs to be refactored.
+					QRCode code = newQRCode(matrix, raw);
+					if (code != null) {
+						carp.add(code);
+					}
+				}
 			}
 //break;//TODO: REMOVE THIS DEBUGGING CODE IT IS CRITICAL THAT IT BE REMOVED
 		}
@@ -762,27 +742,21 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 //		System.out.println(matchheads.size());
 		return carp;
 	}
-	public static abstract class QRCode implements Item<BufferedImage> {
-		public QRCode(boolean[][] matrix, Object data) {
-			this.matrix = matrix;
-			this.data = data;
-			if (data instanceof byte[]) {
-				try{
-					text = new String((byte[])data, "ISO-8859-1");
-				} catch(UnsupportedEncodingException e) {
-					text = "I'm a little tea pot, short and stout.";
-				}
-			} else if (data instanceof String) {
-				text = (String)data;
-			} else if (data == null){
-				text = "<null>";
-			} else {
-				text = data.toString();
+	public QRCode newQRCode(boolean [][] matrix, Object raw){
+		return new QRCode(matrix, raw){
+			public JPanel generateGUI() {
+				JPanel gui = new JPanel();
+				gui.setLayout(new BorderLayout());
+				gui.add(new ImagePanel(getImage()), BorderLayout.CENTER);
+				JTextArea info = new JTextArea(5, 50);
+				info.setEditable(false);
+				//Font f = new Font(info.getFont());
+				info.setOpaque(false);
+				info.setText(getText());
+				gui.add(info, BorderLayout.SOUTH);
+				return gui;
 			}
-		}
-		public String text;
-		public Object data;
-		public boolean[][] matrix;
+		};
 	}
 	private static class Scanner {
 		public final int width;
@@ -1421,6 +1395,9 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		return matches;
 	}
-	public String getName() { return "QRCode Reader"; }
-	public void reset() { }
+	public String getName() {
+		return "QRCode Reader";
+	}
+	public void reset() {
+	}
 }

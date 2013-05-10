@@ -7,17 +7,19 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import javax.imageio.*;
+import java.security.*;
 /**
  * Viewer: A JFrame that handles the construction of entire program.
  */
 public class Viewer extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private Builder<BufferedImage> builder = new QRSecureBuilder();
-	private Reader<BufferedImage, BufferedImage> [] readers = Utilities.newGenericArray(new QRSecureReader());
+	private Reader<BufferedImage, BufferedImage> [] readers;
 	public JTabbedPane tabbedPane;
 	private static final String DEFAULT_NAME = "QRKeySecure";
-	public Viewer() {
+	public Viewer(PublicKey pk) {
 		super(DEFAULT_NAME);
+		readers = Utilities.newGenericArray(new QRSecureReader(pk));
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel builderPanel = generateBuilderPanel();
 		JPanel readerPanel = new QRReaderPanel(this, readers);

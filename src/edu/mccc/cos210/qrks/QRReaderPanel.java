@@ -145,7 +145,7 @@ public class QRReaderPanel extends JPanel {
 								int number = 0;
 								for (Item<BufferedImage> bi : out) {
 									number++;
-									QRReader.QRCode code = (QRReader.QRCode)bi;
+									QRCode code = (QRCode)bi;
 									String qr = "QR" + number;
 									viewer.tabbedPane.add(qr, bi.generateGUI());
 								/*	int mn = 3;
@@ -155,9 +155,10 @@ public class QRReaderPanel extends JPanel {
 									mn++;*/
 									final String url;
 									String blah = null;
-									if (code.text != null) {
+									String text = code.getText();
+									if (text != null) {
 										try {
-											blah = URLEncoder.encode(code.text, "UTF-8");
+											blah = URLEncoder.encode(text, "UTF-8");
 										} catch (UnsupportedEncodingException e) {
 											blah = "http://google.com/search?q=UnsupportedEncodingException";
 										}
