@@ -75,15 +75,34 @@ public class QRSecureReader extends QRReader {
 			super.decodeData(data);
 		}
 		public JPanel generateGUI() {
-			JPanel gui = new JPanel();
+			BufferedImage redX = new BufferedImage(50, 50, BufferedImage.TYPE_4BYTE_ABGR);
+			Graphics2D g = redX.createGraphics();
+			g.setColor(Color.RED);
+			g.setStroke(new BasicStroke(5));
+			g.drawString("X", 5, 45);
+			
+			
+			BufferedImage green = new BufferedImage(50, 50, BufferedImage.TYPE_4BYTE_ABGR);
+			Graphics2D gd = green.createGraphics();
+			gd.setColor(Color.GREEN);
+			gd.setStroke(new BasicStroke(5));
+			gd.drawOval(5, 5, 40, 40);
+			
+			JPanel gui = new JPanel();;
 			gui.setLayout(new BorderLayout());
-			gui.add(new ImagePanel(getImage()), BorderLayout.CENTER);
-			JTextArea info = new JTextArea(5, 50);
+			gui.add(new ImagePanel(getImage()), BorderLayout.NORTH);
+			if (secure) {
+				gui.add(new ImagePanel(green), BorderLayout.NORTH);
+			} else {
+				gui.add(new ImagePanel(redX), BorderLayout.NORTH);
+			}
+			JTextArea info = new JTextArea(25, 50);
 			info.setEditable(false);
 			//Font f = new Font(info.getFont());
 			info.setOpaque(false);
 			info.setText(getText());
 			gui.add(info, BorderLayout.SOUTH);
+//TODO: draw green o's			
 			return gui;
 		}
 		@Override

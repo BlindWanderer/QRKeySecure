@@ -11,6 +11,7 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.filechooser.*;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URLEncoder;
 
 import javax.imageio.*;
@@ -109,6 +110,9 @@ public class QRReaderPanel extends JPanel {
 		ActionListener sal = new ActionListener() {
 			public void actionPerformed(final ActionEvent e) {
 				camera.setImage(null);
+				for (int i = 2; i < viewer.tabbedPane.getTabCount(); i++) {
+					viewer.tabbedPane.remove(i);
+				}
 				cl.show(stack, "1");
 				viewer.setTitle("");
 			}
@@ -146,6 +150,7 @@ public class QRReaderPanel extends JPanel {
 								for (Item<BufferedImage> bi : out) {
 									number++;
 									QRCode code = (QRCode)bi;
+									boolean isSecure = code.getSecure();
 									String qr = "QR" + number;
 									viewer.tabbedPane.add(qr, bi.generateGUI());
 								/*	int mn = 3;
@@ -162,7 +167,17 @@ public class QRReaderPanel extends JPanel {
 										} catch (UnsupportedEncodingException e) {
 											blah = "http://google.com/search?q=UnsupportedEncodingException";
 										}
-										url = "http://google.com/search?q=" + blah;
+										if (isSecure) {
+											try {
+												new java.net.URL(blah); 
+											}
+											catch (MalformedURLException ex) {
+												blah = "http://google.com/search?q=" + blah;
+											}
+											url = blah;
+										} else {
+											url = "http://google.com/search?q=" + blah;
+										}
 										try {
 											final JEditorPane htmlPane = new JEditorPane(url);
 											htmlPane.setEditable(false);
@@ -178,7 +193,12 @@ public class QRReaderPanel extends JPanel {
 													    }
 													 }
 											});
-											viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
+											if (isSecure) {
+												viewer.tabbedPane.add(qr + "WEB-Secure", new JScrollPane(htmlPane));
+
+											} else {
+												viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
+											}
 										} catch(IOException ioe) {
 											System.err.println("Error displaying " + url + ": " + ioe);
 										}
@@ -187,22 +207,6 @@ public class QRReaderPanel extends JPanel {
 								cl.show(stack, "6");
 							}	
 						}
-						
-						
-						
-						/*@Override
-						 //NOTE: need to implement HyperlinkListener
-						 public void hyperlinkUpdate(HyperlinkEvent event) {
-						    if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-						      try {
-						        htmlPane.setPage(event.getURL());
-						 //       urlField.setText(event.getURL().toExternalForm());
-						      } catch(IOException ioe) {
-						    	  System.err.println("Error displaying " + url);
-						      }
-						    }
-						 }*/
-						
 						
 						
 						

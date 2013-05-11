@@ -744,11 +744,12 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	}
 	public QRCode newQRCode(boolean [][] matrix, Object raw){
 		return new QRCode(matrix, raw){
+			
 			public JPanel generateGUI() {
 				JPanel gui = new JPanel();
 				gui.setLayout(new BorderLayout());
-				gui.add(new ImagePanel(getImage()), BorderLayout.CENTER);
-				JTextArea info = new JTextArea(5, 50);
+				gui.add(new ImagePanel(getImage()), BorderLayout.NORTH);
+				JTextArea info = new JTextArea(25, 50);
 				info.setEditable(false);
 				//Font f = new Font(info.getFont());
 				info.setOpaque(false);

@@ -439,8 +439,43 @@ public class QRBuilder implements Builder<BufferedImage> {
 			minPenalty = Math.min(minPenalty, penalty[i]);
 		}
 		//rule1 = module strings of same color (bad if more than 5 in a row / column)
-			//horiz scan:
+		//horiz scan:
+		int penalty1h = 0;
+		for (int i = 0; i < field.length - 1; i++) {
+			int count = 0;
+			for (int j = 0; j < field[i].length; j++) {
+				if (field[i][j] == field[i + 1][j]) {
+					count++;
+				} else {
+					if (count >= 5) {
+						int number = count - 5;
+						penalty1h = penalty1h + N3 + number;
+					}
+					count = 0;
+				}
+			}
+		}
+		//vertical scan:
+		int penalty1v = 0;
+		for (int j = 0; j < field.length - 1; j++) {
+			int count = 0;
+			for (int i = 0; i < field[j].length; i++) {
+				if (field[i][j] == field[i][j + 1]) {
+					count++;
+				} else {
+					if (count >= 5) {
+						int number = count - 5;
+						penalty1v = penalty1v + N3 + number;
+					}
+					count = 0;
+				}
+			}
+		}
 		
+		//rule2
+		
+		//rule3 1 : 1 : 3 : 1 : 1 ratio (dark:light:dark:light:dark) pattern in row/column, preceded or followed by light area 4 modules wide
+
 		
 		//get masks, evaluate
 		//N1=3, N2=3, N3=40, N4=10
