@@ -26,6 +26,20 @@ public final class QRKeySecure {
 			return null;
 		}
 	}
+	public static PrivateKey getPrivateKey(File file){
+		try {
+			FileInputStream keyfis = new FileInputStream(file);
+			byte[] encKey = new byte[keyfis.available()];  
+			keyfis.read(encKey);
+			keyfis.close();
+			PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encKey);
+			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+			return keyFactory.generatePrivate(keySpec);
+		} catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e ){
+			e.printStackTrace();
+			return null;
+		}
+	}
 	public static void main(final String[] sa) {
 		Provider bcProv = new org.bouncycastle.jce.provider.BouncyCastleProvider();
 		Security.insertProviderAt(bcProv, Security.getProviders().length + 1);

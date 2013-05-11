@@ -72,6 +72,13 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 				int returnVal = fc.showDialog(QRSecureBuilderPanel.this, "Load Key");
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
+					privateKey = QRKeySecure.getPrivateKey(file);
+					if(privateKey != null) {
+						keyName.setText(file.getName());
+					} else {
+						keyName.setText("<No Key Selected>");
+					}
+					/*
 					boolean tryAgain = false;
 					JPasswordField jpf = new JPasswordField();
 					int r = JOptionPane.showConfirmDialog(null, jpf, "Password:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -158,6 +165,7 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 							}
 						}
 					}
+					*/
 				} 
 				//Reset the file chooser for the next time it's shown.
 			//	fc.setSelectedFile(null);

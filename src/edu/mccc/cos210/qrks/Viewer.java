@@ -13,6 +13,7 @@ import java.security.*;
  */
 public class Viewer extends JFrame {
 	static final byte[] SEED;
+	static final int DIGEST_SIZE = 128;
 	static final String ALGORITHM = "MD5withRSA";
 	static {
 		byte [] seed = null;

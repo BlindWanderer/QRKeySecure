@@ -3,16 +3,12 @@ import edu.mccc.cos210.qrks.util.*;
 import edu.mccc.cos210.qrks.qrcode.*;
 import java.util.*;
 import javax.swing.*;
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.event.*;
 import java.awt.image.*;
-import javax.swing.filechooser.*;
 import java.io.*;
 import javax.imageio.*;
-import java.awt.Point;
-import java.awt.Image;
 import java.awt.BorderLayout;
+import java.awt.Image;
 import java.awt.geom.*;
 import java.security.*;
 
@@ -57,14 +53,9 @@ public class QRSecureReader extends QRReader {
 				byte [] ba = (byte[])data;
 				int j;
 				int last = -1;
-				for (j = 0; j < (ba.length - 128); j++) {
-					if (ba[j] == 0) {
-						last = j;
-					}
-				}
-				if (j >= 0) {
-					byte [] message = Arrays.copyOfRange(ba, 0, j);
-					byte [] signature = Arrays.copyOfRange(ba, j+1, ba.length);
+				if (ba.length > Viewer.DIGEST_SIZE && ba[ba.length - Viewer.DIGEST_SIZE - 1] == 0) {
+					byte [] message = Arrays.copyOfRange(ba, 0, ba.length - Viewer.DIGEST_SIZE - 1);
+					byte [] signature = Arrays.copyOfRange(ba, ba.length - Viewer.DIGEST_SIZE, ba.length);
 					if (publicKey != null) {
 						try {
 							Signature sig = Signature.getInstance(Viewer.ALGORITHM);
