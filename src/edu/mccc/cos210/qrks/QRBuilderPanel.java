@@ -50,6 +50,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 
 		input = new JTextArea(5, 20);
 		input.setLineWrap(true);
+		input.setWrapStyleWord(true);
 	//	JPanel tp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		JScrollPane tp = new JScrollPane(input);
 		tp.setBorder(BorderFactory.createTitledBorder("QRCode Text:"));

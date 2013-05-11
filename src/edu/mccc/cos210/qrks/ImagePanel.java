@@ -7,9 +7,9 @@ import javax.swing.*;
  */
 public class ImagePanel extends JPanel {
 	private static final long serialVersionUID = 1L;
-	private static final int WIDTH= 400;
-	private static final int HEIGHT = 400;
-	private static final int BORDER = 8;
+	private static final int WIDTH= 200;
+	private static final int HEIGHT = 200;
+	private static final int BORDER = 4;
 	private static final int FULL_BORDER = BORDER * 2;
 	private static final int FULL_WIDTH = FULL_BORDER + WIDTH;
 	private static final int FULL_HEIGHT = FULL_BORDER + HEIGHT;
@@ -56,7 +56,7 @@ public class ImagePanel extends JPanel {
 				final double sm = Math.min((cx - FULL_BORDER) / (double)ix, (cy - FULL_BORDER) / (double)iy);
 				if (sm > 0) { //has to be space to display it in. Zero or less indicates there is no space to display it in.
 					Image t = image;
-					if (sm < 1.0) { //it's too big
+				/*	if (sm < 1.0)*/ { //it's too big
 						ix = (int)Math.round(ix * sm);
 						iy = (int)Math.round(iy * sm);
 						t = image.getScaledInstance(ix, iy, Image.SCALE_DEFAULT);

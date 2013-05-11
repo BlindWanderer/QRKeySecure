@@ -1,14 +1,26 @@
 package edu.mccc.cos210.qrks;
 import edu.mccc.cos210.qrks.util.*;
 import edu.mccc.cos210.qrks.qrcode.*;
+
 import java.util.*;
+
 import javax.swing.*;
+
 import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
+
 import javax.imageio.*;
+
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Insets;
+import java.awt.TextArea;
 import java.awt.geom.*;
 import java.security.*;
 
@@ -79,30 +91,54 @@ public class QRSecureReader extends QRReader {
 			Graphics2D g = redX.createGraphics();
 			g.setColor(Color.RED);
 			g.setStroke(new BasicStroke(5));
-			g.drawString("X", 5, 45);
-			
+			g.setFont(new Font("Dialog", Font.PLAIN, 22));
+			g.drawString("X", 25, 25);
 			
 			BufferedImage green = new BufferedImage(50, 50, BufferedImage.TYPE_4BYTE_ABGR);
 			Graphics2D gd = green.createGraphics();
 			gd.setColor(Color.GREEN);
 			gd.setStroke(new BasicStroke(5));
-			gd.drawOval(5, 5, 40, 40);
+			gd.drawOval(25, 25, 40, 40);
 			
 			JPanel gui = new JPanel();;
 			gui.setLayout(new BorderLayout());
-			gui.add(new ImagePanel(getImage()), BorderLayout.NORTH);
+			JPanel ip = new ImagePanel(getImage());
+			Utilities.cloberSizes(ip, new Dimension(200,200));
+			ip.setPreferredSize(new Dimension(200, 200));
+			//gui.add(ip, BorderLayout.WEST);
+			JPanel top = new JPanel();
+			top.setLayout(new BorderLayout());
+			top.add(ip, BorderLayout.WEST);
 			if (secure) {
-				gui.add(new ImagePanel(green), BorderLayout.NORTH);
+		//		gui.add(new ImagePanel(green), BorderLayout.NORTH);
+				JTextArea secure = new JTextArea("     Secure");
+				secure.setForeground(Color.GREEN);
+				secure.setBackground(null);
+				secure.setFont(new Font("Dialog", Font.PLAIN, 22));
+				top.add(secure, BorderLayout.CENTER);
+				//gui.add(secure, BorderLayout.CENTER);
 			} else {
-				gui.add(new ImagePanel(redX), BorderLayout.NORTH);
+		//		gui.add(new ImagePanel(redX), BorderLayout.NORTH);
+				JTextArea notSecure = new JTextArea("     NOT Secure");
+				notSecure.setForeground(Color.RED);
+				notSecure.setBackground(null);
+				notSecure.setFont(new Font("Dialog", Font.PLAIN, 22));
+				//gui.add(notSecure, BorderLayout.CENTER);
+				top.add(notSecure, BorderLayout.CENTER);
 			}
-			JTextArea info = new JTextArea(25, 50);
+			JTextArea info = new JTextArea(20, 50);
+			info.setMargin(new Insets(10, 10, 10, 10));
+			JScrollPane jp = new JScrollPane(info);
 			info.setEditable(false);
+			info.setLineWrap(true);
+			info.setWrapStyleWord(true);
 			//Font f = new Font(info.getFont());
 			info.setOpaque(false);
 			info.setText(getText());
-			gui.add(info, BorderLayout.SOUTH);
-//TODO: draw green o's			
+			info.setFont(new Font("Dialog", Font.PLAIN, 22));
+		
+			gui.add(top, BorderLayout.NORTH);
+			gui.add(jp, BorderLayout.SOUTH);		
 			return gui;
 		}
 		@Override

@@ -73,8 +73,8 @@ public class Decoder {
 		System.out.println("sorted data stream");
 		System.out.println(Arrays.toString(unsortedData));
 
-		byte[][] ecBlocks = sortECStream(unsortedData, version, ec); 
-		System.out.println(Arrays.toString(unsortedData));
+		//byte[][] ecBlocks = sortECStream(unsortedData, version, ec); 
+		//System.out.println(Arrays.toString(unsortedData));
 
 		Object message = dealWithData(dataBlocks, version, ec);
 
