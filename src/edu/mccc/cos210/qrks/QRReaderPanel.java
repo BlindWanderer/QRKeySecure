@@ -110,8 +110,10 @@ public class QRReaderPanel extends JPanel {
 		ActionListener sal = new ActionListener() {
 			public void actionPerformed(final ActionEvent e) {
 				camera.setImage(null);
-				for (int i = 2; i < viewer.tabbedPane.getTabCount(); i++) {
+				while (viewer.tabbedPane.getTabCount() > 2){
+					int i = 2;
 					viewer.tabbedPane.remove(i);
+					i++;
 				}
 				cl.show(stack, "1");
 				viewer.setTitle("");
@@ -141,10 +143,11 @@ public class QRReaderPanel extends JPanel {
 						@Override
 						public void done() {
 //							camera.setImage(image);//restore the image
-							//TODO: Display found codes by calling the appropriate generateGUI on each. Maybe put the JPanels in their own tabs?
-							if(swp == this && !isCancelled()){
-								for (int i = 2; i < viewer.tabbedPane.getTabCount(); i++) {
+							if(swp == this && !isCancelled()){ 
+								while (viewer.tabbedPane.getTabCount() > 2){
+									int i = 2;
 									viewer.tabbedPane.remove(i);
+									i++;
 								}
 								int number = 0;
 								for (Item<BufferedImage> bi : out) {
@@ -194,10 +197,10 @@ public class QRReaderPanel extends JPanel {
 													 }
 											});
 											if (isSecure) {
-												viewer.tabbedPane.add(qr + "WEB-Secure", new JScrollPane(htmlPane));
+												viewer.tabbedPane.addTab(qr + "WEB-Secure", new JScrollPane(htmlPane));
 
 											} else {
-												viewer.tabbedPane.add(qr + "WEB", new JScrollPane(htmlPane));
+												viewer.tabbedPane.addTab(qr + "WEB", new JScrollPane(htmlPane));
 											}
 										} catch(IOException ioe) {
 											System.err.println("Error displaying " + url + ": " + ioe);
