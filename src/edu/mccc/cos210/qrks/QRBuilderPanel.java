@@ -48,7 +48,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 	public QRBuilderPanel(final QRBuilder builder) {
 		super(builder);
 
-		input = new JTextArea(5, 20);
+		input = new JTextArea(7, 25);
 		input.setLineWrap(true);
 		input.setWrapStyleWord(true);
 	//	JPanel tp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
@@ -97,7 +97,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		//Font f = new Font(info.getFont());
 		info.setOpaque(false);
 		JPanel ip = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
-		ip.setPreferredSize(new Dimension(200, 120));
+		ip.setPreferredSize(new Dimension(200, 135));
 		ip.setToolTipText("Information:");
 		ip.setBorder(BorderFactory.createTitledBorder("Information:"));
 		ip.add(info);
@@ -159,7 +159,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		});
 		add(tp);
 		JPanel userChoice = new JPanel(new BorderLayout());
-		userChoice.setPreferredSize(new Dimension(150, 120));
+		userChoice.setPreferredSize(new Dimension(150, 135));
 		userChoice.add(ecp, BorderLayout.NORTH);
 		userChoice.add(ppsp, BorderLayout.SOUTH);
 		add(userChoice);

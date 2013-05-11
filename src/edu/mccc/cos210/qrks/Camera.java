@@ -13,7 +13,7 @@ import javax.media.util.*;
  */
 public class Camera extends JPanel {
 	private static final long serialVersionUID = 1L;
-	private static final int BORDER = 8;
+	private static final int BORDER = 4;
 	private Image image = null;
 	private VideoFormat videoFormat = null;
 	private CaptureDeviceInfo cdi;

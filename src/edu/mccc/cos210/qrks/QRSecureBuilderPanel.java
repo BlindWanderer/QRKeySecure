@@ -165,6 +165,7 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 							}
 						}
 					}
+					
 					*/
 				} 
 				//Reset the file chooser for the next time it's shown.
@@ -177,11 +178,13 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 		
 		
 		JPanel skp = new JPanel();
+		skp.setPreferredSize(new Dimension (200, 135));
 		skp.setToolTipText("Secure Key:");
 		skp.setBorder(BorderFactory.createTitledBorder("Secure Key:"));
 		skp.setLayout(new BorderLayout());
 		skp.add(selectKey, BorderLayout.SOUTH);;
-		skp.add(keyName, BorderLayout.NORTH);		
+		skp.add(keyName, BorderLayout.NORTH);	
+		
 		
 		add(skp);
 	}
