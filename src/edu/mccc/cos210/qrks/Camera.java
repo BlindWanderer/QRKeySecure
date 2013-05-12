@@ -131,7 +131,7 @@ public class Camera extends JPanel {
 				bti = new BufferToImage(vf);
 			}
 			Image i = bti.createImage(buf);
-			System.out.println(i);
+//			System.out.println(i);
 			return setImage(i);
 		}
 		return null;

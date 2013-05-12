@@ -378,10 +378,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		final Point center;
 		final HashSet<Monkey> possibles = new HashSet<>();
 		public MatchPoint(MatchHead mh, int width, int height) {
-			int x_min = width;
-			int x_max = 0;
-			int y_min = height;
-			int y_max = 0;
+			int xMin = width;
+			int xMax = 0;
+			int yMin = height;
+			int yMax = 0;
 			Point center = mh.getCenter();
 			this.mh = mh;
 			this.matches = mh.getAll();
@@ -389,13 +389,13 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			for (Match match : matches) {
 				Point mc = match.getLinearCenter(width);
 				this.points.add(mc);
-				x_min = Math.min(x_min, mc.x);
-				x_max = Math.max(x_max, mc.x);
-				y_min = Math.min(y_min, mc.y);
-				y_max = Math.max(y_max, mc.y);
+				xMin = Math.min(xMin, mc.x);
+				xMax = Math.max(xMax, mc.x);
+				yMin = Math.min(yMin, mc.y);
+				yMax = Math.max(yMax, mc.y);
 			}
-			this.width = x_max - x_min + 1;
-			this.height = y_max - y_min + 1;
+			this.width = xMax - xMin + 1;
+			this.height = yMax - yMin + 1;
 			//TODO get this code working
 			/* - I don't know why this isn't working. It's impossible for the score to always be zero
 			//I just figured it out: It needs to be rotated about the center point, not by how it is placed in the matrix.
@@ -413,14 +413,14 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 						int score = 0;
 						boolean [][] mask = new boolean[width + Math.abs(p) * 2][height + Math.abs(q) * 2];
 						for (Point point : points) {
-							int x = (point.x - x_min) + (Math.max(0, p) * 2);
-							int y = (point.y - y_min) + (Math.max(0, q) * 2);
+							int x = (point.x - xMin) + (Math.max(0, p) * 2);
+							int y = (point.y - yMin) + (Math.max(0, q) * 2);
 							mask[x][y] = true;
 							pokes++;
 						}
 						for (Point point : points) {
-							int x = (point.x - x_min) + (Math.max(0, -p) * 2);
-							int y = (point.y - y_min) + (Math.max(0, -q) * 2);
+							int x = (point.x - xMin) + (Math.max(0, -p) * 2);
+							int y = (point.y - yMin) + (Math.max(0, -q) * 2);
 							if (mask[mask.length - 1 - x][mask[0].length - 1 - y]){
 								score++;
 							}
@@ -436,8 +436,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			System.out.println(Utilities.subtract(center, this.center) + " ~ " +high_score + " ~ " + pokes);
 			//*/
 			this.center = center;
-			this.symetric_x = Math.max(x_max - center.x, center.x - x_min);
-			this.symetric_y = Math.max(y_max - center.y, center.y - y_min);
+			this.symetric_x = Math.max(xMax - center.x, center.x - xMin);
+			this.symetric_y = Math.max(yMax - center.y, center.y - yMin);
 			this.symetric_width = (2 * symetric_x) | 1;
 			this.symetric_height = (2 * symetric_y) | 1;
 		}
@@ -731,8 +731,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 //		System.out.println("possibleQR<"+octopodes.size()+"> - "+ octopodes);
 //		System.out.println(octopodes.size());
 		
-		System.out.println(seaCreatures);
-		System.out.println(seaCreatures.size());
+//		System.out.println(seaCreatures);
+//		System.out.println(seaCreatures.size());
 		//g.dispose();
 		} catch (Exception e) {e.printStackTrace();}
 //		swp.publish(prog);
@@ -807,7 +807,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			double car = Math.atan2(ca.y, ca.x);
 			double bad = Utilities.distance(a.center, b.center);
 			double cad = Utilities.distance(a.center, c.center);
-			System.out.println(bar + " ~ " + car + " ~ " + Math.abs(bar - car));
+//			System.out.println(bar + " ~ " + car + " ~ " + Math.abs(bar - car));
 			if(Math.abs(Math.abs(car - bar) - (Math.PI / 2.0)) < Math.PI / 36){
 				if((Math.abs(bad - cad) / (bad + cad)) < .2){
 					try {
@@ -852,7 +852,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			this.right = right;
 			vt = Utilities.subtract(bottom.center, center.center);
 			ht = Utilities.subtract(right.center, center.center);
-			System.out.println("poke 1");
+//			System.out.println("poke 1");
 			vertical = new Freud(center, bottom, width, bw);
 			horizontal = new Freud(center, right, width, bw);
 			diagonal = new Freud(right, bottom, width, bw);
@@ -897,8 +897,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 //				System.out.println(Arrays.toString(Utilities.newGenericArray(center.center, vgs, vo)));
 				hk = Utilities.subtract(hge, hgs);
 				vk = Utilities.subtract(vge, vgs);
-				System.out.println(Arrays.toString(Utilities.newGenericArray(hgs, horizontal.start, horizontal.end, hge)));
-				System.out.println(Arrays.toString(Utilities.newGenericArray(vgs, vertical.start, vertical.end, vge)));
+//				System.out.println(Arrays.toString(Utilities.newGenericArray(hgs, horizontal.start, horizontal.end, hge)));
+//				System.out.println(Arrays.toString(Utilities.newGenericArray(vgs, vertical.start, vertical.end, vge)));
 				hs = Math.max(Math.abs(hk.x),Math.abs(hk.y)) + 1;
 				vs = Math.max(Math.abs(vk.x),Math.abs(vk.y)) + 1;
 				start = Utilities.add(center.center, Utilities.add(ho, vo));
@@ -932,8 +932,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			}
 			boolean color = !bw[center.center.x + center.center.y * width];
 			boolean [][] r = new boolean[size][size];
-			System.out.println();
-			System.out.println("hk: "+hk +"\tvk: "+vk + "\nho: "+ho +"\tvo: "+vo + "\nht: "+ horizontal.travel +"\tvt: "+vertical.travel);
+//			System.out.println();
+//			System.out.println("hk: "+hk +"\tvk: "+vk + "\nho: "+ho +"\tvo: "+vo + "\nht: "+ horizontal.travel +"\tvt: "+vertical.travel);
 			for(int x = 0; x < size; x++) {
 				for(int y = 0; y < size; y++) {
 					Point p = quickPoint(x, y);
@@ -1055,8 +1055,8 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		double su = 0;
 		double eu = 0;
 		int modules = 0;
-		int modules_min;
-		int modules_max;
+		int modulesMin;
+		int modulesMax;
 	}
 	
 	private static Collection<MatchHead> dumbFinder(int height, int width, boolean[] bw, BufferedImage prog, SwingWorkerProtected<?, BufferedImage> swp) {

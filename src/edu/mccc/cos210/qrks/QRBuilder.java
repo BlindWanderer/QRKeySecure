@@ -302,7 +302,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 		format = format | bch;
 		int xorMask = 0b101010000010010;
 		final int fi = format ^ xorMask;
-		System.out.print(Integer.toBinaryString(fi));
+//		System.out.print(Integer.toBinaryString(fi));
 		//format info:
 		final int size = Version.getSize(version);
 		for (int x = 0; x < 8; x++) {	//least significant 0-7

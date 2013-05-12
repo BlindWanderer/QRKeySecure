@@ -104,6 +104,7 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 					} else {
 						keyName.setText("<No Key Selected>");
 					}
+					updateInfo();
 					/*
 					boolean tryAgain = false;
 					JPasswordField jpf = new JPasswordField();

@@ -20,32 +20,47 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 	final private JTextArea input;
 	final private JComboBox<ErrorCorrectionLevel> ec;
 	final private JTextField pps;
+	final private JTextArea info;
 	/**
 	 * Gets the user-input text to be encoded in the QRCode.
 	 * @return User-input text to be encoded in the QRCode.
 	 */
-	public String getText() {
+	protected String getText() {
 		return input.getText();
 	}
 	/**
 	 * Gets the error correction level selected by the user.
 	 * @return Error correction level selected by the user.
 	 */
-	public ErrorCorrectionLevel getErrorCorrectionLevel() {
+	protected ErrorCorrectionLevel getErrorCorrectionLevel() {
 		return ec.getItemAt(ec.getSelectedIndex());
 	}
-	public byte[] encode(EncodingMode em) {
+	protected byte[] encode(EncodingMode em) {
 		return QRBuilder.encode(getText(), em);
 	}
 	/**
 	 * Gets the resolution (pixels per unit (module) selected by the user).
 	 * @return Pixels per unit (module) selected by the user.
 	 */
-	public int getPixelsPerUnit() {
+	protected int getPixelsPerUnit() {
 		return Integer.valueOf(pps.getText());
 	}
 	public Factory<Item<BufferedImage>> getFactory() {
 		return ((QRBuilder) getBuilder()).new QREncodingFactory(getText(), getErrorCorrectionLevel(), getPixelsPerUnit());
+	}
+	protected void updateInfo() {
+		EncodingMode em = QRBuilder.getEncoding(getText());
+		ErrorCorrectionLevel ec = getErrorCorrectionLevel();
+		byte [] ba = encode(em);
+		int version = QRBuilder.getVersion(ba, ec, em);
+		int max = ec.getSymbolCharacterInfo(40).dataCodeWordBits / 8;
+		if (version < 0 || version > 40) {
+			info.setText("Error:\nMaximum capacity exceeded.\nEncoded size: " + (ba.length + 3) + "\nMaximum: " + max);
+		} else {
+			int ppu = getPixelsPerUnit();
+			int dimension = Version.getSize(version) * ppu;
+			info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + getText().length() + "\nEncoded size: " + (ba.length + 3) + "\nMaximum: " + max);
+		}
 	}
 	
 	public QRBuilderPanel(final QRBuilder builder) {
@@ -95,7 +110,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		ppsp.setBorder(BorderFactory.createTitledBorder("Pixels Per Unit:"));
 		ppsp.add(pps);
 		
-		final JTextArea info = new JTextArea("Version: \nDimensions: \nNumber of Characters: 0" );
+		info = new JTextArea("Version: \nDimensions: \nNumber of Characters: 0" );
 		info.setEditable(false);
 		//Font f = new Font(info.getFont());
 		info.setOpaque(false);
@@ -116,13 +131,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 				update(e); //Plain text components do not fire these events
 			}
 			public void update(final DocumentEvent e) {
-				Document doc = e.getDocument();
-				EncodingMode em = QRBuilder.getEncoding(getText());
-				byte[] ba= QRBuilder.encode(getText(), em);
-				int version = QRBuilder.getVersion(ba, getErrorCorrectionLevel(), em);
-				int ppu = Integer.parseInt(pps.getText(), 10);
-				int dimension = (version * 4 + 21) * ppu;
-				info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + doc.getLength());
+				updateInfo();
 			}
 		});
 		
@@ -130,13 +139,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		ec.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				EncodingMode em = QRBuilder.getEncoding(getText());
-				byte[] ba= QRBuilder.encode(getText(), em);
-				int version = QRBuilder.getVersion(ba, getErrorCorrectionLevel(), em);
-				int ppu = Integer.parseInt(pps.getText(), 10);
-				String in = input.getText();
-				int dimension = (version * 4 + 21) * ppu;
-				info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + in.length());
+				updateInfo();
 			}
 		});
 		
@@ -151,12 +154,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 				update(e); //Plain text components do not fire these events
 			}
 			public void update(final DocumentEvent e) {
-				Document doc = e.getDocument();
-				EncodingMode em = QRBuilder.getEncoding(getText());
-				int version = QRBuilder.getVersion(encode(em), getErrorCorrectionLevel(), em);
-				int ppu = Integer.parseInt(pps.getText(), 10);
-				int dimension = (version * 4 + 21) * ppu;
-				info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + doc.getLength());
+				updateInfo();
 			}
 		});
 		add(tp);
@@ -166,5 +164,6 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		userChoice.add(ppsp, BorderLayout.SOUTH);
 		add(userChoice);
 		add(ip);
+		updateInfo();
 	}
 }
