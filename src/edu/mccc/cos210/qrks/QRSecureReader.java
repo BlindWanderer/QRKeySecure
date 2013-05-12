@@ -141,6 +141,7 @@ public class QRSecureReader extends QRReader {
 			info.setEditable(false);
 			info.setLineWrap(true);
 			info.setWrapStyleWord(true);
+			info.setTabSize(3);
 			//Font f = new Font(info.getFont());
 			info.setOpaque(false);
 			info.setText(getText());
