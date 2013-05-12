@@ -17,6 +17,7 @@ import java.net.URLEncoder;
 import javax.imageio.*;
 
 import java.util.*;
+import java.util.regex.*;
 import java.util.concurrent.ExecutionException;
 import java.awt.dnd.*;
 import java.awt.datatransfer.*;
@@ -162,24 +163,27 @@ public class QRReaderPanel extends JPanel {
 									number++;
 									mn++;*/
 									final String url;
-									String blah = null;
 									String text = code.getText();
+									String blah = text;
+									String param = null;
 									if (text != null) {
 										try {
-											blah = URLEncoder.encode(text, "UTF-8");
+											param = URLEncoder.encode(text, "UTF-8");
 										} catch (UnsupportedEncodingException e) {
-											blah = "http://google.com/search?q=UnsupportedEncodingException";
+											param = "UnsupportedEncodingException";
 										}
 										if (isSecure) {
 											try {
-												new java.net.URL(blah); 
+												new java.net.URL(text);
 											}
 											catch (MalformedURLException ex) {
-												blah = "http://google.com/search?q=" + blah;
+//												if (!blah.matches("(http[s]?|file)://.*")) {
+													blah = "http://google.com/search?q=" + param;
+//												}
 											}
 											url = blah;
 										} else {
-											url = "http://google.com/search?q=" + blah;
+											url = "http://google.com/search?q=" + param;
 										}
 										try {
 											final JEditorPane htmlPane = new JEditorPane(url);
@@ -208,7 +212,8 @@ public class QRReaderPanel extends JPanel {
 									}
 								}
 								cl.show(stack, "6");
-							}	
+							}
+							System.out.println("done");
 						}
 						
 						

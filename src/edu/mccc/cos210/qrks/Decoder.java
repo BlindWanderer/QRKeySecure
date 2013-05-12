@@ -10,6 +10,16 @@ import java.awt.image.*;
 import java.util.*;
 
 public class Decoder {
+	private static boolean [][] findingMask = {
+			{true, true, true, true, true, true, true, false}, 
+			{true, false, false, false, false, false, true, false}, 
+			{true, false, true, true, true, false, true, false}, 
+			{true, false, true, true, true, false, true, false}, 
+			{true, false, true, true, true, false, true, false},
+			{true, false, false, false, false, false, true, false},
+			{true, true, true, true, true, true, true, false},
+			{false, false, false, false, false, false, false, false},
+		};
 	public static final int VISUALIZE_MATRIX_PADDING = 1;
 	public static BufferedImage visualizeMatrix(boolean [][] matrix){
 		final int size = matrix.length;
@@ -37,6 +47,27 @@ public class Decoder {
 			System.out.println("<no good>");
 			return null;
 		}
+		
+		int size = cleanMatrix.length;
+		int misses = 0;
+		for(int i = 0; i < findingMask.length; i++){
+			for(int j = 0; j < findingMask.length; j++){
+				if(findingMask[i][j] != cleanMatrix[i][j]){
+					misses++;
+				}
+				if(findingMask[i][j] != cleanMatrix[cleanMatrix.length - 1 - i][j]){
+					misses++;
+				}
+				if(findingMask[i][j] != cleanMatrix[i][cleanMatrix.length - 1 - j]){
+					misses++;
+				}
+			}
+		}
+		if (misses > 10) {
+			System.out.println("<no good>");
+			return null;
+		}
+		
 		System.out.println("version: "+version);
 		ErrorCorrectionLevel ec = getECFromFormatInfo(formatInfo);
 		System.out.println("error correction: "+ec);
@@ -395,10 +426,10 @@ public class Decoder {
 					BitBuffer messageBuffer = new BitBuffer(symbolCount * 8);
 					for (int i = 0; i < symbolCount; i++) {
 						int e = bf.getIntAndIncrementPosition(8);
-						System.out.print(e+",");
+//						System.out.print(e+",");
 						messageBuffer.write(e, 8);
 					}
-					System.out.println();
+//					System.out.println();
 					return messageBuffer.getData();
 				}
 				case ALPHANUMERIC: {

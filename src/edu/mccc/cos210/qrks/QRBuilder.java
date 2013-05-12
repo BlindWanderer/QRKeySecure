@@ -228,8 +228,9 @@ public class QRBuilder implements Builder<BufferedImage> {
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
 		}
-		byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords / numberECBlocks];
-		return ecBlocks;
+		//byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords / numberECBlocks];
+		//return ecBlocks;
+		return null;
 	}
 	private static boolean [][] getBasicQRCode(int version) {
 		//Contains the various finding patters, timing patterns, alignment patterns
@@ -358,16 +359,23 @@ public class QRBuilder implements Builder<BufferedImage> {
 				}
 			}
 		}
-		int firstEC = ecBlocks.length;
-		int secondEC = ecBlocks[firstEC - 1].length;
 
-		for (int j = 0; j < secondEC; j++) {
-			for (int i = 0; i < firstEC; i++) {
-				if(j < ecBlocks[i].length) {
-					bf.write(ecBlocks[i][j], 8);  //???TODO: BUG sometimes has indexoutof bound issue.
+		if (ecBlocks != null) {//TODO This should never be null but we aren't doing error correction
+			int firstEC = ecBlocks.length;
+			int secondEC = ecBlocks[firstEC - 1].length;
+			for (int j = 0; j < secondEC; j++) {
+				for (int i = 0; i < firstEC; i++) {
+					if(j < ecBlocks[i].length) {
+						bf.write(ecBlocks[i][j], 8);  //???TODO: BUG sometimes has indexoutof bound issue.
+					}
 				}
 			}
+		} else { //Error correction information does not exist. Fill it with constant garbage.
+			for (int j = 0; bf.getPosition() < bf.getSize(); j++) {
+				bf.write(dataBlocks[j % first]);
+			}
 		}
+		
 		//Write memory into field
 		boolean direction = false; //0 = up; 1 = down;
 		boolean lastlocation = false; //0 = going right; 1 = going left
