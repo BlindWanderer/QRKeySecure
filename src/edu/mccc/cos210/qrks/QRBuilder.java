@@ -78,10 +78,10 @@ public class QRBuilder implements Builder<BufferedImage> {
 				final boolean [][] field = getBasicQRCode(version);
 				final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
 				final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
-	
-				int mask = getPreferredMask(version, field);
-				writeMetaData(field, version, ec, mask);
+				writeMetaData(field, version, ec, 0); //we don't know the mask number yet, so we put 0 (we need to have version info written before mask penalty evaluation)
 				writeDataToField(field, dataBlocks, ecBlocks, version);
+				int mask = getPreferredMask(version, field);
+				writeMetaData(field, version, ec, mask); //overwrite mask info with preferred mask
 				final boolean[][] finalField = applyMask(version, field, mask);
 				return new Item<BufferedImage>(){
 					private BufferedImage img = null;
@@ -430,70 +430,28 @@ public class QRBuilder implements Builder<BufferedImage> {
 		return false;
 	}
 	private static int getPreferredMask(int version, boolean [][] field) {
-		//TODO: Write me
-		int N1 = 3;
-		int N2 = 3;
-		int N3 = 40;
-		int N4 = 10;
+
 		int[] penalty = new int[8];
-		int penaltyValue = 0;
+		
 		for (int i = 0; i < 8; i++) {
-			boolean[][] trialMask = Mask.generateFinalMask(i, version);
+			int penaltyValue = 0;
+			boolean[][] maskedField = applyMask(version, field, i);
+			//TODO: need to apply penalty rules HERE (make the equal penaltyValue
+			penaltyValue = penalty1(maskedField) + penalty2(maskedField) + penalty3(maskedField) + penalty4(maskedField);
 			penalty[i] = penaltyValue;
 		}
 		//get least penalty
 		int minPenalty = 1000000000;
+		int maskIndex = 99;
 		for (int i = 0; i < penalty.length; i++) {
 			minPenalty = Math.min(minPenalty, penalty[i]);
-		}
-		//rule1 = module strings of same color (bad if more than 5 in a row / column)
-		//horiz scan:
-		int penalty1h = 0;
-		for (int i = 0; i < field.length - 1; i++) {
-			int count = 0;
-			for (int j = 0; j < field[i].length; j++) {
-				if (field[i][j] == field[i + 1][j]) {
-					count++;
-				} else {
-					if (count >= 5) {
-						int number = count - 5;
-						penalty1h = penalty1h + N3 + number;
-					}
-					count = 0;
-				}
+			if (minPenalty == penalty[i]) {
+				maskIndex = i;
 			}
 		}
-		//vertical scan:
-		int penalty1v = 0;
-		for (int j = 0; j < field.length - 1; j++) {
-			int count = 0;
-			for (int i = 0; i < field[j].length; i++) {
-				if (field[i][j] == field[i][j + 1]) {
-					count++;
-				} else {
-					if (count >= 5) {
-						int number = count - 5;
-						penalty1v = penalty1v + N3 + number;
-					}
-					count = 0;
-				}
-			}
-		}
-		
-		//rule2
-		
-		//rule3 1 : 1 : 3 : 1 : 1 ratio (dark:light:dark:light:dark) pattern in row/column, preceded or followed by light area 4 modules wide
-
-		
-		//get masks, evaluate
-		//N1=3, N2=3, N3=40, N4=10
-		//is the amount by which the number of
-		//adjacent modules of the same color exceeds 5 and k is the rating of the deviation of the proportion of dark
-		//modules in the symbol from 50% in steps of 5%. Although the data masking operation is only performed on
-		//the encoding region of the symbol excluding the format information, the area to be evaluated is the complete
-		//symbol.
-		return 0;
+		return maskIndex;
 	}
+	
 	private static boolean[][] applyMask(int version, boolean [][] field, int maskNum) {
 		//xor datafield with preferredmask
 		boolean[][] maskMatrix = Mask.generateFinalMask(maskNum, version);
@@ -538,5 +496,135 @@ public class QRBuilder implements Builder<BufferedImage> {
 			return biqz;
 		}//*/
 		return bi;
+	}
+	
+	
+	private static int penalty1(boolean[][] field) {
+		//rule1 = module strings of same color (bad if more than 5 in a row / column)
+		//horiz scan:
+		int penalty1h = 0;
+		for (int i = 0; i < field.length - 1; i++) {
+			int count = 0;
+			for (int j = 0; j < field[i].length; j++) {
+				if (field[i][j] == field[i + 1][j]) {
+					count++;
+				} else {
+					if (count >= 5) {
+						int number = count - 5;
+						penalty1h = penalty1h + 3 + number;
+					}
+					count = 0;
+				}
+			}
+		}
+		//vertical scan:
+		int penalty1v = 0;
+		for (int j = 0; j < field.length - 1; j++) {
+			int count = 0;
+			for (int i = 0; i < field[j].length; i++) {
+				if (field[i][j] == field[i][j + 1]) {
+					count++;
+				} else {
+					if (count >= 5) {
+						int number = count - 5;
+						penalty1v = penalty1v + 3 + number;
+					}
+					count = 0;
+				}
+			}
+		}
+		return penalty1v+penalty1h;
+	}
+	
+	private static int penalty2(boolean[][] field){
+		//rule2
+		//count each 2x2 square
+		//note: don't need two scans
+		int penalty2 = 0;
+		for (int i = 0; i < field.length - 1; i++){
+			for (int j = 0; j < field[i].length - 1; j++) {
+				if (field[i][j] == field[i][j + 1] == field[i + 1][j] == field [i + 1][j + 1]) {
+					penalty2 = penalty2 + 3;
+				}
+			}
+		}
+		return penalty2;
+	}
+	
+	private static int penalty3(boolean[][] field){
+		int penalty3 = 0;
+		//horiz scan 1 (wwwwbwbbbwb)
+		for (int i = 0; i < field.length - 10; i++){
+			for (int j = 0; j < field[i].length; j++) {
+				if (field[i][j] == field [i + 1][j] == field [i + 2][j] == field [i + 3][j] == false &&
+						field[i + 4][j] == true && field[i + 5][j] == false &&
+						field[i + 6][j] == field[i + 7][j] == field[i + 8][j] == true &&
+						field[i + 9][j] == false && field[i + 10][j] == true){
+					penalty3 = penalty3 + 40;
+				}
+				
+			}
+		}
+		//horiz scan 2 (bwbbbwbwwww)
+		for (int i = 0; i < field.length - 10; i++){
+			for (int j = 0; j < field[i].length; j++) {
+				if (field[i][j] == true && field [i + 1][j] == false &&
+						field [i + 2][j] == field [i + 3][j] == field[i + 4][j] == true && 
+						field[i + 5][j] == false && field[i + 6][j] == true &&
+						field[i + 7][j] == field[i + 8][j] == field[i + 9][j] ==  field[i + 10][j] == false){
+					penalty3 = penalty3 + 40;
+				}	
+			}	
+		}
+		//vertical scan 1 (wwwwbwbbbwb)
+		for (int j = 0; j < field.length - 10; j++) {
+			for (int i = 0; i < field[j].length; i++) {
+				if (field[i][j] == field [i][j + 1] == field [i][j + 1] == field [i][j + 3] == false &&
+						field[i][j + 4] == true && field[i][j + 5] == false &&
+						field[i][j + 6] == field[i][j + 7] == field[i][j + 8] == true &&
+						field[i][j + 9] == false && field[i][j + 10] == true){
+					penalty3 = penalty3 + 40;
+				}
+			}
+		}
+		//vertical scan 2 (bwbbbwbwwww)
+				for (int j = 0; j < field.length - 10; j++) {
+					for (int i = 0; i < field[j].length; i++) {
+						if (field[i][j] == true && field [i][j + 1] == false &&
+								field [i][j + 2] == field [i][j + 3] == field[i][j + 4] == true && 
+								field[i][j + 5] == false && field[i][j + 6] == true &&
+								field[i][j + 7] == field[i][j + 8] == field[i][j + 9] ==  field[i][j + 10] == false){
+							penalty3 = penalty3 + 40;
+						}	
+					}
+				}
+	
+	return penalty3;
+	}
+	private static int penalty4(boolean[][] field){
+		int penalty4 = 0;
+		int totalNumber = field.length * field.length; //??? how do i get the vertical size of the array?
+		int blackNumber = 0;
+		int whiteNumber = 0;
+		for (int j = 0; j < field.length; j++) {
+			for (int i = 0; i < field[j].length; i++) {
+				if (field[i][j] == true) {
+					blackNumber++;
+				} else {
+					whiteNumber++;
+				}
+			}
+		}
+		double percent = (double)blackNumber / totalNumber;
+		int prevMult5 = 0;
+		int nextMult5 = 5;
+		while (percent < prevMult5) { //???double check this math
+			prevMult5 =+ 5;
+			nextMult5 =+ 5;
+		}
+		int num1 = Math.abs(prevMult5 - 50) / 5;
+		int num2 = Math.abs(nextMult5 - 50) / 5;
+		penalty4 = Math.min(num1,  num2) * 10;
+		return penalty4;
 	}
 }
