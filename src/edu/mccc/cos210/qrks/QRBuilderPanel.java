@@ -34,6 +34,9 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 	public ErrorCorrectionLevel getErrorCorrectionLevel() {
 		return ec.getItemAt(ec.getSelectedIndex());
 	}
+	public byte[] encode(EncodingMode em) {
+		return QRBuilder.encode(getText(), em);
+	}
 	/**
 	 * Gets the resolution (pixels per unit (module) selected by the user).
 	 * @return Pixels per unit (module) selected by the user.
@@ -150,8 +153,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 			public void update(final DocumentEvent e) {
 				Document doc = e.getDocument();
 				EncodingMode em = QRBuilder.getEncoding(getText());
-				byte[] ba= QRBuilder.encode(getText(), em);
-				int version = QRBuilder.getVersion(ba, getErrorCorrectionLevel(), em);
+				int version = QRBuilder.getVersion(encode(em), getErrorCorrectionLevel(), em);
 				int ppu = Integer.parseInt(pps.getText(), 10);
 				int dimension = (version * 4 + 21) * ppu;
 				info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + doc.getLength());
@@ -164,5 +166,5 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		userChoice.add(ppsp, BorderLayout.SOUTH);
 		add(userChoice);
 		add(ip);
-			}
+	}
 }

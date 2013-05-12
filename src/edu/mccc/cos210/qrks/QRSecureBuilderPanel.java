@@ -25,6 +25,32 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 	private PrivateKey privateKey = null;
 	private String myAlias = null;
 	//TODO: figure out what the type should be for key!
+	@Override
+	public byte[] encode(EncodingMode em) {
+		if (privateKey != null) {
+			Signature sig;
+			byte [] data;
+			byte[] signature;
+			try {
+				data = super.encode(em);
+				sig = Signature.getInstance(Viewer.ALGORITHM);
+				sig.initSign(privateKey);
+				sig.update(Viewer.SEED);
+				sig.update(data);
+				signature = sig.sign();
+			} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+				signature = data = null;
+			}
+			if (data != null) {
+				byte [] packed = Arrays.copyOf(data, data.length + 1 + signature.length);
+				for (int i = 0, j = data.length + 1; i < signature.length; i++) {
+					packed[i + j] = signature[i];
+				}
+				return packed;
+			}
+		}
+		return super.encode(em);
+	}
 	
 	@Override
 	public Factory<Item<BufferedImage>> getFactory() {

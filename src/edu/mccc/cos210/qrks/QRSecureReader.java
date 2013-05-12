@@ -54,12 +54,13 @@ public class QRSecureReader extends QRReader {
 	}
 	public class QRSecureCode extends QRCode {
 		private QRCode base;
-		private boolean secure = false;
+		private boolean secure;
 		private QRSecureCode(boolean [][] matrix, Object data) {
 			super(matrix, data);
 		}
 		@Override
 		protected void decodeData(Object data) {
+			secure = false;
 			if (data instanceof byte[]) {
 				//look for a signature after a rouge null or something
 				byte [] ba = (byte[])data;
@@ -77,12 +78,20 @@ public class QRSecureReader extends QRReader {
 							secure = sig.verify(signature);
 							if (secure) {
 								data = message;
+							} else {
+								System.out.println("Failed to validate");
 							}
 						} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
 							e.printStackTrace();
 						}
+					} else {
+						System.out.println("Public key not available to verify file against");
 					}
+				} else {
+					System.out.println("Length mismatch");
 				}
+			} else {
+				System.out.println("wrong data type to be signed");
 			}
 			super.decodeData(data);
 		}

@@ -79,7 +79,8 @@ public class Decoder {
 		Object message = dealWithData(dataBlocks, version, ec);
 
 		if(message instanceof byte[]) {
-			System.out.println("dealt with data: byte[] " + Arrays.toString((byte[])message));
+			byte [] ba = (byte[]) message;
+			System.out.println("dealt with data: byte[" + ba.length + "] " + Arrays.toString(ba));
 		} else {
 			System.out.println("dealt with data: " + message);
 		}
