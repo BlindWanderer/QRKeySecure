@@ -12,6 +12,7 @@ import java.io.*;
 import javax.imageio.*;
 import java.awt.Point;
 import java.awt.Image;
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.geom.*;
 
@@ -713,6 +714,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}*/
 		swp.publish(prog = Utilities.convertImageToBufferedImage(bwRLE));
 
+		Graphics2D pgc = prog.createGraphics();
+		pgc.setColor(Color.GREEN);
+		pgc.setStroke(new BasicStroke(2.0f));
+		
 		for (SeaCreature sc : seaCreatures) {
 			boolean [][] matrix = sc.getMatrix(bw, prog);
 			if (matrix != null) {
@@ -721,11 +726,16 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 					QRCode code = newQRCode(matrix, raw);
 					if (code != null) {
 						carp.add(code);
+						Point[] points = sc.getCenters();
+						Utilities.drawLine(pgc, points[0], points[1]);
+						Utilities.drawLine(pgc, points[0], points[2]);
+						Utilities.drawLine(pgc, points[1], points[2]);
 					}
 				}
 			}
 //break;//TODO: REMOVE THIS DEBUGGING CODE IT IS CRITICAL THAT IT BE REMOVED
 		}
+		pg.dispose();
 //		System.out.println("possibleCodes<"+possibleCodes.size()+"> - "+ possibleCodes);
 //		System.out.println();
 //		System.out.println("possibleQR<"+octopodes.size()+"> - "+ octopodes);
@@ -798,6 +808,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 	}
 	private static abstract class SeaCreature {
 		public abstract boolean [][] getMatrix(boolean [] bw, BufferedImage prog);
+		public abstract Point[] getCenters();
 	}
 	private static class Barnacle extends SeaCreature {
 		public static Barnacle generate(MatchPoint a, MatchPoint b, MatchPoint c, int width, boolean [] bw) {
@@ -820,6 +831,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				return generate(b, c, a, width, bw);
 			}
 			return null;
+		}
+		public Point[] getCenters(){
+			Point[] c = {vertical.matchStart.center, vertical.matchEnd.center, horizontal.matchEnd.center};
+			return c;
 		}
 		Point start;
 		MatchPoint center;
@@ -922,14 +937,6 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 			return Utilities.add(start, Utilities.add(Utilities.scale(hk, x * ms), Utilities.scale(vk, y * ms)));
 		}
 		public boolean [][] getMatrix(boolean [] bw, BufferedImage prog) {
-			{
-				Graphics2D pg = prog.createGraphics();
-				pg.setColor(Color.GREEN);
-				Utilities.drawLine(pg, center.center, vertical.end);
-				Utilities.drawLine(pg, center.center, horizontal.end);
-				Utilities.drawLine(pg, vertical.end, horizontal.end);
-				pg.dispose();
-			}
 			boolean color = !bw[center.center.x + center.center.y * width];
 			boolean [][] r = new boolean[size][size];
 //			System.out.println();
@@ -938,7 +945,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 				for(int y = 0; y < size; y++) {
 					Point p = quickPoint(x, y);
 					if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
-						setARGB(prog, p, START_COLOR);
+//						setARGB(prog, p, START_COLOR);
 						r[x][y] = color ^ bw[p.x + p.y * width];
 					} else {
 						r[x][y] = false;
@@ -963,6 +970,10 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		}
 		public boolean [][] getMatrix(boolean [] bw, BufferedImage prog) {
 			return null;
+		}
+		public Point[] getCenters(){
+			Point[] c = { left.matchStart.center, right.matchEnd.center, right.matchEnd.center};
+			return c;
 		}
 	}
 	private static class Freud extends Scanner {
