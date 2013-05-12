@@ -715,7 +715,7 @@ public class QRReader implements Reader<BufferedImage, BufferedImage> {
 		swp.publish(prog = Utilities.convertImageToBufferedImage(bwRLE));
 
 		Graphics2D pgc = prog.createGraphics();
-		pgc.setColor(Color.GREEN);
+		pgc.setColor(Color.RED);
 		pgc.setStroke(new BasicStroke(2.0f));
 		
 		for (SeaCreature sc : seaCreatures) {
