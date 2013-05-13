@@ -228,10 +228,89 @@ public class QRBuilder implements Builder<BufferedImage> {
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
 		}
-		//byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords / numberECBlocks];
-		//return ecBlocks;
-		return null;
+		byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords / numberECBlocks];	//???double check
+		for (int i = 0; i < dataBlocks.length; i++) {//for each dataBlock
+				//need to reverse the order of byte in dataBlock - so that index matches x's exponent
+			byte[] dataPoly = new byte[dataBlocks[i].length];
+			for (int j = 0, k = dataBlocks.length - 1; j < dataBlocks[i].length && k >= 0; j++, k--) {
+				dataPoly[k] = dataBlocks[i][j];
+			}
+			int numECCodewords = ecc.errorCorrectionRows[0].c - ecc.errorCorrectionRows[0].k; 
+			//create genPoly from table
+			byte[] genPoly = ErrorCorrection.generatorPolynomials[numECCodewords];
+			//multiply dataPoly by x^n, where n = numberErrorCorrectionCodeWords (really, shift the array
+			//expand array by n and shift everything over by n
+			byte[] dataPolyReady = new byte[dataPoly.length + numECCodewords];
+			for (int l = dataPoly.length, m = dataPolyReady.length - 1; l <= 0; l--, m--) {
+				dataPolyReady[m] = dataPoly[l];
+			}
+			
+			//multiply genPoly by x^q, where q = numberDataCodeWords
+			int numDataCodewords = ecc.errorCorrectionRows[0].k;
+			if (ecc.errorCorrectionRows.length > 1 && i > ecc.errorCorrectionRows[0].k) {	//???double check - i only want to switch when in LongBlock
+				numDataCodewords = ecc.errorCorrectionRows[1].k;
+			}
+			byte[] genPolyReady = new byte[genPoly.length + numDataCodewords];
+			for (int l = genPoly.length, m = genPolyReady.length - 1; l <= 0; l--, m--) {
+				genPolyReady[m] = genPoly[l];
+			}
+			
+			
+			for (int v = 0; v <= numDataCodewords; v++) { //repeat these steps n times (n = # dataCodeWords)
+				//multiply genPolyReady by lead term (highest exponent / highest index) of dataPolyReady
+					//convert dataPolyReady to Exponent
+				dataPolyReady = intToExp(dataPolyReady);
+					//add each coefficient value of dataPolyReady and genPolyReady - store in tempPoly
+				byte[] tempPoly = new byte[dataPolyReady.length];
+				for (int k = 0; k < dataPolyReady.length; k++) {
+					tempPoly[k] = (byte)(dataPolyReady[k] + genPolyReady[k]);
+						//if coefficient (exponent) > 255; modulo 255 and make that the value
+					if (tempPoly[k] > 255) {
+						tempPoly[k] = (byte)(tempPoly[k] % 255);
+					}
+				}
+					//convert tempPoly to Integer
+				tempPoly = expToInt(tempPoly);
+					//convert dataPolyReady to Integer
+				dataPolyReady = expToInt(dataPolyReady);
+					//XOR each coefficient in tempPoly with dataPolyReady (lead term / highest index is now zero) (store result in dataPolyReady)
+				for (int y = 0; y < dataPolyReady.length; y++) {
+					dataPolyReady[y] = (byte)(dataPolyReady[y] ^ tempPoly[y]);
+				}
+					//move genPolyReady one left (decrease highest index by 1)
+				for (int z = 0; z < genPolyReady.length - 1; z++){
+					genPolyReady[z] = genPolyReady[z + 1];
+				}
+			}
+				//don't forget to reverse dataPolyReady to get ecWords
+			byte[] ecWords = new byte[numECCodewords];
+			for (int h = 0, g = ecWords.length; h < ecWords.length && g >= 0; h++, g--){
+				ecWords[h] = dataPolyReady[g]; //in theory, dataPolyReady will have values in only 0-#ECWords indeces. 
+			}
+			//add the newly generated ecBlock[] to ecBlocks[][]
+			for (int d = 0; d < ecBlocks[i].length; d++){
+				ecBlocks[i][d] = ecWords[d];
+			}
+		}
+		return ecBlocks;
 	}
+	private static byte[] expToInt(byte[] expA) {
+		byte[] intA = expA;
+		for (int i = 0; i < expA.length; i++) {
+			intA[i] = ErrorCorrection.expToInt[expA[i]];
+		}
+		return intA;
+	}
+	private static byte[] intToExp(byte[] intA) {
+		byte[] expA = intA;
+		for (int i = 0; i < intA.length; i++) {
+			expA[i] = ErrorCorrection.intToExp[intA[i]];
+		}
+		return expA;
+	}
+	
+	
+	
 	private static boolean [][] getBasicQRCode(int version) {
 		//Contains the various finding patters, timing patterns, alignment patterns
 		final int size = Version.getSize(version);

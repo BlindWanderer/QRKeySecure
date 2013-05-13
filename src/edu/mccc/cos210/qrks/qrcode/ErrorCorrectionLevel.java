@@ -56,9 +56,9 @@ public enum ErrorCorrectionLevel {
 		public static class Row {
 			public final int p;
 			public final int ecBlocks;
-			public final int c;
-			public final int k;
-			public final int r;
+			public final int c;	//total # of codewords
+			public final int k;	//# dataCodewords
+			public final int r; //error correction capacity
 			public Row(int p, int ecBlocks, int c, int k, int r) {
 				this.p = p;
 				this.ecBlocks = ecBlocks;
