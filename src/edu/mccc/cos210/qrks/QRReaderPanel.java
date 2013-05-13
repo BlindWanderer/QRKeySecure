@@ -54,6 +54,11 @@ public class QRReaderPanel extends JPanel {
 		exts.addAll(Arrays.asList(fnef));
 		IMAGE_FILE_NAME_FILTERS = Collections.unmodifiableList(exts);
 	}
+	private void tabCleanup() {
+		while (viewer.tabbedPane.getTabCount() > 2){
+			viewer.tabbedPane.remove(2);
+		}
+	}
 	public QRReaderPanel(final Viewer viewer, final Reader<BufferedImage, BufferedImage> [] readers){
 		this.viewer = viewer;
 		this.readers = readers;
@@ -91,6 +96,7 @@ public class QRReaderPanel extends JPanel {
 								if (swp != null && !swp.isDone()) {
 									swp.cancel(true);
 								}
+								tabCleanup();
 								cl.show(stack, "4");
 								image = camera.setImage(fi);
 								viewer.setTitle(file.getName());
@@ -113,11 +119,7 @@ public class QRReaderPanel extends JPanel {
 		ActionListener sal = new ActionListener() {
 			public void actionPerformed(final ActionEvent e) {
 				camera.setImage(null);
-				while (viewer.tabbedPane.getTabCount() > 2){
-					int i = 2;
-					viewer.tabbedPane.remove(i);
-					i++;
-				}
+				tabCleanup();
 				cl.show(stack, "1");
 				viewer.setTitle("");
 			}
@@ -129,6 +131,7 @@ public class QRReaderPanel extends JPanel {
 					if (swp != null && !swp.isDone()) {
 						swp.cancel(true);
 					}
+					tabCleanup();
 					swp = new DelegatingSwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage>() {
 						volatile List<Item<BufferedImage>> out;
 						@Override
@@ -146,12 +149,8 @@ public class QRReaderPanel extends JPanel {
 						@Override
 						public void done() {
 //							camera.setImage(image);//restore the image
-							if(swp == this && !isCancelled()){ 
-								while (viewer.tabbedPane.getTabCount() > 2){
-									int i = 2;
-									viewer.tabbedPane.remove(i);
-									i++;
-								}
+							if (swp == this && !isCancelled()) {
+								tabCleanup();
 								int number = 0;
 								for (Item<BufferedImage> bi : out) {
 									number++;
