@@ -46,6 +46,9 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 	protected int getPixelsPerUnit() {
 		return Integer.valueOf(pps.getText());
 	}
+	/**
+	 * Allows capture parameters from user input without actually building a new QRCode.
+	 */
 	public Factory<Item<BufferedImage>> getFactory() {
 		return ((QRBuilder) getBuilder()).new QREncodingFactory(getText(), getErrorCorrectionLevel(), getPixelsPerUnit());
 	}
@@ -63,7 +66,10 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 			info.setText("Version: " + version + "\nDimensions: " + dimension + " x " + dimension  + "\nNumber of Characters: " + getText().length() + "\nEncoded size: " + (ba.length + 3) + "\nMaximum: " + max);
 		}
 	}
-	
+	/**
+	 * Creates a GUI user-input fields for CREATE tab; Updates caluclated information in "Information" box
+	 * @param builder
+	 */
 	public QRBuilderPanel(final QRBuilder builder) {
 		super(builder);
 		Font borderFont = new Font("Dialog", Font.BOLD, 14);

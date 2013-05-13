@@ -25,10 +25,14 @@ public class Camera extends JPanel {
 	private ImagePanel imagePanel;
 	private boolean camera = false;
 	private final boolean cameraAvailable;
-	
+	/**
+	 * Checks where a camera is a valiable to serve as a capture device.
+	 * @return true if there is a camera, false if not
+	 */
 	public boolean isCameraAvailable() {
 		return cameraAvailable;
 	}
+
 	public Camera() {
 		this(0);
 	}

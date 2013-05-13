@@ -30,6 +30,10 @@ public class Viewer extends JFrame {
 	private Reader<BufferedImage, BufferedImage> [] readers;
 	public JTabbedPane tabbedPane;
 	private static final String DEFAULT_NAME = "QRKeySecure";
+	/**
+	 * Creates Tabs in the main window.
+	 * @param pk public key, used to verify security (if applicable)
+	 */
 	public Viewer(PublicKey pk) {
 		super(DEFAULT_NAME);
 		readers = Utilities.newGenericArray(new QRSecureReader(pk));
@@ -47,9 +51,13 @@ public class Viewer extends JFrame {
 		pack();
 		setVisible(true);
 	}
+	/**
+	 * Sets the Title for the main window.
+	 */
 	public void setTitle(String title) {
 		if(title == null || title == ""){
 			super.setTitle(DEFAULT_NAME);
+			super.setFont(new Font("Dialog", Font.ITALIC, 14));
 		} else {
 			super.setTitle(DEFAULT_NAME + " - " + title);
 		}
@@ -108,7 +116,7 @@ public class Viewer extends JFrame {
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
 					try {
-						//TODO: figure out the tyep from the extension.
+						//TODO: figure out the type from the extension.
 						ImageIO.write(imageBox.getImage(), "png", file);
 					}
 					catch (IOException ex) {	

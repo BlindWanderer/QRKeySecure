@@ -1,5 +1,8 @@
 package edu.mccc.cos210.qrks.qrcode;
-
+/**
+ * Provides BCH bits for Format Information.
+ *
+ */
 public final class FormatInfo
 {
 	private FormatInfo() {
@@ -38,9 +41,19 @@ public final class FormatInfo
 		0b1011001000,
 		0b1111111111,
 	};
+	/**
+	 * Returns BCH bits based on dataBits
+	 * @param databits 5 bits - 2 bit Encoding Mode and 3 bit finalMask number
+	 * @return BCH bits from Table (Annex C in QRCode Specs)
+	 */
 	public static int getErrorCorrectionBits(int databits) {
 		return DataBitsToErrorCorrectionBits[databits];
 	}
+	/**
+	 * Runs Error Correction on Format Information (based on BCH bits);
+	 * @param sequence Read-in Format Information
+	 * @return Error Corrected Format Information
+	 */
 	public static CorrectedInfo getCorrectedFormatInfo(int sequence) {
 		for(int i = 0; i < DataBitsToErrorCorrectionBits.length; i++){
 			int data = (i << 10) | DataBitsToErrorCorrectionBits[i];

@@ -23,7 +23,6 @@ public class QRBuilder implements Builder<BufferedImage> {
 	 * Returns this Builder's name.
 	 * @return This Builder's name
 	 */
-
 	@Override
 	public String getName() {
 		return "QRCode";

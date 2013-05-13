@@ -16,12 +16,18 @@ public class ImagePreview extends JComponent implements PropertyChangeListener {
     private Image thumbnail = null;
     private File file = null;
 	private boolean reloadNeeded = false;
-	
+	/**
+	 * Provides a thumbnail image 100x50 for an image file
+	 * @param fc file Chooser
+	 */
     public ImagePreview(JFileChooser fc) {
         setPreferredSize(new Dimension(100, 50));
         fc.addPropertyChangeListener(this);
     }
-	
+	/**
+	 * Gets thumbnail image.
+	 * @return thumbnail BufferedImage
+	 */
 	public BufferedImage getImage(){
 		if (reloadNeeded) {
 			loadImage();

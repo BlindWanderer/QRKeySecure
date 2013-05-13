@@ -2,7 +2,11 @@ package edu.mccc.cos210.qrks.qrcode;
 import java.util.*;
 import javax.swing.*;
 import java.awt.*;
-
+/**
+ * Encoding of Table 9 from QRCode specs.
+ * Provides information about number of Data Codewords for various encoding modes.
+ *
+ */
 public class SymbolCharacterInfo {
 	private SymbolCharacterInfo(final int dataCodeWordBits, //{
 								final int dataCapacityNumeric,
