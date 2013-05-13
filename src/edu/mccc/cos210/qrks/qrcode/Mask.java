@@ -74,8 +74,8 @@ public class Mask {
 	}
 	public static boolean[][] and(boolean [][] left, boolean [][] right) {
 		boolean[][] ret = new boolean[left.length][left[0].length];
-		for (int i = 0; i < ret[0].length; i++) {
-			for (int j = 0; j < ret.length; j++) {
+		for (int j = 0; j < ret.length; j++) {
+			for (int i = 0; i < ret[j].length; i++) {
 				ret[j][i] = left[j][i] & right[j][i];
 			}
 		}
@@ -83,8 +83,8 @@ public class Mask {
 	}
 	public static boolean[][] xor(boolean [][] left, boolean [][] right) {
 		boolean[][] ret = new boolean[left.length][left[0].length];
-		for (int i = 0; i < ret[0].length; i++) {
-			for (int j = 0; j < ret.length; j++) {
+		for (int j = 0; j < ret.length; j++) {
+			for (int i = 0; i < ret[j].length; i++) {
 				ret[j][i] = left[j][i] ^ right[j][i];
 			}
 		}
@@ -92,8 +92,8 @@ public class Mask {
 	}
 	public static boolean[][] not(boolean [][] right) {
 		boolean[][] ret = new boolean[right.length][right[0].length];
-		for (int i = 0; i < ret[0].length; i++) {
-			for (int j = 0; j < ret.length; j++) {
+		for (int j = 0; j < ret.length; j++) {
+			for (int i = 0; i < ret[j].length; i++) {
 				ret[j][i] = !right[j][i];
 			}
 		}
@@ -101,12 +101,20 @@ public class Mask {
 	}
 	public static boolean[][] or(boolean [][] left, boolean [][] right) {
 		boolean[][] ret = new boolean[left.length][left[0].length];
-		for (int i = 0; i < ret[0].length; i++) {
-			for (int j = 0; j < ret.length; j++) {
+		for (int j = 0; j < ret.length; j++) {
+			for (int i = 0; i < ret[j].length; i++) {
 				ret[j][i] = left[j][i] | right[j][i];
 			}
 		}
 		return ret;
+	}
+	public static boolean[][] notOverwrite(boolean [][] overwrite) {
+		for (int j = 0; j < overwrite.length; j++) {
+			for (int i = 0; i < overwrite[j].length; i++) {
+				overwrite[j][i] = !overwrite[j][i];
+			}
+		}
+		return overwrite;
 	}
 	public static boolean[][] andOverwrite(boolean [][] overwrite, boolean [][] right) {
 		for (int j = 0; j < overwrite.length; j++) {
