@@ -5,6 +5,7 @@ import java.util.*;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.text.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.*;
 import javax.swing.filechooser.*;
 
@@ -84,8 +85,10 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 		super(builder);
 
 		final JTextField keyName = new JTextField("<No Key Selected>", 18);
+		keyName.setFont(new Font("Dialog", Font.PLAIN, 14));
 		keyName.setEditable(false);
 		final JButton selectKey = new JButton("Select Key");
+		selectKey.setFont(new Font("Dialog", Font.BOLD, 16));
 		selectKey.setMnemonic(KeyEvent.VK_K);
 		
 		
@@ -205,9 +208,11 @@ public class QRSecureBuilderPanel extends QRBuilderPanel {
 		
 		
 		JPanel skp = new JPanel();
-		skp.setPreferredSize(new Dimension (200, 135));
+		skp.setPreferredSize(new Dimension (220, 135));
 		skp.setToolTipText("Secure Key:");
-		skp.setBorder(BorderFactory.createTitledBorder("Secure Key:"));
+		TitledBorder tb = BorderFactory.createTitledBorder("Secure Key:");
+		tb.setTitleFont(new Font("Dialog", Font.BOLD, 14));
+		skp.setBorder(tb);
 		skp.setLayout(new BorderLayout());
 		skp.add(selectKey, BorderLayout.SOUTH);;
 		skp.add(keyName, BorderLayout.NORTH);	

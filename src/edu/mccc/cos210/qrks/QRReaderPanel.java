@@ -21,6 +21,7 @@ import java.util.regex.*;
 import java.util.concurrent.ExecutionException;
 import java.awt.dnd.*;
 import java.awt.datatransfer.*;
+import java.awt.Font;
 //import java.awt.*;
 import java.awt.Image;
 import java.awt.CardLayout;
@@ -32,6 +33,7 @@ public class QRReaderPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 	private Image image;
 	private Reader<BufferedImage, BufferedImage> [] readers;
+	Font buttonFont = new Font("Dialog", Font.BOLD, 14);
 	private volatile SwingWorker<java.util.List<Item<BufferedImage>>, BufferedImage> swp;
 	final Viewer viewer;
 	public static final List<javax.swing.filechooser.FileFilter> IMAGE_FILE_NAME_FILTERS;
@@ -282,10 +284,12 @@ public class QRReaderPanel extends JPanel {
 			JPanel state1 = new JPanel(new BorderLayout());
 			stack.add(state1, "1");
 			final JButton openImage = new JButton("Open Image");
+			openImage.setFont(buttonFont);
 			openImage.setMnemonic(KeyEvent.VK_O);
 			openImage.addActionListener(oal);
 			state1.add(openImage, BorderLayout.LINE_START);
 			final JButton startVideo = new JButton("Start Video");
+			startVideo.setFont(buttonFont);
 			startVideo.setMnemonic(KeyEvent.VK_S);
 			state1.add(startVideo, BorderLayout.LINE_END);
 			startVideo.addActionListener(scal);
@@ -298,10 +302,12 @@ public class QRReaderPanel extends JPanel {
 			JPanel state2 = new JPanel(new BorderLayout());
 			stack.add(state2, "2");
 			final JButton openImage = new JButton("Open Image");
+			openImage.setFont(buttonFont);
 			openImage.setMnemonic(KeyEvent.VK_O);
 			openImage.addActionListener(oal);
 			state2.add(openImage, BorderLayout.LINE_START);
 			final JButton takeSnapshot = new JButton("Take Snapshot");
+			takeSnapshot.setFont(buttonFont);
 			takeSnapshot.setMnemonic(KeyEvent.VK_T);
 			state2.add(takeSnapshot, BorderLayout.LINE_END);
 			takeSnapshot.addActionListener(tpal);
@@ -310,9 +316,11 @@ public class QRReaderPanel extends JPanel {
 			JPanel state3 = new JPanel(new BorderLayout());
 			stack.add(state3, "3");
 			final JButton retake = new JButton("Retake");
+			retake.setFont(buttonFont);
 			retake.setMnemonic(KeyEvent.VK_R);
 			state3.add(retake, BorderLayout.LINE_START);
 			final JButton process = new JButton("Process");
+			process.setFont(buttonFont);
 			process.setMnemonic(KeyEvent.VK_P);
 			state3.add(process, BorderLayout.LINE_END);
 			retake.addActionListener(scal);
@@ -322,9 +330,11 @@ public class QRReaderPanel extends JPanel {
 			JPanel state4 = new JPanel(new BorderLayout());
 			stack.add(state4, "4");
 			final JButton goBack = new JButton("Go Back");
+			goBack.setFont(buttonFont);
 			goBack.setMnemonic(KeyEvent.VK_G);
 			state4.add(goBack, BorderLayout.LINE_START);
 			final JButton process = new JButton("Process");
+			process.setFont(buttonFont);
 			process.setMnemonic(KeyEvent.VK_P);
 			state4.add(process, BorderLayout.LINE_END);
 			goBack.addActionListener(sal);
@@ -334,6 +344,7 @@ public class QRReaderPanel extends JPanel {
 			JPanel state5 = new JPanel(new BorderLayout());
 			stack.add(state5, "5");
 			final JButton stop = new JButton("Stop");
+			stop.setFont(buttonFont);
 			stop.setMnemonic(KeyEvent.VK_T);
 			state5.add(stop, BorderLayout.CENTER);
 			stop.addActionListener(new ActionListener() {
@@ -347,6 +358,7 @@ public class QRReaderPanel extends JPanel {
 			JPanel state6 = new JPanel(new BorderLayout());
 			stack.add(state6, "6");
 			final JButton startOver = new JButton("Start Over");
+			startOver.setFont(buttonFont);
 			startOver.setMnemonic(KeyEvent.VK_O);
 			state6.add(startOver, BorderLayout.CENTER);
 			startOver.addActionListener(sal);

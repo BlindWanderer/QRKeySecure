@@ -12,6 +12,7 @@ import java.security.*;
  * Viewer: A JFrame that handles the construction of entire program.
  */
 public class Viewer extends JFrame {
+	Font buttonFont = new Font("Dialog", Font.BOLD, 14);
 	static final byte[] SEED;
 	static final int DIGEST_SIZE = 128;
 	static final String ALGORITHM = "MD5withRSA";
@@ -36,6 +37,7 @@ public class Viewer extends JFrame {
 		JPanel builderPanel = generateBuilderPanel();
 		JPanel readerPanel = new QRReaderPanel(this, readers);
 		tabbedPane = new JTabbedPane();
+		tabbedPane.setFont(new Font("Dialog", Font.BOLD, 14));
 		tabbedPane.addTab("READ", readerPanel);	//can add a custom icon later
 		tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
 		tabbedPane.addTab("CREATE", builderPanel);
@@ -58,7 +60,9 @@ public class Viewer extends JFrame {
 		JPanel fun = new JPanel(new GridLayout(0, 1));
 		JPanel blah = new JPanel();
 		final ImagePanel imageBox = new ImagePanel();
+		imageBox.setPreferredSize(new Dimension(400, 500));
 		final JButton generateImage = new JButton("Preview");
+		generateImage.setFont(buttonFont);
 		generateImage.setMnemonic(KeyEvent.VK_P);
 		generateImage.addActionListener(new ActionListener() {
 			SwingWorker sw;
@@ -84,6 +88,7 @@ public class Viewer extends JFrame {
 			}
 		});
 		final JButton saveImage = new JButton("Save Image");
+		saveImage.setFont(buttonFont);
 		saveImage.setMnemonic(KeyEvent.VK_S);
 		saveImage.addActionListener(new ActionListener() {
 			FileNameExtensionFilter[] exts = {
@@ -114,8 +119,8 @@ public class Viewer extends JFrame {
 			}
 		});
 		fun.add(builderGeneratedPanel); //, BorderLayout.CENTER);
-		blah.add(generateImage); //, BorderLayout.SOUTH);
-		blah.add(saveImage); //, BorderLayout.SOUTH);
+		blah.add(generateImage); 
+		blah.add(saveImage); 
 		fun.add(blah); //, BorderLayout.SOUTH);
 		
 		builderPanel.add(imageBox, BorderLayout.CENTER);

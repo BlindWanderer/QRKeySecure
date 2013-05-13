@@ -372,7 +372,6 @@ public class QRBuilder implements Builder<BufferedImage> {
 		format = format | (error << 13); 
 		int dataBits = 0b00000;
 		dataBits = dataBits | (error << 3);
-		//TODO: need to put in preferred mask type
 		format = format | (mask << 10); 
 		dataBits = dataBits | mask;
 		//get BCH bits from table 9
@@ -516,7 +515,6 @@ public class QRBuilder implements Builder<BufferedImage> {
 		for (int i = 0; i < 8; i++) {
 			int penaltyValue = 0;
 			boolean[][] maskedField = applyMask(version, field, i);
-			//TODO: need to apply penalty rules HERE (make the equal penaltyValue
 			penaltyValue = penalty1(maskedField) + penalty2(maskedField) + penalty3(maskedField) + penalty4(maskedField);
 			penalty[i] = penaltyValue;
 		}

@@ -3,6 +3,7 @@ import java.util.*;
 
 import javax.swing.*;
 import javax.swing.text.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.*;
 
 import java.awt.*;
@@ -65,24 +66,32 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 	
 	public QRBuilderPanel(final QRBuilder builder) {
 		super(builder);
+		Font borderFont = new Font("Dialog", Font.BOLD, 14);
 
 		input = new JTextArea(7, 25);
 		input.setLineWrap(true);
 		input.setWrapStyleWord(true);
 		input.setTabSize(3);
+		input.setFont(new Font("Dialog", Font.PLAIN, 16));
 	//	JPanel tp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		JScrollPane tp = new JScrollPane(input);
-		tp.setBorder(BorderFactory.createTitledBorder("QRCode Text:"));
+		TitledBorder tb3 = BorderFactory.createTitledBorder("QRCode Text:");
+		tb3.setTitleFont(borderFont);
+		tp.setBorder(tb3);
 		tp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 	//	tp.add(input);
 
 		ec = new JComboBox<ErrorCorrectionLevel>(ErrorCorrectionLevel.values());
 		JPanel ecp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		ecp.setToolTipText("Error Correction Level:");
-		ecp.setBorder(BorderFactory.createTitledBorder("Error Correction Level:"));
+		ec.setFont(new Font("Dialog", Font.PLAIN, 14));
+		TitledBorder tb = BorderFactory.createTitledBorder("Error Correction Level:");
+		tb.setTitleFont(borderFont);
+		ecp.setBorder(tb);
 		ecp.add(ec);
 
 		pps = new JTextField(new JNumberFilter(), "8", 5);
+		pps.setFont(new Font("Dialog", Font.PLAIN, 14));
 		pps.addFocusListener(new FocusAdapter() {
 				public void focusLost(final FocusEvent e) {
 					JTextComponent c = (JTextComponent) e.getComponent();
@@ -108,17 +117,22 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 			});
 		JPanel ppsp = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
 		ppsp.setToolTipText("Pixels Per Unit:");
-		ppsp.setBorder(BorderFactory.createTitledBorder("Pixels Per Unit:"));
+		TitledBorder tb2 = BorderFactory.createTitledBorder("Pixels Per Unit:");
+		tb2.setTitleFont(borderFont);
+		ppsp.setBorder(tb2);
 		ppsp.add(pps);
 		
 		info = new JTextArea("Version: \nDimensions: \nNumber of Characters: 0" );
 		info.setEditable(false);
 		//Font f = new Font(info.getFont());
 		info.setOpaque(false);
+		info.setFont(new Font("Dialog", Font.PLAIN, 14));
 		JPanel ip = new JPanel(); //new BoxLayout(pane, BoxLayout.Y_AXIS)
-		ip.setPreferredSize(new Dimension(200, 135));
+		ip.setPreferredSize(new Dimension(250, 135));
 		ip.setToolTipText("Information:");
-		ip.setBorder(BorderFactory.createTitledBorder("Information:"));
+		TitledBorder tb4 = BorderFactory.createTitledBorder("Information:");
+		tb4.setTitleFont(borderFont);
+		ip.setBorder(tb4);
 		ip.add(info);
 		
 		input.getDocument().addDocumentListener(new DocumentListener() {
@@ -160,7 +174,7 @@ public class QRBuilderPanel extends BuilderPanel<BufferedImage> {
 		});
 		add(tp);
 		JPanel userChoice = new JPanel(new BorderLayout());
-		userChoice.setPreferredSize(new Dimension(150, 135));
+		userChoice.setPreferredSize(new Dimension(200, 135));
 		userChoice.add(ecp, BorderLayout.NORTH);
 		userChoice.add(ppsp, BorderLayout.SOUTH);
 		add(userChoice);
