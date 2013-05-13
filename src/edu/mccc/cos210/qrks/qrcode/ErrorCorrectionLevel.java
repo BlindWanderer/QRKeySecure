@@ -53,6 +53,16 @@ public enum ErrorCorrectionLevel {
 			this.ecCodewords = ecCodewords;
 			this.errorCorrectionRows = ecrs;
 		}
+		public Row getRowFromBlock(final int block) {
+			int b = block;
+			for (Row r : errorCorrectionRows) {
+				if (b < r.ecBlocks) {
+					return r;
+				}
+				b -= r.ecBlocks;
+			}
+			return null;
+		}
 		public static class Row {
 			public final int p;
 			public final int ecBlocks;

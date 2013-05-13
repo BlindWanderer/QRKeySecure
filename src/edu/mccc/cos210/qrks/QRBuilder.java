@@ -79,7 +79,7 @@ public class QRBuilder implements Builder<BufferedImage> {
 				final byte[][] dataBlocks = makeDataBlocks(memory, version, ec);
 				final byte[][] ecBlocks = makeECBlocks(dataBlocks, version, ec);
 				writeMetaData(field, version, ec, 0); //we don't know the mask number yet, so we put 0 (we need to have version info written before mask penalty evaluation)
-				writeDataToField(field, dataBlocks, ecBlocks, version);
+				writeDataToField(field, dataBlocks, ecBlocks, version, ec);
 				int mask = getPreferredMask(version, field);
 				writeMetaData(field, version, ec, mask); //overwrite mask info with preferred mask
 				final boolean[][] finalField = applyMask(version, field, mask);
@@ -222,70 +222,73 @@ public class QRBuilder implements Builder<BufferedImage> {
 		return dataBlocks;
 	}
 	private static byte[][] makeECBlocks (byte[][] dataBlocks, int version, ErrorCorrectionLevel ec) {
+		return null;
+		/*
 		//Creates a ErrorCorrection Block for each Codeword Block
 		ErrorCorrectionLevel.Characteristic ecc = ec.getCharacteristic(version);
 		int numberECBlocks = ecc.errorCorrectionRows[0].ecBlocks;//#ecBlocks = #dataBlocks
 		if (ecc.errorCorrectionRows.length > 1) {	//if there are blocks of different lengths
 			numberECBlocks = numberECBlocks + ecc.errorCorrectionRows[1].ecBlocks;
 		}
-		byte[][] ecBlocks = new byte[numberECBlocks][ecc.ecCodewords / numberECBlocks];	//???double check
+		byte[][] ecBlocks = new byte[numberECBlocks][];
 		for (int i = 0; i < dataBlocks.length; i++) {//for each dataBlock
-				//need to reverse the order of byte in dataBlock - so that index matches x's exponent
-			byte[] dataPoly = new byte[dataBlocks[i].length];
+			ErrorCorrectionLevel.Characteristic.Row row = ecc.getRowFromBlock(i);
+			
+			//need to reverse the order of byte in dataBlock - so that index matches x's exponent
+			int[] dataPoly = new int[dataBlocks[i].length];
 			for (int j = 0, k = dataBlocks.length - 1; j < dataBlocks[i].length && k >= 0; j++, k--) {
-				dataPoly[k] = dataBlocks[i][j];
+				dataPoly[k] = dataBlocks[i][j] & 0xFF;
 			}
-			int numECCodewords = ecc.errorCorrectionRows[0].c - ecc.errorCorrectionRows[0].k; 
+			int numECCodewords = row.c - row.k; 
+			ecBlocks[i] = new byte[numECCodewords];
 			//create genPoly from table
-			byte[] genPoly = ErrorCorrection.generatorPolynomials[numECCodewords];
+			int[] genPoly = ErrorCorrection.generatorPolynomials[numECCodewords];
 			//multiply dataPoly by x^n, where n = numberErrorCorrectionCodeWords (really, shift the array
 			//expand array by n and shift everything over by n
-			byte[] dataPolyReady = new byte[dataPoly.length + numECCodewords];
-			for (int l = dataPoly.length, m = dataPolyReady.length - 1; l <= 0; l--, m--) {
+			int[] dataPolyReady = new int[dataPoly.length + numECCodewords];
+			for (int l = dataPoly.length - 1, m = dataPolyReady.length - 1; l >= 0; l--, m--) {
 				dataPolyReady[m] = dataPoly[l];
 			}
 			
 			//multiply genPoly by x^q, where q = numberDataCodeWords
-			int numDataCodewords = ecc.errorCorrectionRows[0].k;
-			if (ecc.errorCorrectionRows.length > 1 && i > ecc.errorCorrectionRows[0].k) {	//???double check - i only want to switch when in LongBlock
-				numDataCodewords = ecc.errorCorrectionRows[1].k;
-			}
-			byte[] genPolyReady = new byte[genPoly.length + numDataCodewords];
-			for (int l = genPoly.length, m = genPolyReady.length - 1; l <= 0; l--, m--) {
+			int numDataCodewords = row.k;
+
+			int[] genPolyReady = new int[genPoly.length + numDataCodewords];
+			for (int l = genPoly.length - 1, m = genPolyReady.length - 1; l >= 0; l--, m--) {
 				genPolyReady[m] = genPoly[l];
 			}
 			
-			
-			for (int v = 0; v <= numDataCodewords; v++) { //repeat these steps n times (n = # dataCodeWords)
+			for (int v = 0; v < numDataCodewords; v++) { //repeat these steps n times (n = # dataCodeWords)
 				//multiply genPolyReady by lead term (highest exponent / highest index) of dataPolyReady
-					//convert dataPolyReady to Exponent
+				//convert dataPolyReady to Exponent
 				dataPolyReady = intToExp(dataPolyReady);
-					//add each coefficient value of dataPolyReady and genPolyReady - store in tempPoly
-				byte[] tempPoly = new byte[dataPolyReady.length];
+				//add each coefficient value of dataPolyReady and genPolyReady - store in tempPoly
+				int[] tempPoly = new int[dataPolyReady.length];
 				for (int k = 0; k < dataPolyReady.length; k++) {
-					tempPoly[k] = (byte)(dataPolyReady[k] + genPolyReady[k]);
-						//if coefficient (exponent) > 255; modulo 255 and make that the value
+					tempPoly[k] = (dataPolyReady[k] + genPolyReady[k]);
+					//if coefficient (exponent) > 255; modulo 255 and make that the value
 					if (tempPoly[k] > 255) {
-						tempPoly[k] = (byte)(tempPoly[k] % 255);
+						tempPoly[k] = tempPoly[k] % 255;
 					}
 				}
-					//convert tempPoly to Integer
+				//convert tempPoly to Integer
 				tempPoly = expToInt(tempPoly);
-					//convert dataPolyReady to Integer
+				//convert dataPolyReady to Integer
 				dataPolyReady = expToInt(dataPolyReady);
-					//XOR each coefficient in tempPoly with dataPolyReady (lead term / highest index is now zero) (store result in dataPolyReady)
+				//XOR each coefficient in tempPoly with dataPolyReady (lead term / highest index is now zero) (store result in dataPolyReady)
 				for (int y = 0; y < dataPolyReady.length; y++) {
-					dataPolyReady[y] = (byte)(dataPolyReady[y] ^ tempPoly[y]);
+					dataPolyReady[y] = dataPolyReady[y] ^ tempPoly[y];
 				}
-					//move genPolyReady one left (decrease highest index by 1)
-				for (int z = 0; z < genPolyReady.length - 1; z++){
+				//move genPolyReady one left (decrease highest index by 1)
+				for (int z = 0; z < genPolyReady.length - 2; z++){
 					genPolyReady[z] = genPolyReady[z + 1];
 				}
+				genPolyReady[genPolyReady.length - 1] = 0;
 			}
-				//don't forget to reverse dataPolyReady to get ecWords
+			//don't forget to reverse dataPolyReady to get ecWords
 			byte[] ecWords = new byte[numECCodewords];
-			for (int h = 0, g = ecWords.length; h < ecWords.length && g >= 0; h++, g--){
-				ecWords[h] = dataPolyReady[g]; //in theory, dataPolyReady will have values in only 0-#ECWords indeces. 
+			for (int h = 0, g = ecWords.length - 1; h < ecWords.length && g >= 0; h++, g--){
+				ecWords[h] = (byte)dataPolyReady[g]; //in theory, dataPolyReady will have values in only 0-#ECWords indeces. 
 			}
 			//add the newly generated ecBlock[] to ecBlocks[][]
 			for (int d = 0; d < ecBlocks[i].length; d++){
@@ -293,24 +296,20 @@ public class QRBuilder implements Builder<BufferedImage> {
 			}
 		}
 		return ecBlocks;
+		/* */
 	}
-	private static byte[] expToInt(byte[] expA) {
-		byte[] intA = expA;
-		for (int i = 0; i < expA.length; i++) {
-			intA[i] = ErrorCorrection.expToInt[expA[i]];
+	private static int[] expToInt(int[] ia) {
+		for (int i = 0; i < ia.length; i++) {
+			ia[i] = ErrorCorrection.expToInt[ia[i]];
 		}
-		return intA;
+		return ia;
 	}
-	private static byte[] intToExp(byte[] intA) {
-		byte[] expA = intA;
-		for (int i = 0; i < intA.length; i++) {
-			expA[i] = ErrorCorrection.intToExp[intA[i]];
+	private static int[] intToExp(int[] ia) {
+		for (int i = 0; i < ia.length; i++) {
+			ia[i] = ErrorCorrection.intToExp[ia[i]];
 		}
-		return expA;
+		return ia;
 	}
-	
-	
-	
 	private static boolean [][] getBasicQRCode(int version) {
 		//Contains the various finding patters, timing patterns, alignment patterns
 		final int size = Version.getSize(version);
@@ -427,19 +426,22 @@ public class QRBuilder implements Builder<BufferedImage> {
 			
 		}
 	}
-	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks, int version) {
+	private static void writeDataToField(boolean [][] field, byte[][] dataBlocks, byte[][] ecBlocks, int version, ErrorCorrectionLevel ec) {
 		BitBuffer bf = new BitBuffer(Version.getDataCapacity(version));
-		int first = dataBlocks.length; 
-		int second = dataBlocks[first - 1].length;
-		for (int j = 0; j < second; j++) {
-			for (int i = 0; i < first; i++) {
-				if(j < dataBlocks[i].length) {
-					bf.write(dataBlocks[i][j], 8);
+		if (dataBlocks != null) {
+			int first = dataBlocks.length; 
+			int second = dataBlocks[first - 1].length;
+			for (int j = 0; j < second; j++) {
+				for (int i = 0; i < first; i++) {
+					if(j < dataBlocks[i].length) {
+						bf.write(dataBlocks[i][j], 8);
+					}
 				}
 			}
 		}
 
-		if (ecBlocks != null) {//TODO This should never be null but we aren't doing error correction
+		if (ecBlocks != null) {//This should never be null
+			bf.seek(ec.getSymbolCharacterInfo(version).dataCodeWordBits);
 			int firstEC = ecBlocks.length;
 			int secondEC = ecBlocks[firstEC - 1].length;
 			for (int j = 0; j < secondEC; j++) {
@@ -449,9 +451,9 @@ public class QRBuilder implements Builder<BufferedImage> {
 					}
 				}
 			}
-		} else { //Error correction information does not exist. Fill it with constant garbage.
+		} else if(dataBlocks != null) { //Error correction information does not exist. Fill it with constant garbage.
 			for (int j = 0; bf.getPosition() < bf.getSize(); j++) {
-				bf.write(dataBlocks[j % first]);
+				bf.write(dataBlocks[j % dataBlocks.length]);
 			}
 		}
 		
@@ -509,7 +511,6 @@ public class QRBuilder implements Builder<BufferedImage> {
 		return false;
 	}
 	private static int getPreferredMask(int version, boolean [][] field) {
-
 		int[] penalty = new int[8];
 		
 		for (int i = 0; i < 8; i++) {
@@ -530,16 +531,9 @@ public class QRBuilder implements Builder<BufferedImage> {
 		}
 		return maskIndex;
 	}
-	
 	private static boolean[][] applyMask(int version, boolean [][] field, int maskNum) {
 		//xor datafield with preferredmask
-		boolean[][] maskMatrix = Mask.generateFinalMask(maskNum, version);
-		for (int i = 0; i < field.length; i++) {
-			for (int j = 0; j < field[i].length; j++) {
-				field[i][j] = field[i][j] ^ maskMatrix[i][j];
-			}
-		}
-		return field;
+		return Mask.xorOverwrite(Mask.generateFinalMask(maskNum, version), field);
 	}
 	private static BufferedImage makeImage (boolean [][] field, int ppu, boolean quietZone) {
 		BufferedImage bi = new BufferedImage(field.length, field.length, BufferedImage.TYPE_INT_ARGB);
@@ -667,18 +661,18 @@ public class QRBuilder implements Builder<BufferedImage> {
 			}
 		}
 		//vertical scan 2 (bwbbbwbwwww)
-				for (int j = 0; j < field.length - 10; j++) {
-					for (int i = 0; i < field[j].length; i++) {
-						if (field[i][j] == true && field [i][j + 1] == false &&
-								field [i][j + 2] == field [i][j + 3] == field[i][j + 4] == true && 
-								field[i][j + 5] == false && field[i][j + 6] == true &&
-								field[i][j + 7] == field[i][j + 8] == field[i][j + 9] ==  field[i][j + 10] == false){
-							penalty3 = penalty3 + 40;
-						}	
-					}
-				}
+		for (int j = 0; j < field.length - 10; j++) {
+			for (int i = 0; i < field[j].length; i++) {
+				if (field[i][j] == true && field [i][j + 1] == false &&
+						field [i][j + 2] == field [i][j + 3] == field[i][j + 4] == true && 
+						field[i][j + 5] == false && field[i][j + 6] == true &&
+						field[i][j + 7] == field[i][j + 8] == field[i][j + 9] ==  field[i][j + 10] == false){
+					penalty3 = penalty3 + 40;
+				}	
+			}
+		}
 	
-	return penalty3;
+		return penalty3;
 	}
 	private static int penalty4(boolean[][] field){
 		int penalty4 = 0;

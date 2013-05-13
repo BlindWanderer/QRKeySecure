@@ -72,7 +72,7 @@ public class Mask {
 				return null;
 		}
 	}
-	public static boolean[][] and(boolean [][] left, boolean [][] right){
+	public static boolean[][] and(boolean [][] left, boolean [][] right) {
 		boolean[][] ret = new boolean[left.length][left[0].length];
 		for (int i = 0; i < ret[0].length; i++) {
 			for (int j = 0; j < ret.length; j++) {
@@ -81,7 +81,7 @@ public class Mask {
 		}
 		return ret;
 	}
-	public static boolean[][] xor(boolean [][] left, boolean [][] right){
+	public static boolean[][] xor(boolean [][] left, boolean [][] right) {
 		boolean[][] ret = new boolean[left.length][left[0].length];
 		for (int i = 0; i < ret[0].length; i++) {
 			for (int j = 0; j < ret.length; j++) {
@@ -90,7 +90,7 @@ public class Mask {
 		}
 		return ret;
 	}
-	public static boolean[][] not(boolean [][] right){
+	public static boolean[][] not(boolean [][] right) {
 		boolean[][] ret = new boolean[right.length][right[0].length];
 		for (int i = 0; i < ret[0].length; i++) {
 			for (int j = 0; j < ret.length; j++) {
@@ -99,7 +99,7 @@ public class Mask {
 		}
 		return ret;
 	}
-	public static boolean[][] or(boolean [][] left, boolean [][] right){
+	public static boolean[][] or(boolean [][] left, boolean [][] right) {
 		boolean[][] ret = new boolean[left.length][left[0].length];
 		for (int i = 0; i < ret[0].length; i++) {
 			for (int j = 0; j < ret.length; j++) {
@@ -108,7 +108,31 @@ public class Mask {
 		}
 		return ret;
 	}
+	public static boolean[][] andOverwrite(boolean [][] overwrite, boolean [][] right) {
+		for (int j = 0; j < overwrite.length; j++) {
+			for (int i = 0; i < overwrite[j].length; i++) {
+				overwrite[j][i] = overwrite[j][i] & right[j][i];
+			}
+		}
+		return overwrite;
+	}
+	public static boolean[][] orOverwrite(boolean [][] overwrite, boolean [][] right) {
+		for (int j = 0; j < overwrite.length; j++) {
+			for (int i = 0; i < overwrite[j].length; i++) {
+				overwrite[j][i] = overwrite[j][i] | right[j][i];
+			}
+		}
+		return overwrite;
+	}
+	public static boolean[][] xorOverwrite(boolean [][] overwrite, boolean [][] right) {
+		for (int j = 0; j < overwrite.length; j++) {
+			for (int i = 0; i < overwrite[j].length; i++) {
+				overwrite[j][i] = overwrite[j][i] ^ right[j][i];
+			}
+		}
+		return overwrite;
+	}
 	public static boolean[][] generateFinalMask(int num, int version) {
-		return and(Version.getDataMask(version), generateSubMask(num, version));
+		return andOverwrite(generateSubMask(num, version), Version.getDataMask(version));
 	}
 }
